@@ -1,0 +1,382 @@
+/* ============================================
+   Trainer Termine Manager - Admin Stylesheet
+   Professional UX/UI Design
+   ============================================ */
+
+:root {
+	--ttm-bg: #f8fafc;
+	--ttm-card: #ffffff;
+	--ttm-text: #0f172a;
+	--ttm-text-secondary: #475569;
+	--ttm-muted: #64748b;
+	--ttm-border: #e2e8f0;
+	--ttm-primary: #3b82f6;
+	--ttm-primary-dark: #2563eb;
+	--ttm-primary-light: #dbeafe;
+	--ttm-success: #10b981;
+	--ttm-success-light: #d1fae5;
+	--ttm-danger: #ef4444;
+	--ttm-danger-light: #fee2e2;
+	--ttm-warning: #f59e0b;
+	--ttm-warning-light: #fef3c7;
+	--ttm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	--ttm-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+	--ttm-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	--ttm-radius-sm: 8px;
+	--ttm-radius-md: 12px;
+	--ttm-radius-lg: 16px;
+	--ttm-radius-full: 999px;
+	--ttm-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============ ADMIN GRID LAYOUT ============ */
+
+.ttm-admin-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 20px;
+}
+
+/* ============ ADMIN SECTIONS ============ */
+
+.ttm-admin-section {
+	margin-top: 28px;
+	padding-top: 24px;
+	border-top: 2px solid var(--ttm-border);
+}
+
+.ttm-admin-section:first-child {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: 0;
+}
+
+.ttm-admin-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 16px;
+	flex-wrap: wrap;
+}
+
+.ttm-admin-section-head h3 {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--ttm-text);
+}
+
+.ttm-admin-section-head p {
+	margin: 0;
+	color: var(--ttm-text-secondary);
+	font-size: 0.9rem;
+}
+
+/* ============ MULTISELECT ============ */
+
+.ttm-multiselect {
+	width: 100%;
+	min-height: 180px;
+	border: 1.5px solid var(--ttm-border);
+	border-radius: var(--ttm-radius-md);
+	padding: 12px;
+	background: var(--ttm-card);
+	font-family: inherit;
+	transition: var(--ttm-transition);
+}
+
+.ttm-multiselect:focus {
+	outline: none;
+	border-color: var(--ttm-primary);
+	box-shadow: 0 0 0 3px var(--ttm-primary-light);
+}
+
+.ttm-multiselect option {
+	padding: 8px;
+	background: var(--ttm-card);
+	color: var(--ttm-text);
+}
+
+.ttm-multiselect option:checked {
+	background: linear-gradient(var(--ttm-primary), var(--ttm-primary)) var(--ttm-card);
+	background-color: var(--ttm-primary) !important;
+	color: white;
+}
+
+/* ============ MANUAL ROWS ============ */
+
+.ttm-manual-rows {
+	display: grid;
+	gap: 14px;
+}
+
+.ttm-manual-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr 140px auto;
+	gap: 12px;
+	align-items: center;
+	padding: 12px;
+	background: var(--ttm-card);
+	border: 1px solid var(--ttm-border);
+	border-radius: var(--ttm-radius-md);
+	transition: var(--ttm-transition);
+}
+
+.ttm-manual-row:hover {
+	border-color: var(--ttm-primary);
+	box-shadow: var(--ttm-shadow-md);
+}
+
+.ttm-manual-row input {
+	width: 100%;
+	border: 1.5px solid var(--ttm-border);
+	border-radius: var(--ttm-radius-sm);
+	padding: 8px 12px;
+	font: inherit;
+	background: var(--ttm-card);
+	color: var(--ttm-text);
+	transition: var(--ttm-transition);
+}
+
+.ttm-manual-row input:focus {
+	outline: none;
+	border-color: var(--ttm-primary);
+	box-shadow: 0 0 0 3px var(--ttm-primary-light);
+}
+
+/* ============ ADMIN ACTIONS ============ */
+
+.ttm-admin-actions {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.ttm-admin-actions a,
+.ttm-admin-actions button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 16px;
+	border-radius: var(--ttm-radius-full);
+	font-size: 0.875rem;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+	border: 0;
+	transition: var(--ttm-transition);
+}
+
+.ttm-admin-actions a {
+	background: #f1f5f9;
+	color: var(--ttm-text);
+	border: 1px solid var(--ttm-border);
+}
+
+.ttm-admin-actions a:hover {
+	background: #e2e8f0;
+	border-color: var(--ttm-primary);
+	color: var(--ttm-primary);
+}
+
+/* ============ STATUS BADGES ============ */
+
+.ttm-status-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 6px 12px;
+	border-radius: var(--ttm-radius-full);
+	font-size: 0.8rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	border: 1px solid transparent;
+}
+
+.ttm-status-badge.is-offen {
+	background: #f0fdf4;
+	color: #166534;
+	border-color: #86efac;
+}
+
+.ttm-status-badge.is-zugesagt {
+	background: var(--ttm-success-light);
+	color: #065f46;
+	border-color: #6ee7b7;
+}
+
+.ttm-status-badge.is-abgesagt {
+	background: var(--ttm-danger-light);
+	color: #7f1d1d;
+	border-color: #fca5a5;
+}
+
+.ttm-status-badge.is-bewerbung,
+.ttm-status-badge.is-voll {
+	background: var(--ttm-primary-light);
+	color: #1e40af;
+	border-color: #93c5fd;
+}
+
+/* ============ DELETE BUTTON ============ */
+
+.button-link-delete {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border: 1.5px solid var(--ttm-danger-light);
+	border-radius: var(--ttm-radius-sm);
+	background: #fafafa;
+	color: var(--ttm-danger);
+	font-size: 0.75rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: var(--ttm-transition);
+	padding: 0;
+	text-decoration: none;
+}
+
+.button-link-delete:hover {
+	background: var(--ttm-danger-light);
+	border-color: var(--ttm-danger);
+	transform: scale(1.05);
+}
+
+.button-link-delete:active {
+	transform: scale(0.95);
+}
+
+/* ============ FORM ENHANCEMENTS ============ */
+
+.ttm-admin-section input[type='text'],
+.ttm-admin-section input[type='email'],
+.ttm-admin-section input[type='number'],
+.ttm-admin-section input[type='date'],
+.ttm-admin-section input[type='time'],
+.ttm-admin-section textarea,
+.ttm-admin-section select {
+	border: 1.5px solid var(--ttm-border);
+	border-radius: var(--ttm-radius-md);
+	padding: 10px 12px;
+	font: inherit;
+	background: var(--ttm-card);
+	color: var(--ttm-text);
+	transition: var(--ttm-transition);
+}
+
+.ttm-admin-section input:focus,
+.ttm-admin-section textarea:focus,
+.ttm-admin-section select:focus {
+	outline: none;
+	border-color: var(--ttm-primary);
+	box-shadow: 0 0 0 3px var(--ttm-primary-light);
+}
+
+.ttm-admin-section textarea {
+	resize: vertical;
+	min-height: 100px;
+}
+
+.ttm-admin-section input::placeholder {
+	color: var(--ttm-muted);
+}
+
+/* ============ RESPONSIVE DESIGN ============ */
+
+@media (max-width: 782px) {
+	.ttm-admin-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.ttm-admin-section-head {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.ttm-manual-row {
+		grid-template-columns: 1fr;
+	}
+
+	.ttm-manual-row input {
+		grid-column: 1;
+	}
+}
+
+@media (max-width: 600px) {
+	.ttm-multiselect {
+		min-height: 150px;
+		font-size: 14px;
+	}
+
+	.ttm-admin-actions {
+		gap: 8px;
+	}
+
+	.ttm-admin-actions a,
+	.ttm-admin-actions button {
+		padding: 6px 12px;
+		font-size: 0.8rem;
+	}
+}
+
+/* ============ IMPROVED DELETE BUTTON WITH ICON ============ */
+
+.button-link-delete {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 1.5px solid var(--ttm-danger);
+	border-radius: var(--ttm-radius-sm);
+	background: var(--ttm-danger);
+	color: #ffffff;
+	font-size: 1.2rem;
+	font-weight: 700;
+	font-family: Arial, sans-serif;
+	line-height: 1;
+	cursor: pointer;
+	transition: var(--ttm-transition);
+	text-decoration: none;
+	position: relative;
+}
+
+.button-link-delete::before {
+	content: '✕';
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+.button-link-delete:hover {
+	background: var(--ttm-danger-light);
+	border-color: var(--ttm-danger);
+	color: var(--ttm-danger);
+	transform: scale(1.08);
+	box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.button-link-delete:active {
+	transform: scale(0.95);
+}
+
+.button-link-delete:focus-visible {
+	outline: 2px solid var(--ttm-primary);
+	outline-offset: 2px;
+}
+
+/* Hide original text */
+.button-link-delete {
+	font-size: 0;
+}
+
+.button-link-delete::before {
+	font-size: 1.2rem;
+}

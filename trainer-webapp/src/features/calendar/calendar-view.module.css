@@ -1,0 +1,467 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: white;
+}
+
+.toolbar label {
+  display: grid;
+  gap: 5px;
+  color: var(--color-muted);
+  font-size: 0.67rem;
+  font-weight: 650;
+}
+
+.toolbar select {
+  min-width: 170px;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-size: 0.78rem;
+}
+
+.resetButton,
+.createButton {
+  display: flex;
+  min-height: 40px;
+  align-self: end;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 680;
+}
+
+.resetButton {
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.createButton {
+  margin-left: auto;
+  background: var(--color-blue);
+  color: white;
+}
+
+.createButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.feedback {
+  margin: -6px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+}
+
+.calendarLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 285px;
+  gap: 16px;
+}
+
+.calendarPanel,
+.detailPanel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.calendarPanel {
+  overflow: hidden;
+}
+
+.calendarHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  min-height: 68px;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendarHeader h2 {
+  font-size: 1.15rem;
+  text-transform: capitalize;
+}
+
+.calendarHeader > span {
+  justify-self: end;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.monthNavigation {
+  display: flex;
+}
+
+.monthNavigation button {
+  display: grid;
+  width: 37px;
+  height: 37px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+}
+
+.monthNavigation button:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.monthNavigation button:last-child {
+  border-left: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.weekdays,
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.weekdays {
+  min-height: 38px;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.weekdays strong {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.dayCell,
+.outsideDay {
+  min-width: 0;
+  min-height: 128px;
+  padding: 8px;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dayCell:nth-child(7n),
+.outsideDay:nth-child(7n) {
+  border-right: 0;
+}
+
+.dayCell > span,
+.outsideDay > span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.outsideDay {
+  background: #fafbfc;
+  color: #aeb8c2;
+}
+
+.eventChip {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px;
+  margin-bottom: 5px;
+  padding: 6px;
+  border-left: 3px solid;
+  border-radius: 4px;
+  text-align: left;
+}
+
+.eventChip strong,
+.eventChip span {
+  overflow: hidden;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training {
+  border-color: var(--color-blue);
+  background: var(--color-blue-soft);
+  color: #075fae;
+}
+
+.contest {
+  border-color: var(--color-contest);
+  background: #f4effb;
+  color: #5d3191;
+}
+
+.medical {
+  border-color: var(--color-warning);
+  background: #fff5e8;
+  color: #9c5600;
+}
+
+.meeting {
+  border-color: var(--color-success);
+  background: #eaf8ef;
+  color: #0e7035;
+}
+
+.detailPanel {
+  min-height: 420px;
+  padding: 20px;
+}
+
+.detailPanel > h2 {
+  margin-bottom: 22px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+}
+
+.typeBadge {
+  display: inline-flex;
+  padding: 6px 9px;
+  border-left: 3px solid;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.detailPanel h3 {
+  margin: 18px 0 8px;
+  font-size: 1.15rem;
+}
+
+.detailPanel > p {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.detailPanel dl {
+  margin: 20px 0;
+}
+
+.detailPanel dl div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detailPanel dt {
+  color: var(--color-muted);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+}
+
+.detailPanel dd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 620;
+}
+
+.detailAction {
+  width: 100%;
+  min-height: 42px;
+  border-radius: var(--radius-sm);
+  background: var(--color-blue);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ownerActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ownerActions button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.73rem;
+  font-weight: 750;
+}
+
+.ownerActions button:last-child {
+  border-color: #f1c8cb;
+  color: var(--color-danger);
+}
+
+.ownerActions button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(7, 24, 45, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background: white;
+  box-shadow: 0 30px 80px rgba(7, 24, 45, 0.25);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dialogHeader h2 {
+  font-size: 1.15rem;
+}
+
+.dialogHeader p {
+  margin-top: 5px;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.dialog form {
+  display: grid;
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+.dialog label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.dialog input,
+.dialog select,
+.dialog textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: white;
+  resize: vertical;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 6px;
+}
+
+.dialogActions button {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 680;
+}
+
+.dialogActions button:last-child {
+  border-color: var(--color-blue);
+  background: var(--color-blue);
+  color: white;
+}
+
+.dialogActions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.formFeedback {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-blue-soft);
+  color: var(--color-blue-dark);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 1100px) {
+  .calendarLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .detailPanel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .toolbar label,
+  .toolbar select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .resetButton,
+  .createButton {
+    justify-content: center;
+    margin: 0;
+  }
+
+  .calendarPanel {
+    overflow-x: auto;
+  }
+
+  .calendarHeader,
+  .weekdays,
+  .monthGrid {
+    min-width: 720px;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 470px) {
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,270 @@
+.inviteBox {
+  margin-bottom: 16px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--color-navy);
+  color: white;
+}
+
+.inviteBox > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inviteBox h2 {
+  font-size: 1rem;
+}
+
+.inviteBox p {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.74rem;
+}
+
+.inviteBox form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.inviteBox label {
+  display: flex;
+  min-height: 42px;
+  max-width: 440px;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--color-text);
+}
+
+.inviteBox input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+}
+
+.inviteBox select {
+  min-height: 42px;
+  max-width: 220px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  background: white;
+  color: var(--color-text);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.inviteBox form button {
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  background: var(--color-blue);
+  color: white;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.inviteBox form button:disabled,
+.inviteBox input:disabled,
+.inviteBox select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.notice {
+  margin-top: 10px;
+  color: #77c7ff !important;
+}
+
+.inviteLink {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  word-break: break-word;
+}
+
+.inviteLink span {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.inviteLink a {
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(150px, 0.45fr)) auto;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filters > label:not(.search) {
+  display: grid;
+  gap: 5px;
+  color: var(--color-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+}
+
+.filters select {
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+  font-size: 0.75rem;
+}
+
+.search {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+}
+
+.search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+}
+
+.resetFilters {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+  color: var(--color-muted);
+}
+
+.peopleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.peopleGrid article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: white;
+}
+
+.avatar {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-blue);
+  color: white;
+  font-size: 0.76rem;
+  font-weight: 780;
+}
+
+.peopleGrid h2 {
+  font-size: 0.85rem;
+}
+
+.peopleGrid p,
+.peopleGrid small {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.66rem;
+}
+
+.role {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--color-blue-soft);
+  color: var(--color-blue-dark);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.peopleGrid small,
+.peopleGrid button {
+  grid-column: 2 / 4;
+}
+
+.roleDetails {
+  grid-column: 2 / 4;
+  color: var(--color-blue-dark) !important;
+  font-size: 0.66rem !important;
+  font-weight: 700;
+}
+
+.peopleGrid button {
+  justify-self: start;
+  color: var(--color-blue-dark);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.emptyResults {
+  padding: 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+@media (max-width: 1060px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .resetFilters {
+    width: 100%;
+  }
+
+  .peopleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .peopleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .inviteBox form {
+    display: grid;
+  }
+
+  .inviteBox select {
+    max-width: none;
+  }
+
+  .inviteBox form button {
+    min-height: 42px;
+  }
+}

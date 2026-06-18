@@ -1,0 +1,213 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(20, 140, 242, 0.18), transparent 38%),
+    var(--color-background);
+}
+
+.card {
+  width: min(100%, 580px);
+  padding: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand span {
+  color: var(--color-blue-dark);
+  font-size: 0.85rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brand h1 {
+  margin-top: 2px;
+  color: var(--color-navy);
+  font-family: var(--font-display), sans-serif;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.intro {
+  margin: 24px 0 18px;
+  color: var(--color-muted);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 22px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+
+.tabs a {
+  padding: 10px 12px;
+  border-radius: 7px;
+  color: var(--color-muted);
+  text-align: center;
+  font-weight: 750;
+}
+
+.tabs .activeTab {
+  color: var(--color-navy);
+  background: white;
+  box-shadow: 0 2px 9px rgba(16, 34, 56, 0.08);
+}
+
+.setupNotice,
+.error,
+.success {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}
+
+.setupNotice {
+  color: var(--color-navy-soft);
+  background: var(--color-blue-soft);
+}
+
+.error {
+  color: var(--color-danger);
+  background: #fff0f1;
+}
+
+.success {
+  color: var(--color-success);
+  background: #edf9f1;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  color: var(--color-navy);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.form input[type="text"],
+.form input[type="email"],
+.form input[type="password"] {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+}
+
+.form input:focus {
+  border-color: var(--color-blue);
+}
+
+.accountTypes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  border: 0;
+}
+
+.accountTypes legend {
+  margin-bottom: 9px;
+  color: var(--color-navy);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.accountTypes label {
+  display: block;
+  cursor: pointer;
+}
+
+.accountTypes input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.accountTypes span {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+  background: white;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.accountTypes input:checked + span {
+  border-color: var(--color-blue);
+  color: var(--color-blue-dark);
+  background: var(--color-blue-soft);
+  box-shadow: 0 0 0 2px rgba(20, 140, 242, 0.12);
+}
+
+.accountTypes input:focus-visible + span {
+  outline: 3px solid rgba(20, 140, 242, 0.3);
+  outline-offset: 2px;
+}
+
+.passwordGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.roleNotice {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.form button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  border-radius: var(--radius-md);
+  color: white;
+  background: var(--color-blue);
+  font-weight: 750;
+}
+
+.form button:hover:not(:disabled) {
+  background: var(--color-blue-dark);
+}
+
+.form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 560px) {
+  .card {
+    padding: 24px;
+  }
+
+  .accountTypes,
+  .passwordGrid {
+    grid-template-columns: 1fr;
+  }
+}

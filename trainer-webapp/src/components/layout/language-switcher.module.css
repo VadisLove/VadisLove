@@ -1,0 +1,23 @@
+.languageSwitcher {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 570;
+}
+
+.languageSwitcher select {
+  margin-left: auto;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  padding: 5px 7px;
+  color: inherit;
+  font: inherit;
+}
+
+.languageSwitcher option {
+  color: #07111f;
+}
