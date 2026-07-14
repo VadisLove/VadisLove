@@ -289,6 +289,11 @@
   font-size: 0.74rem;
 }
 
+.inviteForm input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .inviteForm button {
   padding: 0 13px;
   border-radius: var(--radius-sm);
@@ -296,6 +301,11 @@
   color: white;
   font-size: 0.74rem;
   font-weight: 700;
+}
+
+.inviteForm button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .feedback {
@@ -334,6 +344,21 @@
   max-height: 389px;
   overflow-y: auto;
   padding: 0 12px 12px;
+}
+
+.emptyParticipants {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.emptyParticipants p {
+  max-width: 260px;
+  font-size: 0.75rem;
 }
 
 .participant {

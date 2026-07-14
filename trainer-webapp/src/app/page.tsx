@@ -9,9 +9,8 @@ import { getUpcomingCalendarEvents } from "@/data/supabase-event-repository";
  * das Dashboard nur Termine, die der aktuelle Account per RLS sehen darf.
   */
 export default async function HomePage() {
-  const [events, attendance, plans, regions] = await Promise.all([
+  const [events, plans, regions] = await Promise.all([
     getUpcomingCalendarEvents(),
-    trainerRepository.getAttendance("e1"),
     trainerRepository.getTrainingPlans(),
     trainerRepository.getRegions(),
   ]);
@@ -19,7 +18,6 @@ export default async function HomePage() {
   return (
     <Dashboard
       events={events}
-      attendance={attendance}
       plans={plans}
       regions={regions}
     />
