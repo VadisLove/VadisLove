@@ -5,6 +5,8 @@ import { login, register } from "@/app/login/actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getTranslations } from "@/i18n/server";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { getRegistrationOrganizations } from "@/data/registration-organization-repository";
+import { RegistrationOrganizationFields } from "./registration-organization-fields";
 import styles from "./page.module.css";
 
 interface LoginPageProps {
@@ -24,6 +26,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const configured = isSupabaseConfigured();
   const isRegistering = mode === "register";
   const { t } = await getTranslations();
+  const registrationOrganizations = isRegistering && configured
+    ? await getRegistrationOrganizations()
+    : [];
 
   return (
     <main className={styles.page}>
@@ -100,14 +105,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               />
             </label>
 
-            <fieldset className={styles.accountTypes}>
-              <legend>{t("auth.iAm")}</legend>
-              <label><input type="radio" name="accountType" value="athlete" required /><span>{t("accountTypes.athlete")}</span></label>
-              <label><input type="radio" name="accountType" value="trainer" /><span>{t("accountTypes.trainer")}</span></label>
-              <label><input type="radio" name="accountType" value="medical" /><span>{t("accountTypes.medical")}</span></label>
-              <label><input type="radio" name="accountType" value="guardian" /><span>{t("accountTypes.guardian")}</span></label>
-              <label><input type="radio" name="accountType" value="organization_staff" /><span>{t("accountTypes.organization_staff")}</span></label>
-            </fieldset>
+            <RegistrationOrganizationFields
+              organizations={registrationOrganizations}
+            />
 
             <div className={styles.passwordGrid}>
               <label>

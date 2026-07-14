@@ -17,7 +17,7 @@ export const en: DictionaryShape<typeof de> = {
   accountTypes: {
     unspecified: "Profile incomplete", athlete: "Athlete", trainer: "Coach",
     medical: "Medical professional", guardian: "Parent or guardian",
-    organization_staff: "Club or association",
+    organization_staff: "Club or association administration",
   },
   navigation: {
     dashboard: "Dashboard", calendar: "Calendar", plans: "Training plans",
@@ -126,6 +126,10 @@ export const en: DictionaryShape<typeof de> = {
     fullName: "Full name", fullNamePlaceholder: "First name Last name",
     email: "Email address", iAm: "I am ...", password: "Password",
     repeatPassword: "Repeat password",
+    club: "Club", stateAssociation: "Affiliated state association",
+    selectClub: "Select a club", selectStateAssociation: "Select a state association",
+    clubAssociation: "This club is automatically affiliated with {association}.",
+    organizationApproval: "The responsible organisation reviews the request after registration.",
     roleNotice: "Your selection describes your profile. Permissions for clubs and associations are confirmed separately.",
   },
   organization: {

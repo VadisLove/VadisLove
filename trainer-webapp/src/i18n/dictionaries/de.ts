@@ -7,7 +7,7 @@ export const de = {
   accountTypes: {
     unspecified: "Profil unvollständig", athlete: "Athlet/in", trainer: "Trainer/in",
     medical: "Medizinische Fachkraft", guardian: "Erziehungsberechtigte/r",
-    organization_staff: "Verein oder Verband",
+    organization_staff: "Vereins- oder Verbandsverwaltung",
   },
   navigation: {
     dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne",
@@ -118,6 +118,10 @@ export const de = {
     fullName: "Vollständiger Name", fullNamePlaceholder: "Vorname Nachname",
     email: "E-Mail-Adresse", iAm: "Ich bin ...", password: "Passwort",
     repeatPassword: "Passwort wiederholen",
+    club: "Verein", stateAssociation: "Zugehöriger Landesverband",
+    selectClub: "Verein auswählen", selectStateAssociation: "Landesverband auswählen",
+    clubAssociation: "Dieser Verein ist automatisch {association} zugeordnet.",
+    organizationApproval: "Der Beitritt wird nach der Registrierung von der zuständigen Organisation geprüft.",
     roleNotice: "Deine Auswahl beschreibt dein Profil. Rechte für Vereine und Verbände werden separat bestätigt.",
   },
   organization: {

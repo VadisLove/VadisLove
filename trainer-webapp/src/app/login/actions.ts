@@ -61,8 +61,15 @@ export async function register(formData: FormData) {
   const password = String(formData.get("password") || "");
   const passwordConfirmation = String(formData.get("passwordConfirmation") || "");
   const accountType = String(formData.get("accountType") || "");
+  const organizationId = String(formData.get("organizationId") || "");
 
-  if (!displayName || !email || !password || !accountTypes.has(accountType)) {
+  if (
+    !displayName ||
+    !email ||
+    !password ||
+    !accountTypes.has(accountType) ||
+    !organizationId
+  ) {
     redirect(loginUrl("Bitte alle Felder vollständig ausfüllen.", "/", "register"));
   }
 
@@ -75,6 +82,27 @@ export async function register(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: registrationOrganizations, error: organizationsError } =
+    await supabase.rpc("get_registration_organizations");
+  const selectedOrganization = registrationOrganizations?.find(
+    (organization: { id: string }) => organization.id === organizationId,
+  );
+  const expectedLevel = accountType === "organization_staff" ? "state" : "club";
+
+  // Die Auswahl wird vor dem Sign-up und erneut im Datenbank-Trigger geprüft.
+  // Dadurch kann ein manipuliertes Formular keine unpassende Rolle erzeugen.
+  if (organizationsError || selectedOrganization?.level !== expectedLevel) {
+    redirect(
+      loginUrl(
+        accountType === "organization_staff"
+          ? "Bitte einen gültigen Landesverband auswählen."
+          : "Bitte einen gültigen Verein auswählen.",
+        "/",
+        "register",
+      ),
+    );
+  }
+
   const requestHeaders = await headers();
   const origin = requestHeaders.get("origin") || "http://localhost:3000";
 
@@ -89,6 +117,7 @@ export async function register(formData: FormData) {
       data: {
         display_name: displayName,
         account_type: accountType,
+        registration_organization_id: organizationId,
       },
     },
   });

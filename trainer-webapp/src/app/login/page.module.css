@@ -106,7 +106,8 @@
 
 .form input[type="text"],
 .form input[type="email"],
-.form input[type="password"] {
+.form input[type="password"],
+.form select {
   width: 100%;
   padding: 12px 13px;
   border: 1px solid var(--color-border);
@@ -114,8 +115,16 @@
   background: white;
 }
 
-.form input:focus {
+.form input:focus,
+.form select:focus {
   border-color: var(--color-blue);
+}
+
+.organizationSelect small {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .accountTypes {
