@@ -23,6 +23,7 @@ import {
 } from "@/app/postfach/actions";
 import { useCurrentUser } from "@/components/auth/current-user-context";
 import { PageHeader } from "@/components/ui/page-header";
+import type { AccountType } from "@/domain/current-user";
 import type {
   GroupInvitation,
   InboxOverview,
@@ -48,6 +49,46 @@ const statusLabels = {
   rejected: "Abgelehnt",
   withdrawn: "Zurückgezogen",
 } as const;
+
+const organizationRoleLabels: Record<OrganizationRole, string> = {
+  federal_chair: "Bundesvorsitz",
+  specialist: "Fachwart/in",
+  federal_trainer: "Bundestrainer/in",
+  state_trainer: "Landestrainer/in",
+  club_trainer: "Vereinstrainer/in",
+  club_board: "Vereinsvorstand",
+  athlete: "Athlet/in",
+  guardian: "Erziehungsberechtigte/r",
+  medical: "Medizinische Fachkraft",
+};
+
+/**
+ * Leitet aus Kontotyp und Organisationsebene die passende Beitrittsrolle ab.
+ * Mächtige Verwaltungsrollen werden nur beantragt und müssen weiterhin durch
+ * eine bereits berechtigte Person bestätigt werden.
+ */
+function getRequestedOrganizationRole(
+  accountType: AccountType | undefined,
+  level: InboxOverview["organizations"][number]["level"],
+): OrganizationRole | null {
+  if (accountType === "trainer") {
+    if (level === "federal") return "federal_trainer";
+    if (level === "state") return "state_trainer";
+    return "club_trainer";
+  }
+
+  if (accountType === "organization_staff") {
+    if (level === "federal") return "federal_chair";
+    if (level === "state") return "specialist";
+    return "club_board";
+  }
+
+  if (accountType === "medical") return "medical";
+  if (accountType === "athlete" && level === "club") return "athlete";
+  if (accountType === "guardian" && level === "club") return "guardian";
+
+  return null;
+}
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("de-DE", {
@@ -89,17 +130,14 @@ export function InboxView({ overview }: { overview: InboxOverview }) {
     ["owner", "admin"].includes(group.role),
   );
 
-  const joinRole = useMemo<OrganizationRole | null>(() => {
-    switch (currentUser?.accountType) {
-      case "athlete": return "athlete";
-      case "trainer": return "club_trainer";
-      case "guardian": return "guardian";
-      case "medical": return "medical";
-      default: return null;
-    }
-  }, [currentUser?.accountType]);
-  const joinableOrganizations = overview.organizations.filter((organization) =>
-    joinRole === "medical" ? true : organization.level === "club",
+  const joinableOrganizations = useMemo(
+    () => overview.organizations.filter((organization) =>
+      getRequestedOrganizationRole(
+        currentUser?.accountType,
+        organization.level,
+      ) !== null,
+    ),
+    [currentUser?.accountType, overview.organizations],
   );
 
   return (
@@ -196,10 +234,10 @@ export function InboxView({ overview }: { overview: InboxOverview }) {
             ))}
             {outgoingMemberships.length === 0 ? <EmptyMessage text="Noch keine Beitrittsanfragen." /> : null}
           </RequestSection>
-          {joinRole ? (
+          {currentUser && joinableOrganizations.length > 0 ? (
             <MembershipRequestForm
               organizations={joinableOrganizations}
-              requestedRole={joinRole}
+              accountType={currentUser.accountType}
             />
           ) : (
             <section className={styles.formCard}>
@@ -355,17 +393,51 @@ function InviteGroupForm({ groups, people }: { groups: InboxOverview["groups"]; 
   );
 }
 
-function MembershipRequestForm({ organizations, requestedRole }: { organizations: InboxOverview["organizations"]; requestedRole: OrganizationRole }) {
+function MembershipRequestForm({
+  organizations,
+  accountType,
+}: {
+  organizations: InboxOverview["organizations"];
+  accountType: AccountType;
+}) {
   const [state, action, pending] = useActionState(createMembershipRequest, initialState);
+  const [organizationId, setOrganizationId] = useState(
+    organizations[0]?.id || "",
+  );
+  const selectedOrganization = organizations.find(
+    (organization) => organization.id === organizationId,
+  );
+  const requestedRole = selectedOrganization
+    ? getRequestedOrganizationRole(accountType, selectedOrganization.level)
+    : null;
+
   return (
     <form action={action} className={styles.formCard}>
       <Building2 size={22} />
       <h2>Organisation beitreten</h2>
       <p>Die zuständige Verwaltung erhält deine Anfrage im Postfach.</p>
-      <input type="hidden" name="requestedRole" value={requestedRole} />
-      <label>Verein oder Verband<select name="organizationId" required disabled={organizations.length === 0}>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></label>
+      <input type="hidden" name="requestedRole" value={requestedRole || ""} />
+      <label>
+        Verein oder Verband
+        <select
+          name="organizationId"
+          value={organizationId}
+          onChange={(event) => setOrganizationId(event.target.value)}
+          required
+          disabled={organizations.length === 0}
+        >
+          {organizations.map((organization) => (
+            <option key={organization.id} value={organization.id}>
+              {organization.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {requestedRole ? (
+        <p>Beantragte Rolle: <strong>{organizationRoleLabels[requestedRole]}</strong></p>
+      ) : null}
       <label>Nachricht<textarea name="note" maxLength={500} rows={4} placeholder="Kurze Vorstellung oder Rückfrage ..." /></label>
-      <button type="submit" disabled={pending || organizations.length === 0}>{pending ? "Wird gesendet ..." : "Beitritt anfragen"}</button>
+      <button type="submit" disabled={pending || !requestedRole}>{pending ? "Wird gesendet ..." : "Beitritt anfragen"}</button>
       {state.message ? <small>{state.message}</small> : null}
     </form>
   );

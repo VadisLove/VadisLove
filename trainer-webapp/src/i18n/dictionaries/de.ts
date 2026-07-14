@@ -73,7 +73,8 @@ export const de = {
     confirmAttendance: "Zusagen", declineAttendance: "Absagen",
     saving: "Wird gespeichert ...",
     noEventsForDay: "Keine Termine an diesem Tag.",
-    noOrganization: "Du brauchst eine Trainer-, Athleten-, Medizin- oder Verwaltungsrolle in einer Organisation, um passende Termine anzulegen.",
+    noOrganization: "Du brauchst zuerst eine bestätigte Mitgliedschaft in einem Verein oder Verband.",
+    joinOrganization: "Organisation beitreten",
   },
   people: {
     title: "Personen", description: "Trainer, Athleten und Fachkräfte finden und einladen.",

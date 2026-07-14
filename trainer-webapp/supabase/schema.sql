@@ -235,6 +235,44 @@ create index event_participants_event_idx on public.event_participants(event_id)
 create index event_participants_user_idx on public.event_participants(user_id);
 create index event_participants_invited_by_idx on public.event_participants(invited_by);
 
+-- Neue Termine enthalten den Ersteller sofort als bestätigten Teilnehmer. Der
+-- Trigger greift für einzelne Termine, Serien und weitere Importwege gleich.
+create or replace function private.add_event_creator_as_participant()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  insert into public.event_participants (
+    event_id,
+    user_id,
+    invited_email,
+    invited_by,
+    status,
+    responded_at
+  )
+  select
+    new.id,
+    profile.id,
+    lower(btrim(profile.email)),
+    profile.id,
+    'confirmed'::public.attendance_status,
+    now()
+  from public.profiles profile
+  where profile.id = new.created_by
+  on conflict (event_id, invited_email) do update
+    set user_id = excluded.user_id,
+        status = 'confirmed'::public.attendance_status,
+        responded_at = excluded.responded_at;
+
+  return new;
+end;
+$$;
+
+create trigger events_add_creator_as_participant
+  after insert on public.events
+  for each row execute function private.add_event_creator_as_participant();
+
 -- Der Plan ist der stabile fachliche Datensatz; Inhalte liegen versioniert vor.
 create table public.training_plans (
   id uuid primary key default gen_random_uuid(),
@@ -522,9 +560,8 @@ as $$
     );
 $$;
 
--- Prüft Termin-Erstellungsrechte pro Organisation und Terminart.
--- Trainer und organisatorisch Verantwortliche dürfen alle Terminarten
--- anlegen. Athleten dürfen alles außer Trainings eintragen.
+-- Jedes bestätigte Mitglied darf alle Terminarten in der eigenen Organisation
+-- anlegen. Der Termin-Typ bleibt für eine stabile Funktionssignatur erhalten.
 create or replace function private.can_create_event(
   target_organization_id uuid,
   target_event_type public.event_type
@@ -535,30 +572,12 @@ stable
 security definer
 set search_path = public
 as $$
-  select auth.uid() is not null
+  select (select auth.uid()) is not null
     and exists (
       select 1
       from public.organization_memberships membership
-      where membership.user_id = auth.uid()
+      where membership.user_id = (select auth.uid())
         and membership.organization_id = $1
-        and (
-          membership.role in (
-            'federal_chair',
-            'specialist',
-            'federal_trainer',
-            'state_trainer',
-            'club_trainer',
-            'club_board'
-          )
-          or (
-            membership.role = 'athlete'
-            and $2 <> 'training'::public.event_type
-          )
-          or (
-            membership.role = 'medical'
-            and $2 = 'medical'::public.event_type
-          )
-        )
     );
 $$;
 
@@ -1058,6 +1077,8 @@ revoke execute on function private.validate_membership_role()
   from public, anon, authenticated;
 revoke execute on function private.apply_approved_membership_request()
   from public, anon, authenticated;
+revoke execute on function private.add_event_creator_as_participant()
+  from public, anon, authenticated;
 revoke execute on function private.is_organization_member(uuid) from public, anon;
 revoke execute on function private.organization_is_same_or_descendant(uuid, uuid) from public, anon;
 revoke execute on function private.can_view_organization(uuid) from public, anon;
@@ -1187,7 +1208,17 @@ create policy "membership_requests_create_self"
     and status = 'pending'
     and reviewed_by is null
     and reviewed_at is null
-    and requested_role in ('athlete', 'guardian', 'club_trainer', 'medical')
+    and requested_role in (
+      'federal_chair',
+      'specialist',
+      'federal_trainer',
+      'state_trainer',
+      'club_trainer',
+      'club_board',
+      'athlete',
+      'guardian',
+      'medical'
+    )
   );
 
 create policy "membership_requests_review_managers"

@@ -4,7 +4,6 @@ import type {
   EventOrganizationOption,
   EventParticipantSummary,
   EventType,
-  OrganizationRole,
 } from "@/domain/models";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -47,35 +46,6 @@ const allEventTypes: EventType[] = [
   "medical",
   "meeting",
 ];
-const athleteEventTypes: EventType[] = ["contest", "medical", "meeting"];
-const fullEventCreatorRoles = new Set<OrganizationRole>([
-  "federal_chair",
-  "specialist",
-  "federal_trainer",
-  "state_trainer",
-  "club_trainer",
-  "club_board",
-]);
-
-/**
- * Übersetzt Organisationsrollen in die Terminarten, die dort erstellt werden
- * dürfen. Mehrere Rollen werden später pro Organisation zusammengeführt.
- */
-export function getAllowedEventTypes(role: OrganizationRole): EventType[] {
-  if (fullEventCreatorRoles.has(role)) {
-    return allEventTypes;
-  }
-
-  if (role === "athlete") {
-    return athleteEventTypes;
-  }
-
-  if (role === "medical") {
-    return ["medical"];
-  }
-
-  return [];
-}
 
 function formatDatePart(value: string) {
   return new Intl.DateTimeFormat("sv-SE", {
@@ -305,9 +275,9 @@ export async function getEventOrganizationOptions(): Promise<
     const organization = Array.isArray(membership.organizations)
       ? membership.organizations[0]
       : membership.organizations;
-    const allowedEventTypes = getAllowedEventTypes(
-      membership.role as OrganizationRole,
-    );
+    // Jede bestätigte Mitgliedschaft schaltet alle Terminarten frei. Die
+    // konkrete Rolle bleibt für andere Organisationsrechte unverändert.
+    const allowedEventTypes = allEventTypes;
 
     if (organization && allowedEventTypes.length > 0) {
       const existingOption = uniqueOrganizations.get(organization.id);

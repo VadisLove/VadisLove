@@ -82,7 +82,8 @@ export const en: DictionaryShape<typeof de> = {
     confirmAttendance: "Accept", declineAttendance: "Decline",
     saving: "Saving ...",
     noEventsForDay: "No events on this day.",
-    noOrganization: "You need a coach, athlete, medical, or management role in an organisation to create matching events.",
+    noOrganization: "You first need a confirmed membership in a club or association.",
+    joinOrganization: "Join an organisation",
   },
   people: {
     title: "People", description: "Find and invite coaches, athletes and specialists.",

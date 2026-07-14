@@ -3,11 +3,9 @@
 import { revalidatePath } from "next/cache";
 import type { AttendanceStatus, CalendarEvent, EventType } from "@/domain/models";
 import {
-  getAllowedEventTypes,
   mapCalendarEvent,
   type CalendarEventRow,
 } from "@/data/supabase-event-repository";
-import type { OrganizationRole } from "@/domain/models";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -174,19 +172,13 @@ export async function saveCalendarEvent(
     .select("role")
     .eq("user_id", currentUserId)
     .eq("organization_id", parsed.values.organization_id);
-  const canCreateEvent = (memberships || []).some((membership) =>
-    getAllowedEventTypes(
-      membership.role as OrganizationRole,
-    ).includes(parsed.values.type),
-  );
+  const canCreateEvent = (memberships || []).length > 0;
 
   if (permissionError || !canCreateEvent) {
     return {
       status: "error",
       message:
-        parsed.values.type === "training"
-          ? "Trainings dürfen nur Trainer oder organisatorisch Verantwortliche erstellen."
-          : "Du darfst diese Terminart in der gewählten Organisation nicht erstellen.",
+        "Du musst bestätigtes Mitglied der gewählten Organisation sein, um dort einen Termin zu erstellen.",
     };
   }
 
@@ -248,6 +240,7 @@ export async function saveCalendarEvent(
   }
 
   revalidatePath("/kalender");
+  revalidatePath("/");
 
   return {
     status: "success",

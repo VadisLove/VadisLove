@@ -12,9 +12,14 @@ export interface InboxActionState {
 
 const responseStatuses = new Set<RequestStatus>(["approved", "rejected"]);
 const selfRequestRoles = new Set<OrganizationRole>([
+  "federal_chair",
+  "specialist",
+  "federal_trainer",
+  "state_trainer",
   "athlete",
   "guardian",
   "club_trainer",
+  "club_board",
   "medical",
 ]);
 

@@ -108,6 +108,13 @@ button.legendItem:focus-visible {
   font-size: 0.74rem;
 }
 
+.feedback a {
+  color: var(--color-blue-dark);
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .calendarLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 285px;

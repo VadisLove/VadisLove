@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import {
   ChevronLeft,
@@ -1043,7 +1044,10 @@ export function CalendarView({
       </section>
       {feedback ? <p className={styles.feedback}>{feedback}</p> : null}
       {organizationOptions.length === 0 ? (
-        <p className={styles.feedback}>{t("calendar.noOrganization")}</p>
+        <p className={styles.feedback}>
+          {t("calendar.noOrganization")}{" "}
+          <Link href="/postfach">{t("calendar.joinOrganization")}</Link>
+        </p>
       ) : null}
 
       <div className={styles.calendarLayout}>
