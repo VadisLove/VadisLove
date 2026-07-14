@@ -12,6 +12,13 @@ interface TrainingLeaderboardRow {
   xp_total: number;
 }
 
+interface TrickProgressRow {
+  snapshot_share_id: string;
+  trick_id: string;
+  athlete_id: string;
+  status: TrickProgressStatus;
+}
+
 function isTrainingPlan(value: unknown): value is TrainingPlan {
   if (!value || typeof value !== "object") return false;
   const plan = value as Partial<TrainingPlan>;
@@ -72,21 +79,27 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
 
   const shares = data || [];
   const shareIds = shares.map((share) => share.id);
-  const progressByShare = new Map<string, Map<string, TrickProgressStatus>>();
+  const progressByShare = new Map<
+    string,
+    Map<string, Pick<TrickProgressRow, "athlete_id" | "status">>
+  >();
 
   if (shareIds.length > 0) {
     const { data: progressData, error: progressError } = await supabase
       .from("training_trick_progress")
-      .select("snapshot_share_id, trick_id, status")
+      .select("snapshot_share_id, trick_id, athlete_id, status")
       .in("snapshot_share_id", shareIds);
 
     if (progressError && !isMissingProgressSchema(progressError)) {
       throw new Error(`Trick-Fortschritt konnte nicht geladen werden: ${progressError.message}`);
     }
 
-    for (const progress of progressData || []) {
+    for (const progress of (progressData || []) as TrickProgressRow[]) {
       const shareProgress = progressByShare.get(progress.snapshot_share_id) || new Map();
-      shareProgress.set(progress.trick_id, progress.status as TrickProgressStatus);
+      shareProgress.set(progress.trick_id, {
+        athlete_id: progress.athlete_id,
+        status: progress.status,
+      });
       progressByShare.set(progress.snapshot_share_id, shareProgress);
     }
   }
@@ -97,15 +110,22 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
     const direction = row.recipient_user_id === currentUserId
       ? "empfangen"
       : "versendet";
+    const progressAthleteIds = Array.from(
+      new Set(Array.from(progress?.values() || []).map((entry) => entry.athlete_id)),
+    );
 
     return [{
       ...row.plan_snapshot,
       id: `shared-${row.id}`,
       sourcePlanId: row.plan_snapshot.id,
       author: `${row.plan_snapshot.author} · ${direction}`,
+      assignedAthletes: progressAthleteIds.length > 0
+        ? progressAthleteIds
+        : row.plan_snapshot.assignedAthletes,
       tricks: row.plan_snapshot.tricks.map((trick) => ({
         ...trick,
-        status: progress?.get(trick.id) || trick.status,
+        athleteId: progress?.get(trick.id)?.athlete_id || trick.athleteId,
+        status: progress?.get(trick.id)?.status || trick.status,
       })),
     }];
   });

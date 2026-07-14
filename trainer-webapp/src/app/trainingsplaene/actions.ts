@@ -59,6 +59,11 @@ export async function updateSharedTrickProgress({
   });
 
   if (error) {
+    console.error("Trick-Fortschritt konnte nicht aktualisiert werden.", {
+      code: error.code,
+      message: error.message,
+      requestedStatus: status,
+    });
     return {
       status: "error",
       message: error.code === "42501"
