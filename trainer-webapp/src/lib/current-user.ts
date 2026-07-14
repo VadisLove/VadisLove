@@ -44,6 +44,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const displayName = profile.display_name.trim() || "Trainer-Hub Nutzer";
 
   return {
+    id: userId,
     displayName,
     initials: createInitials(displayName) || "TH",
     accountType,

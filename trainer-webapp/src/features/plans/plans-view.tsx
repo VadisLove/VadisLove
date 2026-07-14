@@ -30,6 +30,7 @@ import type {
   TrainingTrick,
   TrickProgressStatus,
 } from "@/domain/models";
+import { useCurrentUser } from "@/components/auth/current-user-context";
 import { PageHeader } from "@/components/ui/page-header";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./plans-view.module.css";
@@ -119,8 +120,53 @@ export function PlansView({
   people: Person[];
 }) {
   const { t } = useI18n();
-  const athletes = useMemo(() => people.filter((person) => person.role === "Athlet"), [people]);
+  const currentUser = useCurrentUser();
+
+  /**
+   * Das globale Personenverzeichnis enthält aus Datenschutzgründen nicht das
+   * eigene Profil. Für XP und eigene Trick-Zuordnungen ergänzen wir es deshalb
+   * ausschließlich in dieser Ansicht um den angemeldeten Athleten.
+   */
+  const athletes = useMemo(() => {
+    const directoryAthletes = people.filter((person) => person.role === "Athlet");
+    if (!currentUser || currentUser.accountType !== "athlete") {
+      return directoryAthletes;
+    }
+
+    if (directoryAthletes.some((athlete) => athlete.id === currentUser.id)) {
+      return directoryAthletes;
+    }
+
+    const currentAthlete: Person = {
+      id: currentUser.id,
+      name: currentUser.displayName,
+      email: "",
+      accountType: currentUser.accountType,
+      role: "Athlet",
+      region: "Eigenes Profil",
+      initials: currentUser.initials,
+      activeRelationships: [],
+    };
+
+    return [currentAthlete, ...directoryAthletes];
+  }, [currentUser, people]);
   const trainers = useMemo(() => people.filter((person) => person.role === "Trainer"), [people]);
+  const assignedTrainerIds = useMemo(
+    () => new Set(
+      trainers
+        .filter((trainer) => trainer.activeRelationships?.includes("trainer_athlete"))
+        .map((trainer) => trainer.id),
+    ),
+    [trainers],
+  );
+  const assignedAthleteIds = useMemo(
+    () => new Set(
+      athletes
+        .filter((athlete) => athlete.activeRelationships?.includes("trainer_athlete"))
+        .map((athlete) => athlete.id),
+    ),
+    [athletes],
+  );
   const shareableContacts = useMemo(
     () => people.filter((person) => (person.activeRelationships?.length || 0) > 0),
     [people],
@@ -158,9 +204,8 @@ export function PlansView({
     0,
   );
 
-  const leaderboard = useMemo(
-    () =>
-      athletes
+  const leaderboard = useMemo(() => {
+    const rankedAthletes = athletes
         .map((athlete) => ({
           athlete,
           points: plans.reduce(
@@ -174,9 +219,41 @@ export function PlansView({
           ),
         }))
         .sort((a, b) => b.points - a.points)
-        .slice(0, 3),
-    [athletes, plans],
-  );
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+    const podium = rankedAthletes.slice(0, 3);
+
+    // Der eigene XP-Stand bleibt auch sichtbar, wenn er nicht unter den Top 3 liegt.
+    if (currentUser?.accountType === "athlete") {
+      const currentEntry = rankedAthletes.find(
+        (entry) => entry.athlete.id === currentUser.id,
+      );
+      if (currentEntry && !podium.some((entry) => entry.athlete.id === currentUser.id)) {
+        podium.push(currentEntry);
+      }
+    }
+
+    return podium;
+  }, [athletes, currentUser, plans]);
+
+  /**
+   * Ermittelt die erlaubten Aktionen aus dem eingeloggten Konto und einer
+   * beidseitig bestätigten Trainer-Athlet-Beziehung.
+   */
+  function getTrickPermissions(trick: TrainingTrick) {
+    const isOwnTrick = currentUser?.accountType === "athlete"
+      && trick.athleteId === currentUser.id;
+    const hasAssignedTrainer = assignedTrainerIds.size > 0;
+    const isAssignedTrainer = currentUser?.accountType === "trainer"
+      && assignedAthleteIds.has(trick.athleteId);
+
+    return {
+      canReportProgress: isOwnTrick,
+      canConfirm: isAssignedTrainer || (isOwnTrick && !hasAssignedTrainer),
+      confirmationHint: isOwnTrick && hasAssignedTrainer
+        ? "Wartet auf deinen Trainer"
+        : "Nur zugeordnete Trainer",
+    };
+  }
 
   function updateSelectedPlan(updater: (plan: TrainingPlan) => TrainingPlan) {
     setPlans((current) =>
@@ -301,6 +378,20 @@ export function PlansView({
   }
 
   function updateTrick(trickId: string, status: TrickProgressStatus) {
+    const trick = selectedPlan?.tricks.find((entry) => entry.id === trickId);
+    if (!trick) return;
+
+    const permissions = getTrickPermissions(trick);
+    const actionAllowed = status === "confirmed"
+      ? permissions.canConfirm
+      : permissions.canReportProgress;
+
+    // Auch der Handler prüft die Berechtigung, damit nicht nur der Button schützt.
+    if (!actionAllowed) {
+      setNotice("Diese Trick-Aktion ist nur für den zugeordneten Athleten oder Trainer möglich.");
+      return;
+    }
+
     updateSelectedPlan((plan) => ({
       ...plan,
       tricks: plan.tricks.map((trick) =>
@@ -309,8 +400,7 @@ export function PlansView({
     }));
 
     if (status === "confirmed") {
-      const trick = selectedPlan?.tricks.find((entry) => entry.id === trickId);
-      setCelebration(trick?.name ?? "Trick");
+      setCelebration(trick.name);
       if (soundEnabled) playSuccessSound();
       window.setTimeout(() => setCelebration(""), 2400);
     }
@@ -326,6 +416,10 @@ export function PlansView({
   }
 
   function personName(id: string) {
+    if (currentUser?.id === id) {
+      return `${currentUser.displayName} (Du)`;
+    }
+
     return people.find((person) => person.id === id)?.name ?? "Noch nicht zugewiesen";
   }
 
@@ -444,9 +538,9 @@ export function PlansView({
               <h2><Trophy size={18} /> Gruppen-Rangliste</h2>
               <small>nur bestätigte Tricks</small>
             </div>
-            {leaderboard.map(({ athlete, points }, index) => (
+            {leaderboard.map(({ athlete, points, rank }) => (
               <div key={athlete.id}>
-                <strong>{index + 1}</strong>
+                <strong>{rank}</strong>
                 <span className={styles.avatar}>{athlete.initials}</span>
                 <span>{athlete.name}</span>
                 <b>{points} XP</b>
@@ -554,6 +648,7 @@ export function PlansView({
                     key={trick.id}
                     trick={trick}
                     athleteName={personName(trick.athleteId)}
+                    permissions={getTrickPermissions(trick)}
                     onUpdate={updateTrick}
                   />
                 ))}
@@ -661,10 +756,16 @@ export function PlansView({
 function TrickRow({
   trick,
   athleteName,
+  permissions,
   onUpdate,
 }: {
   trick: TrainingTrick;
   athleteName: string;
+  permissions: {
+    canReportProgress: boolean;
+    canConfirm: boolean;
+    confirmationHint: string;
+  };
   onUpdate: (trickId: string, status: TrickProgressStatus) => void;
 }) {
   return (
@@ -678,16 +779,19 @@ function TrickRow({
         {trickStatusLabels[trick.status]}
       </span>
       <div className={styles.trickActions}>
-        {trick.status === "not_started" ? (
+        {trick.status === "not_started" && permissions.canReportProgress ? (
           <button type="button" onClick={() => onUpdate(trick.id, "in_progress")}>Starten</button>
         ) : null}
-        {trick.status === "in_progress" ? (
+        {trick.status === "in_progress" && permissions.canReportProgress ? (
           <button type="button" onClick={() => onUpdate(trick.id, "awaiting_confirmation")}>Als geschafft melden</button>
         ) : null}
-        {trick.status === "awaiting_confirmation" ? (
+        {trick.status === "awaiting_confirmation" && permissions.canConfirm ? (
           <button type="button" className={styles.confirmButton} onClick={() => onUpdate(trick.id, "confirmed")}>
             <Check size={15} /> Bestätigen
           </button>
+        ) : null}
+        {trick.status === "awaiting_confirmation" && !permissions.canConfirm ? (
+          <small className={styles.permissionHint}>{permissions.confirmationHint}</small>
         ) : null}
         {trick.status === "confirmed" ? <CheckCircle2 size={20} className={styles.confirmedIcon} /> : null}
       </div>

@@ -7,6 +7,8 @@ export type AccountType =
   | "organization_staff";
 
 export interface CurrentUser {
+  /** Supabase-Profil-ID; wird für eindeutige Zuordnungen in Fachansichten benötigt. */
+  id: string;
   displayName: string;
   initials: string;
   accountType: AccountType;
