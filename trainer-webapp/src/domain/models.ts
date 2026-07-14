@@ -222,6 +222,13 @@ export interface TrainingTrick {
   status: TrickProgressStatus;
 }
 
+export interface TrainingLeaderboardEntry {
+  userId: string;
+  displayName: string;
+  initials: string;
+  xpTotal: number;
+}
+
 export interface OrganizationOverview {
   id: string;
   parentId: string | null;

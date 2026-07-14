@@ -26,6 +26,7 @@ import {
 import type {
   GoalCadence,
   Person,
+  TrainingLeaderboardEntry,
   TrainingPlan,
   TrainingTrick,
   TrickProgressStatus,
@@ -34,7 +35,10 @@ import { useCurrentUser } from "@/components/auth/current-user-context";
 import { PageHeader } from "@/components/ui/page-header";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./plans-view.module.css";
-import { shareTrainingPlanSnapshot } from "@/app/trainingsplaene/actions";
+import {
+  shareTrainingPlanSnapshot,
+  updateSharedTrickProgress,
+} from "@/app/trainingsplaene/actions";
 
 type PlanFilter = "all" | "active" | "templates" | "public";
 
@@ -108,16 +112,18 @@ function playSuccessSound() {
 /**
  * Interaktiver Trainingsplan-Arbeitsbereich des MVP.
  *
- * Alle Änderungen bleiben aktuell im lokalen React-Zustand. Die Handler sind
- * entlang fachlicher Aktionen getrennt, sodass sie später einzeln durch
- * authentifizierte Server Actions und Supabase-Tabellen ersetzt werden können.
+ * Geteilte Trick-Fortschritte werden ueber eine authentifizierte Server Action
+ * gespeichert. Rein lokale Entwuerfe bleiben im React-Zustand, bis sie geteilt
+ * und damit einem konkreten Athleten zugeordnet werden.
  */
 export function PlansView({
   initialPlans,
   people,
+  initialLeaderboard,
 }: {
   initialPlans: TrainingPlan[];
   people: Person[];
+  initialLeaderboard: TrainingLeaderboardEntry[] | null;
 }) {
   const { t } = useI18n();
   const currentUser = useCurrentUser();
@@ -172,6 +178,7 @@ export function PlansView({
     [people],
   );
   const [plans, setPlans] = useState(initialPlans);
+  const [persistedLeaderboard, setPersistedLeaderboard] = useState(initialLeaderboard);
   const [selectedPlanId, setSelectedPlanId] = useState(initialPlans[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PlanFilter>("all");
@@ -205,21 +212,32 @@ export function PlansView({
   );
 
   const leaderboard = useMemo(() => {
-    const rankedAthletes = athletes
-        .map((athlete) => ({
-          athlete,
+    const entries = persistedLeaderboard === null
+      ? athletes.map((athlete) => ({
+          athlete: {
+            id: athlete.id,
+            name: athlete.name,
+            initials: athlete.initials,
+          },
           points: plans.reduce(
-            (sum, plan) =>
-              sum
-              + plan.tricks.filter(
-                (trick) =>
-                  trick.athleteId === athlete.id && trick.status === "confirmed",
-              ).length * 100,
+            (sum, plan) => sum + plan.tricks.filter(
+              (trick) => trick.athleteId === athlete.id && trick.status === "confirmed",
+            ).length * 100,
             0,
           ),
         }))
-        .sort((a, b) => b.points - a.points)
-        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+      : persistedLeaderboard.map((entry) => ({
+          athlete: {
+            id: entry.userId,
+            name: entry.displayName,
+            initials: entry.initials,
+          },
+          points: entry.xpTotal,
+        }));
+
+    const rankedAthletes = entries
+      .sort((a, b) => b.points - a.points || a.athlete.name.localeCompare(b.athlete.name, "de"))
+      .map((entry, index) => ({ ...entry, rank: index + 1 }));
     const podium = rankedAthletes.slice(0, 3);
 
     // Der eigene XP-Stand bleibt auch sichtbar, wenn er nicht unter den Top 3 liegt.
@@ -233,7 +251,7 @@ export function PlansView({
     }
 
     return podium;
-  }, [athletes, currentUser, plans]);
+  }, [athletes, currentUser, persistedLeaderboard, plans]);
 
   /**
    * Ermittelt die erlaubten Aktionen aus dem eingeloggten Konto und einer
@@ -377,7 +395,25 @@ export function PlansView({
     });
   }
 
-  function updateTrick(trickId: string, status: TrickProgressStatus) {
+  function applyTrickUpdate(
+    trick: TrainingTrick,
+    status: TrickProgressStatus,
+  ) {
+    updateSelectedPlan((plan) => ({
+      ...plan,
+      tricks: plan.tricks.map((entry) =>
+        entry.id === trick.id ? { ...entry, status } : entry,
+      ),
+    }));
+
+    if (status === "confirmed") {
+      setCelebration(trick.name);
+      if (soundEnabled) playSuccessSound();
+      window.setTimeout(() => setCelebration(""), 2400);
+    }
+  }
+
+  async function updateTrick(trickId: string, status: TrickProgressStatus) {
     const trick = selectedPlan?.tricks.find((entry) => entry.id === trickId);
     if (!trick) return;
 
@@ -392,18 +428,43 @@ export function PlansView({
       return;
     }
 
-    updateSelectedPlan((plan) => ({
-      ...plan,
-      tricks: plan.tricks.map((trick) =>
-        trick.id === trickId ? { ...trick, status } : trick,
-      ),
-    }));
+    if (selectedPlan.id.startsWith("shared-")) {
+      const result = await updateSharedTrickProgress({
+        planId: selectedPlan.id,
+        trickId,
+        status,
+      });
+      setNotice(result.message);
 
-    if (status === "confirmed") {
-      setCelebration(trick.name);
-      if (soundEnabled) playSuccessSound();
-      window.setTimeout(() => setCelebration(""), 2400);
+      if (result.status === "error") return;
+
+      if (result.athleteUserId && typeof result.xpTotal === "number") {
+        setPersistedLeaderboard((current) => {
+          if (current === null) return current;
+          const knownEntry = current.find(
+            (entry) => entry.userId === result.athleteUserId,
+          );
+          if (knownEntry) {
+            return current.map((entry) => entry.userId === result.athleteUserId
+              ? { ...entry, xpTotal: result.xpTotal as number }
+              : entry);
+          }
+
+          const athlete = athletes.find(
+            (entry) => entry.id === result.athleteUserId,
+          );
+          if (!athlete) return current;
+          return [...current, {
+            userId: athlete.id,
+            displayName: athlete.name,
+            initials: athlete.initials,
+            xpTotal: result.xpTotal as number,
+          }];
+        });
+      }
     }
+
+    applyTrickUpdate(trick, status);
   }
 
   function toggleGoal(goalId: string) {
