@@ -25,6 +25,28 @@ Danach läuft die Anwendung unter `http://localhost:3000`.
 Der Secret Key oder alte `service_role`-Schlüssel gehört niemals in eine
 `NEXT_PUBLIC_`-Variable und wird für den aktuellen Login nicht benötigt.
 
+### Bestehende Datenbank aktualisieren
+
+Wenn das Grundschema bereits eingerichtet ist, müssen spätere Korrekturen aus
+den passenden `supabase/apply-*.sql`-Dateien einmal vollständig im Supabase SQL
+Editor ausgeführt werden. Für die hierarchische Sichtbarkeit und die
+rollenabhängigen Erstellungsrechte von Terminen ist das:
+
+```text
+supabase/apply-event-hierarchy-visibility.sql
+```
+
+Für globale Personensuche, bestätigungspflichtige Kontakte, Gruppen, Postfach,
+Benachrichtigungen und Benachrichtigungseinstellungen anschließend diese
+Migration vollständig ausführen:
+
+```text
+supabase/migrations/20260714082753_social_inbox_notifications.sql
+```
+
+Die Social-Migration muss nach den älteren `apply-*.sql`-Dateien laufen, weil
+sie das Personenverzeichnis und die Termin-Sichtbarkeit abschließend erweitert.
+
 ## Architektur
 
 ```text
@@ -63,17 +85,19 @@ supabase/
 - Lokale Event-Erstellung als vorbereiteter API-Workflow
 - Teilnahmefilter und E-Mail-Einladung
 - Personen- und Trainersuche
+- Freundschafts-, Trainer–Athlet- und Elternanfragen mit beidseitiger Zustimmung
+- Gruppen mit Einladungen und gemeinsam sichtbaren Terminen
+- Postfach für Kontakt-, Gruppen- und Organisationsanfragen
+- Echte In-App-Benachrichtigungen mit individuellen Einstellungen
 - Trainingsplanübersicht und vorbereitete Freigabe
 - Organisationshierarchie
 - Supabase-Schema mit Row Level Security
 
 ## Noch nicht produktiv angebunden
 
-- Supabase Auth und echte Sessions
-- Persistente Schreibvorgänge
 - E-Mail-Versand
 - Dateiupload für Trainingspläne
 - Push-Benachrichtigungen
 
 Diese Punkte sollten nach dem UI-MVP in dieser Reihenfolge ergänzt werden:
-Authentifizierung, Repository-Anbindung, Einladungen, Uploads, Benachrichtigungen.
+E-Mail-Einladungen, Uploads und Push-Benachrichtigungen.

@@ -2,13 +2,17 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { FilterX, Mail, Search, UserPlus } from "lucide-react";
-import type { Person } from "@/domain/models";
+import Link from "next/link";
+import { Dumbbell, FilterX, Handshake, Mail, Search, ShieldCheck, UserPlus } from "lucide-react";
+import type { Person, RelationshipType } from "@/domain/models";
 import type { InvitationRole } from "@/domain/invitation-permissions";
 import {
   invitePerson,
+  sendRelationshipRequest,
   type InvitePersonState,
+  type RelationshipActionState,
 } from "@/app/personen/actions";
+import { useCurrentUser } from "@/components/auth/current-user-context";
 import { PageHeader } from "@/components/ui/page-header";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./people-view.module.css";
@@ -68,6 +72,7 @@ export function PeopleView({
   inviteRoles: InvitationRole[];
 }) {
   const { t } = useI18n();
+  const currentUser = useCurrentUser();
   const [query, setQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [clubFilter, setClubFilter] = useState("all");
@@ -236,7 +241,7 @@ export function PeopleView({
             <span className={styles.avatar}>{person.initials}</span>
             <div>
               <h2>{person.name}</h2>
-              <p>{person.email}</p>
+              <p>{person.email || "E-Mail nach Bestätigung sichtbar"}</p>
             </div>
             <span className={styles.role}>{person.role}</span>
             <small>{person.region}</small>
@@ -247,7 +252,38 @@ export function PeopleView({
                   .join(" · ")}
               </p>
             ) : null}
-            <button type="button">{t("people.openProfile")}</button>
+            <div className={styles.relationshipActions}>
+              <RelationshipActionButton
+                person={person}
+                relationshipType="friend"
+                label="Freundschaft"
+                icon={<Handshake size={15} />}
+              />
+              {(
+                currentUser?.accountType === "trainer" && person.accountType === "athlete"
+              ) || (
+                currentUser?.accountType === "athlete" && person.accountType === "trainer"
+              ) ? (
+                <RelationshipActionButton
+                  person={person}
+                  relationshipType="trainer_athlete"
+                  label={currentUser.accountType === "trainer" ? "Als Athlet anfragen" : "Als Trainer anfragen"}
+                  icon={<Dumbbell size={15} />}
+                />
+              ) : null}
+              {(
+                currentUser?.accountType === "guardian" && person.accountType === "athlete"
+              ) || (
+                currentUser?.accountType === "athlete" && person.accountType === "guardian"
+              ) ? (
+                <RelationshipActionButton
+                  person={person}
+                  relationshipType="guardian"
+                  label="Als Familie verknüpfen"
+                  icon={<ShieldCheck size={15} />}
+                />
+              ) : null}
+            </div>
           </article>
         ))}
       </section>
@@ -255,6 +291,52 @@ export function PeopleView({
         <p className={styles.emptyResults}>{t("people.noResults")}</p>
       ) : null}
     </>
+  );
+}
+
+const initialRelationshipState: RelationshipActionState = {
+  status: "idle",
+  message: "",
+};
+
+/** Eine eigenstaendige Action-Instanz pro Karte verhindert geteilte Ladezustände. */
+function RelationshipActionButton({
+  person,
+  relationshipType,
+  label,
+  icon,
+}: {
+  person: Person;
+  relationshipType: RelationshipType;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  const [state, action, pending] = useActionState(
+    sendRelationshipRequest,
+    initialRelationshipState,
+  );
+  const active = person.activeRelationships?.includes(relationshipType);
+  const sent = person.pendingSent?.includes(relationshipType) || state.status === "success";
+  const received = person.pendingReceived?.includes(relationshipType);
+
+  if (active) {
+    return <span className={styles.connected}>{icon} Verbunden</span>;
+  }
+
+  if (received) {
+    return <Link href="/postfach" className={styles.answerRequest}>{icon} Anfrage beantworten</Link>;
+  }
+
+  return (
+    <form action={action}>
+      <input type="hidden" name="recipientUserId" value={person.id} />
+      <input type="hidden" name="recipientAccountType" value={person.accountType || "unspecified"} />
+      <input type="hidden" name="relationshipType" value={relationshipType} />
+      <button type="submit" disabled={Boolean(sent || pending)} title={state.message || label}>
+        {icon}
+        {pending ? "Wird gesendet ..." : sent ? "Anfrage gesendet" : label}
+      </button>
+    </form>
   );
 }
 

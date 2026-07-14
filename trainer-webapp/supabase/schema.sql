@@ -495,6 +495,73 @@ as $$
   or private.is_organization_member(target_organization_id);
 $$;
 
+-- Termine folgen einer breiteren Sichtbarkeit als Organisations- und
+-- Personendaten: Mitglieder einer untergeordneten Organisation dürfen auch
+-- Termine ihrer übergeordneten Landes- und Bundesverbände sehen.
+create or replace function private.can_view_event_organization(
+  target_organization_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.uid() is not null
+    and (
+      private.can_view_organization(target_organization_id)
+      or exists (
+        select 1
+        from public.organization_memberships membership
+        where membership.user_id = auth.uid()
+          and private.organization_is_same_or_descendant(
+            target_organization_id,
+            membership.organization_id
+          )
+      )
+    );
+$$;
+
+-- Prüft Termin-Erstellungsrechte pro Organisation und Terminart.
+-- Trainer und organisatorisch Verantwortliche dürfen alle Terminarten
+-- anlegen. Athleten dürfen alles außer Trainings eintragen.
+create or replace function private.can_create_event(
+  target_organization_id uuid,
+  target_event_type public.event_type
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.uid() is not null
+    and exists (
+      select 1
+      from public.organization_memberships membership
+      where membership.user_id = auth.uid()
+        and membership.organization_id = $1
+        and (
+          membership.role in (
+            'federal_chair',
+            'specialist',
+            'federal_trainer',
+            'state_trainer',
+            'club_trainer',
+            'club_board'
+          )
+          or (
+            membership.role = 'athlete'
+            and $2 <> 'training'::public.event_type
+          )
+          or (
+            membership.role = 'medical'
+            and $2 = 'medical'::public.event_type
+          )
+        )
+    );
+$$;
+
 create or replace function private.can_manage_organization(target_organization_id uuid)
 returns boolean
 language sql
@@ -994,6 +1061,8 @@ revoke execute on function private.apply_approved_membership_request()
 revoke execute on function private.is_organization_member(uuid) from public, anon;
 revoke execute on function private.organization_is_same_or_descendant(uuid, uuid) from public, anon;
 revoke execute on function private.can_view_organization(uuid) from public, anon;
+revoke execute on function private.can_view_event_organization(uuid) from public, anon;
+revoke execute on function private.can_create_event(uuid, public.event_type) from public, anon;
 revoke execute on function private.can_manage_organization(uuid) from public, anon;
 revoke execute on function private.can_assign_membership(uuid, public.member_role) from public, anon;
 revoke execute on function private.can_invite_account_role(public.member_role) from public, anon;
@@ -1002,6 +1071,8 @@ revoke execute on function private.can_assign_athlete(uuid, uuid, uuid) from pub
 grant execute on function private.is_organization_member(uuid) to authenticated;
 grant execute on function private.organization_is_same_or_descendant(uuid, uuid) to authenticated;
 grant execute on function private.can_view_organization(uuid) to authenticated;
+grant execute on function private.can_view_event_organization(uuid) to authenticated;
+grant execute on function private.can_create_event(uuid, public.event_type) to authenticated;
 grant execute on function private.can_manage_organization(uuid) to authenticated;
 grant execute on function private.can_assign_membership(uuid, public.member_role) to authenticated;
 grant execute on function private.can_invite_account_role(public.member_role) to authenticated;
@@ -1211,7 +1282,7 @@ create policy "events_read_for_visible_organizations"
   to authenticated
   using (
     created_by = auth.uid()
-    or private.can_view_organization(organization_id)
+    or private.can_view_event_organization(organization_id)
   );
 
 drop policy if exists "events_manage_for_authorized_roles" on public.events;
@@ -1221,7 +1292,7 @@ create policy "events_create_as_author"
   to authenticated
   with check (
     created_by = auth.uid()
-    and private.is_organization_member(organization_id)
+    and private.can_create_event(organization_id, type)
   );
 
 create policy "events_update_author"
@@ -1230,7 +1301,7 @@ create policy "events_update_author"
   using (created_by = auth.uid())
   with check (
     created_by = auth.uid()
-    and private.is_organization_member(organization_id)
+    and private.can_create_event(organization_id, type)
   );
 
 create policy "events_delete_author"
@@ -1243,19 +1314,57 @@ create policy "participants_read_related"
   to authenticated
   using (
     user_id = auth.uid()
+    or invited_email = (
+      select profile.email
+      from public.profiles profile
+      where profile.id = auth.uid()
+    )
     or exists (
       select 1
       from public.events event
       where event.id = event_id
-        and private.can_manage_organization(event.organization_id)
+        and private.can_view_event_organization(event.organization_id)
+    )
+  );
+
+create policy "participants_insert_self"
+  on public.event_participants for insert
+  to authenticated
+  with check (
+    user_id = auth.uid()
+    and invited_by = auth.uid()
+    and invited_email = (
+      select profile.email
+      from public.profiles profile
+      where profile.id = auth.uid()
+    )
+    and exists (
+      select 1
+      from public.events event
+      where event.id = event_id
+        and private.can_view_event_organization(event.organization_id)
     )
   );
 
 create policy "participants_update_self"
   on public.event_participants for update
   to authenticated
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  using (
+    user_id = auth.uid()
+    or invited_email = (
+      select profile.email
+      from public.profiles profile
+      where profile.id = auth.uid()
+    )
+  )
+  with check (
+    user_id = auth.uid()
+    and invited_email = (
+      select profile.email
+      from public.profiles profile
+      where profile.id = auth.uid()
+    )
+  );
 
 create policy "participants_manage_event"
   on public.event_participants for all

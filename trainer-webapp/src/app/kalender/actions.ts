@@ -1,18 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { CalendarEvent, EventType } from "@/domain/models";
+import type { AttendanceStatus, CalendarEvent, EventType } from "@/domain/models";
 import {
+  getAllowedEventTypes,
   mapCalendarEvent,
   type CalendarEventRow,
 } from "@/data/supabase-event-repository";
+import type { OrganizationRole } from "@/domain/models";
+import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export interface CalendarMutationResult {
   status: "success" | "error";
   message: string;
   event?: CalendarEvent;
+  events?: CalendarEvent[];
 }
+
+const responseStatuses = new Set<AttendanceStatus>(["confirmed", "declined"]);
 
 const eventTypes = new Set<EventType>([
   "training",
@@ -58,7 +64,10 @@ function parseEventForm(formData: FormData) {
   ).trim();
   const title = String(formData.get("title") || "").trim();
   const type = String(formData.get("type") || "") as EventType;
-  const date = String(formData.get("date") || "");
+  const startDate = String(
+    formData.get("startDate") || formData.get("date") || "",
+  );
+  const endDate = String(formData.get("endDate") || startDate);
   const startTime = String(formData.get("startTime") || "");
   const endTime = String(formData.get("endTime") || "");
   const location = String(formData.get("location") || "").trim();
@@ -66,12 +75,18 @@ function parseEventForm(formData: FormData) {
   const region = String(formData.get("region") || "").trim();
   const capacity = Number(formData.get("capacity"));
   const description = String(formData.get("description") || "").trim();
+  const repeatWeekly = String(formData.get("repeatWeekly") || "") === "weekly";
+  const repeatCount = Math.min(
+    26,
+    Math.max(1, Number(formData.get("repeatCount") || 1)),
+  );
 
   if (
     !organizationId ||
     !title ||
     !eventTypes.has(type) ||
-    !date ||
+    !startDate ||
+    !endDate ||
     !startTime ||
     !endTime ||
     !location ||
@@ -82,8 +97,10 @@ function parseEventForm(formData: FormData) {
     return null;
   }
 
-  const startsAt = new Date(`${date}T${startTime}:00`);
-  const endsAt = new Date(`${date}T${endTime}:00`);
+  // Start- und Enddatum werden getrennt erfasst, damit mehrtägige Termine
+  // ohne zusätzliche Tabellen weiterhin als ein fachlicher Termin bestehen.
+  const startsAt = new Date(`${startDate}T${startTime}:00`);
+  const endsAt = new Date(`${endDate}T${endTime}:00`);
 
   if (
     Number.isNaN(startsAt.getTime()) ||
@@ -95,6 +112,10 @@ function parseEventForm(formData: FormData) {
 
   return {
     id,
+    repeatWeekly: !id && repeatWeekly,
+    repeatCount: Number.isInteger(repeatCount) ? repeatCount : 1,
+    durationMs: endsAt.getTime() - startsAt.getTime(),
+    startsAt,
     values: {
       organization_id: organizationId,
       title,
@@ -108,6 +129,12 @@ function parseEventForm(formData: FormData) {
       capacity,
     },
   };
+}
+
+function addWeeks(date: Date, weeks: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(date.getDate() + weeks * 7);
+  return nextDate;
 }
 
 /**
@@ -129,8 +156,7 @@ export async function saveCalendarEvent(
   }
 
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const currentUserId = claimsData?.claims.sub;
+  const currentUserId = await getAuthenticatedUserId(supabase);
 
   if (!currentUserId) {
     return {
@@ -139,16 +165,52 @@ export async function saveCalendarEvent(
     };
   }
 
+  // Prüft die eigenen Rollen direkt, damit die Aktion nicht von einem
+  // PostgREST-Schema-Cache für Hilfsfunktionen abhängig ist. PostgreSQL
+  // erzwingt dieselbe Regel anschließend nochmals per RLS.
+  const { data: memberships, error: permissionError } = await supabase
+    .from("organization_memberships")
+    .select("role")
+    .eq("user_id", currentUserId)
+    .eq("organization_id", parsed.values.organization_id);
+  const canCreateEvent = (memberships || []).some((membership) =>
+    getAllowedEventTypes(
+      membership.role as OrganizationRole,
+    ).includes(parsed.values.type),
+  );
+
+  if (permissionError || !canCreateEvent) {
+    return {
+      status: "error",
+      message:
+        parsed.values.type === "training"
+          ? "Trainings dürfen nur Trainer oder organisatorisch Verantwortliche erstellen."
+          : "Du darfst diese Terminart in der gewählten Organisation nicht erstellen.",
+    };
+  }
+
+  const recurringValues = Array.from(
+    { length: parsed.repeatWeekly ? parsed.repeatCount : 1 },
+    (_, index) => {
+      const startsAt = addWeeks(parsed.startsAt, index);
+      const endsAt = new Date(startsAt.getTime() + parsed.durationMs);
+
+      return {
+        ...parsed.values,
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+        created_by: currentUserId,
+      };
+    },
+  );
+
   const query = parsed.id
     ? supabase
         .from("events")
         .update(parsed.values)
         .eq("id", parsed.id)
         .eq("created_by", currentUserId)
-    : supabase.from("events").insert({
-        ...parsed.values,
-        created_by: currentUserId,
-      });
+    : supabase.from("events").insert(recurringValues);
 
   const { data, error } = await query
     .select(`
@@ -163,16 +225,24 @@ export async function saveCalendarEvent(
       location,
       state_code,
       region_name,
-      capacity
+      capacity,
+      event_participants(
+        status,
+        user_id,
+        invited_email,
+        profiles:user_id(display_name, email, account_type)
+      )
     `)
-    .maybeSingle();
+    .returns<CalendarEventRow[]>();
 
-  if (error || !data) {
+  const savedRows = Array.isArray(data) ? data : data ? [data] : [];
+
+  if (error || savedRows.length === 0) {
     return {
       status: "error",
       message: parsed.id
         ? "Der Termin konnte nicht bearbeitet werden. Nur der Ersteller darf Änderungen speichern."
-        : "Der Termin konnte nicht erstellt werden. Prüfe deine Organisationszuordnung.",
+        : "Der Termin konnte nicht erstellt werden. Prüfe Rolle, Terminart und Organisation.",
     };
   }
 
@@ -182,8 +252,107 @@ export async function saveCalendarEvent(
     status: "success",
     message: parsed.id
       ? "Der Termin wurde aktualisiert."
-      : "Der Termin wurde erstellt.",
-    event: mapCalendarEvent(data as CalendarEventRow, currentUserId),
+      : parsed.repeatWeekly && savedRows.length > 1
+        ? `${savedRows.length} wiederkehrende Termine wurden erstellt.`
+        : "Der Termin wurde erstellt.",
+    event: mapCalendarEvent(savedRows[0], currentUserId),
+    events: savedRows.map((row) => mapCalendarEvent(row, currentUserId)),
+  };
+}
+
+/**
+ * Speichert die eigene Zu- oder Absage fuer einen sichtbaren Termin.
+ *
+ * Falls noch kein Teilnehmerdatensatz existiert, wird einer fuer die eigene
+ * Profil-E-Mail angelegt. Existiert eine Einladung per E-Mail, wird sie mit
+ * dem aktuellen Profil verknuepft und aktualisiert.
+ */
+export async function respondToCalendarEvent(
+  eventId: string,
+  status: AttendanceStatus,
+): Promise<CalendarMutationResult> {
+  if (!eventId || !responseStatuses.has(status)) {
+    return { status: "error", message: "Die Rückmeldung ist ungültig." };
+  }
+
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+
+  if (!currentUserId) {
+    return { status: "error", message: "Bitte melde dich erneut an." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", currentUserId)
+    .maybeSingle();
+  const email = profile?.email?.trim();
+
+  if (!email) {
+    return {
+      status: "error",
+      message: "Für dein Profil fehlt eine E-Mail-Adresse.",
+    };
+  }
+
+  const { error: upsertError } = await supabase
+    .from("event_participants")
+    .upsert(
+      {
+        event_id: eventId,
+        user_id: currentUserId,
+        invited_email: email,
+        invited_by: currentUserId,
+        status,
+        responded_at: new Date().toISOString(),
+      },
+      { onConflict: "event_id,invited_email" },
+    );
+
+  if (upsertError) {
+    return {
+      status: "error",
+      message:
+        "Deine Rückmeldung konnte nicht gespeichert werden. Prüfe, ob du Zugriff auf diesen Termin hast.",
+    };
+  }
+
+  const { data } = await supabase
+    .from("events")
+    .select(`
+      id,
+      organization_id,
+      created_by,
+      title,
+      description,
+      type,
+      starts_at,
+      ends_at,
+      location,
+      state_code,
+      region_name,
+      capacity,
+      event_participants(
+        status,
+        user_id,
+        invited_email,
+        profiles:user_id(display_name, email, account_type)
+      )
+    `)
+    .eq("id", eventId)
+    .maybeSingle<CalendarEventRow>();
+
+  revalidatePath("/kalender");
+  revalidatePath("/");
+
+  return {
+    status: "success",
+    message:
+      status === "confirmed"
+        ? "Deine Zusage wurde gespeichert."
+        : "Deine Absage wurde gespeichert.",
+    event: data ? mapCalendarEvent(data, currentUserId, email) : undefined,
   };
 }
 
@@ -194,8 +363,7 @@ export async function deleteCalendarEvent(
   eventId: string,
 ): Promise<CalendarMutationResult> {
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const currentUserId = claimsData?.claims.sub;
+  const currentUserId = await getAuthenticatedUserId(supabase);
 
   if (!currentUserId || !eventId) {
     return { status: "error", message: "Der Termin konnte nicht gelöscht werden." };

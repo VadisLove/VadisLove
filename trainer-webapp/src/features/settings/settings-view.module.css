@@ -1,0 +1,156 @@
+.settingsCard {
+  max-width: 820px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.settingsCard > header {
+  display: flex;
+  gap: 13px;
+  padding: 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(120deg, var(--color-navy), var(--color-navy-soft));
+  color: white;
+}
+
+.settingsCard > header > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.settingsCard h2 {
+  font-size: 0.95rem;
+}
+
+.settingsCard header p {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.optionList {
+  display: grid;
+}
+
+.option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  min-height: 82px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.optionIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--color-blue-soft);
+  color: var(--color-blue-dark);
+}
+
+.optionText {
+  display: grid;
+  gap: 4px;
+}
+
+.optionText strong {
+  font-size: 0.78rem;
+}
+
+.optionText small {
+  max-width: 580px;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: #cfd6de;
+  transition: background 160ms ease;
+}
+
+.switch::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 6px rgba(7, 24, 45, 0.22);
+  content: "";
+  transition: transform 160ms ease;
+}
+
+.option input:checked + .switch {
+  background: var(--color-blue);
+}
+
+.option input:checked + .switch::after {
+  transform: translateX(20px);
+}
+
+.option input:focus-visible + .switch {
+  outline: 3px solid rgba(20, 140, 242, 0.3);
+  outline-offset: 3px;
+}
+
+.settingsCard footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.settingsCard footer p {
+  font-size: 0.7rem;
+}
+
+.success { color: var(--color-success); }
+.error { color: var(--color-danger); }
+
+.settingsCard footer button {
+  min-height: 42px;
+  padding: 0 15px;
+  border-radius: 8px;
+  background: var(--color-blue);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.settingsCard footer button:disabled {
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  .option { padding: 13px 15px; }
+  .settingsCard footer { align-items: stretch; flex-direction: column; }
+  .settingsCard footer button { width: 100%; }
+}

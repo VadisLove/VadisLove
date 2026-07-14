@@ -40,29 +40,6 @@
   font-weight: 600;
 }
 
-.notificationButton {
-  position: relative;
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-}
-
-.notificationButton span {
-  position: absolute;
-  top: 2px;
-  right: 1px;
-  display: grid;
-  min-width: 18px;
-  height: 18px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--color-blue);
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 750;
-}
-
 .profile {
   display: flex;
   align-items: center;

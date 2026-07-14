@@ -1,0 +1,173 @@
+.wrapper {
+  position: relative;
+}
+
+.bellButton {
+  position: relative;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: white;
+  color: var(--color-text);
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px solid white;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  width: min(390px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 22px 60px rgba(7, 24, 45, 0.2);
+}
+
+.panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.panel header div {
+  display: grid;
+  gap: 2px;
+}
+
+.panel header strong {
+  font-size: 0.9rem;
+}
+
+.panel header span {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+}
+
+.panel header button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-blue-dark);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.list {
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.item,
+.unreadItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 11px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--color-border);
+  transition: background 160ms ease;
+}
+
+.unreadItem {
+  background: linear-gradient(90deg, var(--color-blue-soft), white 72%);
+}
+
+.item:hover,
+.unreadItem:hover {
+  background: #f6f9fc;
+}
+
+.icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-blue-soft);
+  color: var(--color-blue-dark);
+}
+
+.item > span:last-child,
+.unreadItem > span:last-child {
+  display: grid;
+  gap: 3px;
+}
+
+.item strong,
+.unreadItem strong {
+  font-size: 0.76rem;
+}
+
+.item small,
+.unreadItem small {
+  color: var(--color-muted);
+  font-size: 0.69rem;
+  line-height: 1.35;
+}
+
+.item time,
+.unreadItem time {
+  color: #8c99a8;
+  font-size: 0.62rem;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  gap: 5px;
+  padding: 38px 20px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.empty strong {
+  color: var(--color-text);
+  font-size: 0.82rem;
+}
+
+.empty span {
+  max-width: 250px;
+  font-size: 0.68rem;
+}
+
+.openInbox {
+  display: block;
+  padding: 13px;
+  color: var(--color-blue-dark);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .panel {
+    position: fixed;
+    top: 70px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}

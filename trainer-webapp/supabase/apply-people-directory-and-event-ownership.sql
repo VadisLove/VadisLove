@@ -87,6 +87,80 @@ $$;
 revoke execute on function public.get_people_directory() from public, anon;
 grant execute on function public.get_people_directory() to authenticated;
 
+-- Die Termin-Sichtbarkeit ist bewusst breiter als die allgemeine
+-- Organisationssichtbarkeit. So bleiben Personen- und Mitgliedschaftsdaten
+-- geschützt, während Vereinsmitglieder Verbandstermine sehen können.
+create or replace function private.can_view_event_organization(
+  target_organization_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.uid() is not null
+    and (
+      private.can_view_organization(target_organization_id)
+      or exists (
+        select 1
+        from public.organization_memberships membership
+        where membership.user_id = auth.uid()
+          and private.organization_is_same_or_descendant(
+            target_organization_id,
+            membership.organization_id
+          )
+      )
+    );
+$$;
+
+revoke execute on function private.can_view_event_organization(uuid)
+  from public, anon;
+grant execute on function private.can_view_event_organization(uuid)
+  to authenticated;
+
+create or replace function private.can_create_event(
+  target_organization_id uuid,
+  target_event_type public.event_type
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.uid() is not null
+    and exists (
+      select 1
+      from public.organization_memberships membership
+      where membership.user_id = auth.uid()
+        and membership.organization_id = $1
+        and (
+          membership.role in (
+            'federal_chair',
+            'specialist',
+            'federal_trainer',
+            'state_trainer',
+            'club_trainer',
+            'club_board'
+          )
+          or (
+            membership.role = 'athlete'
+            and $2 <> 'training'::public.event_type
+          )
+          or (
+            membership.role = 'medical'
+            and $2 = 'medical'::public.event_type
+          )
+        )
+    );
+$$;
+
+revoke execute on function private.can_create_event(uuid, public.event_type)
+  from public, anon;
+grant execute on function private.can_create_event(uuid, public.event_type)
+  to authenticated;
+
 drop policy if exists "events_read_for_members" on public.events;
 drop policy if exists "events_read_for_visible_organizations" on public.events;
 drop policy if exists "events_manage_for_authorized_roles" on public.events;
@@ -99,7 +173,7 @@ create policy "events_read_for_visible_organizations"
   to authenticated
   using (
     created_by = auth.uid()
-    or private.can_view_organization(organization_id)
+    or private.can_view_event_organization(organization_id)
   );
 
 create policy "events_create_as_author"
@@ -107,7 +181,7 @@ create policy "events_create_as_author"
   to authenticated
   with check (
     created_by = auth.uid()
-    and private.is_organization_member(organization_id)
+    and private.can_create_event(organization_id, type)
   );
 
 create policy "events_update_author"
@@ -116,7 +190,7 @@ create policy "events_update_author"
   using (created_by = auth.uid())
   with check (
     created_by = auth.uid()
-    and private.is_organization_member(organization_id)
+    and private.can_create_event(organization_id, type)
   );
 
 create policy "events_delete_author"

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { OrganizationRole } from "@/domain/models";
+import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export interface CreateStateOrganizationState {
@@ -128,8 +129,7 @@ export async function assignOrganizationRole(
   }
 
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const actorId = claimsData?.claims.sub;
+  const actorId = await getAuthenticatedUserId(supabase);
 
   if (!actorId) {
     return {

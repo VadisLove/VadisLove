@@ -1,7 +1,9 @@
 "use client";
 
-import { Bell, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useCurrentUser } from "@/components/auth/current-user-context";
+import { NotificationCenter } from "@/components/layout/notification-center";
+import { useNotificationPreview } from "@/components/layout/notification-context";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./page-header.module.css";
 
@@ -23,6 +25,7 @@ export function PageHeader({
   showContext = false,
 }: PageHeaderProps) {
   const currentUser = useCurrentUser();
+  const notificationPreview = useNotificationPreview();
   const { t } = useI18n();
 
   return (
@@ -38,10 +41,10 @@ export function PageHeader({
             <ChevronDown size={16} />
           </button>
         ) : null}
-        <button className={styles.notificationButton} type="button" aria-label={t("navigation.notifications")}>
-          <Bell size={21} />
-          <span>3</span>
-        </button>
+        <NotificationCenter
+          initialItems={notificationPreview.items}
+          initialUnreadCount={notificationPreview.unreadCount}
+        />
         <div className={styles.profile}>
           <span>{currentUser?.initials || "TH"}</span>
           <div>

@@ -4,7 +4,9 @@ import { useActionState, useMemo, useState } from "react";
 import { KeyRound, UserRoundCog } from "lucide-react";
 import type {
   AssignableProfile,
+  OrganizationLevel,
   OrganizationOverview,
+  OrganizationRole,
   RoleAssignmentOption,
 } from "@/domain/models";
 import {
@@ -17,8 +19,8 @@ interface AssignRolePanelProps {
   profiles: AssignableProfile[];
   organizations: OrganizationOverview[];
   options: RoleAssignmentOption[];
-  roleLabel: (role: string) => string;
-  levelLabel: (level: string) => string;
+  roleLabels: Record<OrganizationRole, string>;
+  levelLabels: Record<OrganizationLevel, string>;
 }
 
 const initialState: AssignRoleState = {
@@ -36,8 +38,8 @@ export function AssignRolePanel({
   profiles,
   organizations,
   options,
-  roleLabel,
-  levelLabel,
+  roleLabels,
+  levelLabels,
 }: AssignRolePanelProps) {
   const [state, formAction, pending] = useActionState(
     assignOrganizationRole,
@@ -109,7 +111,7 @@ export function AssignRolePanel({
           >
             {assignableOrganizations.map((organization) => (
               <option key={organization.id} value={organization.id}>
-                {organization.name} · {levelLabel(organization.level)}
+                {organization.name} · {levelLabels[organization.level]}
               </option>
             ))}
           </select>
@@ -120,7 +122,7 @@ export function AssignRolePanel({
           <select name="role" required>
             {roleOptions.map((option) => (
               <option key={option.role} value={option.role}>
-                {roleLabel(option.role)}
+                {roleLabels[option.role]}
               </option>
             ))}
           </select>

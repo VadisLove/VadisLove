@@ -9,6 +9,8 @@ import {
   type InvitationRole,
 } from "@/domain/invitation-permissions";
 import type { OrganizationRole } from "@/domain/models";
+import type { RelationshipType } from "@/domain/models";
+import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,6 +18,11 @@ export interface InvitePersonState {
   status: "idle" | "success" | "error";
   message: string;
   inviteLink?: string;
+}
+
+export interface RelationshipActionState {
+  status: "idle" | "success" | "error";
+  message: string;
 }
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,8 +64,7 @@ export async function invitePerson(
   }
 
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const userId = claimsData?.claims.sub;
+  const userId = await getAuthenticatedUserId(supabase);
 
   if (!userId) {
     return {
@@ -118,4 +124,99 @@ export async function invitePerson(
     message: `Einladung an ${email} wurde erstellt.`,
     inviteLink: buildInviteLink(origin, token),
   };
+}
+
+const relationshipTypes = new Set<RelationshipType>([
+  "friend",
+  "trainer_athlete",
+  "guardian",
+]);
+
+/**
+ * Verschickt eine soziale oder fachliche Anfrage an ein registriertes Konto.
+ *
+ * Kontotypen werden fuer schnelles UI-Feedback vorgeprueft. Die verbindliche
+ * Rollenpruefung erfolgt zusaetzlich im Datenbank-Trigger und kann daher nicht
+ * durch manipulierte Formulardaten umgangen werden.
+ */
+export async function sendRelationshipRequest(
+  _previousState: RelationshipActionState,
+  formData: FormData,
+): Promise<RelationshipActionState> {
+  const recipientUserId = String(formData.get("recipientUserId") || "").trim();
+  const recipientAccountType = String(formData.get("recipientAccountType") || "");
+  const relationshipType = String(
+    formData.get("relationshipType") || "",
+  ) as RelationshipType;
+
+  if (!recipientUserId || !relationshipTypes.has(relationshipType)) {
+    return { status: "error", message: "Die Anfrage ist unvollständig." };
+  }
+
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId || currentUserId === recipientUserId) {
+    return { status: "error", message: "Die Anfrage kann nicht gesendet werden." };
+  }
+
+  const { data: ownProfile } = await supabase
+    .from("profiles")
+    .select("account_type")
+    .eq("id", currentUserId)
+    .maybeSingle();
+  const ownAccountType = ownProfile?.account_type;
+
+  const values: Record<string, string> = {
+    sender_user_id: currentUserId,
+    recipient_user_id: recipientUserId,
+    relationship_type: relationshipType,
+  };
+
+  if (relationshipType === "trainer_athlete") {
+    if (ownAccountType === "trainer" && recipientAccountType === "athlete") {
+      values.trainer_user_id = currentUserId;
+      values.athlete_user_id = recipientUserId;
+    } else if (ownAccountType === "athlete" && recipientAccountType === "trainer") {
+      values.trainer_user_id = recipientUserId;
+      values.athlete_user_id = currentUserId;
+    } else {
+      return {
+        status: "error",
+        message: "Diese Verbindung ist nur zwischen Trainer und Athlet möglich.",
+      };
+    }
+  }
+
+  if (relationshipType === "guardian") {
+    if (ownAccountType === "guardian" && recipientAccountType === "athlete") {
+      values.guardian_user_id = currentUserId;
+      values.athlete_user_id = recipientUserId;
+    } else if (ownAccountType === "athlete" && recipientAccountType === "guardian") {
+      values.guardian_user_id = recipientUserId;
+      values.athlete_user_id = currentUserId;
+    } else {
+      return {
+        status: "error",
+        message: "Eine Elternverknüpfung benötigt ein Eltern- und ein Athletenkonto.",
+      };
+    }
+  }
+
+  const { error } = await supabase.from("relationship_requests").insert(values);
+
+  if (error) {
+    return {
+      status: "error",
+      message:
+        error.code === "23505"
+          ? "Zwischen euch gibt es bereits eine offene Anfrage."
+          : "Die Anfrage konnte nicht gesendet werden.",
+    };
+  }
+
+  revalidatePath("/personen");
+  revalidatePath("/postfach");
+  revalidatePath("/", "layout");
+
+  return { status: "success", message: "Anfrage wurde gesendet." };
 }

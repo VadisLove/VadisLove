@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Oswald } from "next/font/google";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUser } from "@/lib/current-user";
+import { getNotificationPreview } from "@/data/notification-repository";
 import { I18nProvider } from "@/i18n/i18n-provider";
 import { getTranslations } from "@/i18n/server";
 import "./globals.css";
@@ -31,16 +32,22 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [{ locale, dictionary }, currentUser] = await Promise.all([
+  const [{ locale, dictionary }, currentUser, notificationPreview] = await Promise.all([
     getTranslations(),
     getCurrentUser(),
+    getNotificationPreview(),
   ]);
 
   return (
     <html lang={locale} className={`${geist.variable} ${oswald.variable}`}>
       <body>
         <I18nProvider locale={locale} dictionary={dictionary}>
-          <AppShell currentUser={currentUser}>{children}</AppShell>
+          <AppShell
+            currentUser={currentUser}
+            notificationPreview={notificationPreview}
+          >
+            {children}
+          </AppShell>
         </I18nProvider>
       </body>
     </html>

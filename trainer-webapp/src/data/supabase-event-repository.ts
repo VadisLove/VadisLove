@@ -1,8 +1,12 @@
 import type {
+  AttendanceStatus,
   CalendarEvent,
   EventOrganizationOption,
+  EventParticipantSummary,
   EventType,
+  OrganizationRole,
 } from "@/domain/models";
+import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export interface CalendarEventRow {
@@ -18,6 +22,59 @@ export interface CalendarEventRow {
   state_code: string | null;
   region_name: string | null;
   capacity: number;
+  event_participants?: Array<{
+    status: AttendanceStatus;
+    user_id: string | null;
+    invited_email: string;
+    profiles?:
+      | {
+      display_name: string | null;
+      email: string | null;
+      account_type: string | null;
+        }
+      | Array<{
+          display_name: string | null;
+          email: string | null;
+          account_type: string | null;
+        }>
+      | null;
+  }>;
+}
+
+const allEventTypes: EventType[] = [
+  "training",
+  "contest",
+  "medical",
+  "meeting",
+];
+const athleteEventTypes: EventType[] = ["contest", "medical", "meeting"];
+const fullEventCreatorRoles = new Set<OrganizationRole>([
+  "federal_chair",
+  "specialist",
+  "federal_trainer",
+  "state_trainer",
+  "club_trainer",
+  "club_board",
+]);
+
+/**
+ * Übersetzt Organisationsrollen in die Terminarten, die dort erstellt werden
+ * dürfen. Mehrere Rollen werden später pro Organisation zusammengeführt.
+ */
+export function getAllowedEventTypes(role: OrganizationRole): EventType[] {
+  if (fullEventCreatorRoles.has(role)) {
+    return allEventTypes;
+  }
+
+  if (role === "athlete") {
+    return athleteEventTypes;
+  }
+
+  if (role === "medical") {
+    return ["medical"];
+  }
+
+  return [];
 }
 
 function formatDatePart(value: string) {
@@ -41,20 +98,68 @@ function formatTimePart(value: string) {
 export function mapCalendarEvent(
   row: CalendarEventRow,
   currentUserId: string,
+  currentUserEmail = "",
 ): CalendarEvent {
+  const attendanceSummary = {
+    confirmed: 0,
+    open: 0,
+    declined: 0,
+  };
+
+  for (const participant of row.event_participants || []) {
+    attendanceSummary[participant.status] += 1;
+  }
+  const ownAttendance = (row.event_participants || []).find(
+    (participant) =>
+      participant.user_id === currentUserId ||
+      participant.invited_email.toLowerCase() === currentUserEmail.toLowerCase(),
+  );
+  const participants: EventParticipantSummary[] = (row.event_participants || [])
+    .map((participant) => {
+      const profile = Array.isArray(participant.profiles)
+        ? participant.profiles[0]
+        : participant.profiles;
+
+      return {
+        id: participant.user_id || participant.invited_email,
+        name:
+          profile?.display_name?.trim() ||
+          participant.invited_email,
+        email: profile?.email || participant.invited_email,
+        accountType: profile?.account_type || "unspecified",
+        status: participant.status,
+      };
+    })
+    .sort((left, right) => {
+      if (left.status !== right.status) {
+        const order: Record<AttendanceStatus, number> = {
+          confirmed: 0,
+          open: 1,
+          declined: 2,
+        };
+        return order[left.status] - order[right.status];
+      }
+
+      return left.name.localeCompare(right.name, "de");
+    });
+
   return {
     id: row.id,
     organizationId: row.organization_id,
     title: row.title,
     type: row.type,
     date: formatDatePart(row.starts_at),
+    endDate: formatDatePart(row.ends_at),
     startTime: formatTimePart(row.starts_at),
     endTime: formatTimePart(row.ends_at),
     location: row.location,
     state: row.state_code || "Deutschland",
     region: row.region_name || "",
     capacity: row.capacity,
-    confirmed: 0,
+    confirmed: attendanceSummary.confirmed,
+    attendanceSummary,
+    attendanceStatus: ownAttendance?.status,
+    participants,
     description: row.description,
     createdBy: row.created_by,
     canManage: row.created_by === currentUserId,
@@ -66,12 +171,17 @@ export function mapCalendarEvent(
  */
 export async function getCalendarEvents(): Promise<CalendarEvent[]> {
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const currentUserId = claimsData?.claims.sub;
+  const currentUserId = await getAuthenticatedUserId(supabase);
 
   if (!currentUserId) {
     return [];
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", currentUserId)
+    .maybeSingle();
 
   const { data, error } = await supabase
     .from("events")
@@ -87,7 +197,13 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
       location,
       state_code,
       region_name,
-      capacity
+      capacity,
+      event_participants(
+        status,
+        user_id,
+        invited_email,
+        profiles:user_id(display_name, email, account_type)
+      )
     `)
     .order("starts_at");
 
@@ -95,21 +211,78 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
     throw new Error(`Termine konnten nicht geladen werden: ${error.message}`);
   }
 
-  return ((data || []) as CalendarEventRow[]).map((row) =>
-    mapCalendarEvent(row, currentUserId),
+  return ((data || []) as unknown as CalendarEventRow[]).map((row) =>
+    mapCalendarEvent(row, currentUserId, profile?.email || ""),
   );
 }
 
 /**
- * Liefert Organisationen, in denen der aktuelle Nutzer direkt Mitglied ist.
- * Nur für diese Organisationen darf er neue Termine anlegen.
+ * Lädt die nächsten sichtbaren Termine für das Dashboard.
+ *
+ * Der Filter liegt in PostgreSQL statt im React-Renderpfad. Termine bleiben
+ * bis zu ihrem tatsächlichen Ende sichtbar und kommen bereits chronologisch
+ * sortiert aus derselben RLS-geschützten Quelle wie der Kalender.
+ */
+export async function getUpcomingCalendarEvents(): Promise<CalendarEvent[]> {
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+
+  if (!currentUserId) {
+    return [];
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", currentUserId)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from("events")
+    .select(`
+      id,
+      organization_id,
+      created_by,
+      title,
+      description,
+      type,
+      starts_at,
+      ends_at,
+      location,
+      state_code,
+      region_name,
+      capacity,
+      event_participants(
+        status,
+        user_id,
+        invited_email,
+        profiles:user_id(display_name, email, account_type)
+      )
+    `)
+    .gte("ends_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(5);
+
+  if (error) {
+    throw new Error(
+      `Kommende Termine konnten nicht geladen werden: ${error.message}`,
+    );
+  }
+
+  return ((data || []) as unknown as CalendarEventRow[]).map((row) =>
+    mapCalendarEvent(row, currentUserId, profile?.email || ""),
+  );
+}
+
+/**
+ * Liefert Organisationen und Terminarten, die der aktuelle Nutzer aufgrund
+ * seiner echten Mitgliedschaftsrollen anlegen darf.
  */
 export async function getEventOrganizationOptions(): Promise<
   EventOrganizationOption[]
 > {
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const currentUserId = claimsData?.claims.sub;
+  const currentUserId = await getAuthenticatedUserId(supabase);
 
   if (!currentUserId) {
     return [];
@@ -117,7 +290,7 @@ export async function getEventOrganizationOptions(): Promise<
 
   const { data, error } = await supabase
     .from("organization_memberships")
-    .select("organization_id, organizations!inner(id, name)")
+    .select("organization_id, role, organizations!inner(id, name)")
     .eq("user_id", currentUserId);
 
   if (error) {
@@ -132,11 +305,23 @@ export async function getEventOrganizationOptions(): Promise<
     const organization = Array.isArray(membership.organizations)
       ? membership.organizations[0]
       : membership.organizations;
+    const allowedEventTypes = getAllowedEventTypes(
+      membership.role as OrganizationRole,
+    );
 
-    if (organization) {
+    if (organization && allowedEventTypes.length > 0) {
+      const existingOption = uniqueOrganizations.get(organization.id);
+      const mergedEventTypes = new Set([
+        ...(existingOption?.allowedEventTypes || []),
+        ...allowedEventTypes,
+      ]);
+
       uniqueOrganizations.set(organization.id, {
         id: organization.id,
         name: organization.name,
+        allowedEventTypes: allEventTypes.filter((type) =>
+          mergedEventTypes.has(type),
+        ),
       });
     }
   }

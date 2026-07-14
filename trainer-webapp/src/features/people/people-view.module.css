@@ -207,7 +207,7 @@
 }
 
 .peopleGrid small,
-.peopleGrid button {
+.relationshipActions {
   grid-column: 2 / 4;
 }
 
@@ -218,11 +218,44 @@
   font-weight: 700;
 }
 
-.peopleGrid button {
-  justify-self: start;
+.relationshipActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.relationshipActions form {
+  display: contents;
+}
+
+.relationshipActions button,
+.connected,
+.answerRequest {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-blue-soft);
   color: var(--color-blue-dark);
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.relationshipActions button:disabled {
+  cursor: default;
+  opacity: 0.68;
+}
+
+.connected {
+  background: #e9f8ef;
+  color: var(--color-success);
+}
+
+.answerRequest {
+  background: #fff4df;
+  color: #995900;
 }
 
 .emptyResults {

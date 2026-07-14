@@ -5,13 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  Bell,
   Building2,
   CalendarDays,
   ClipboardList,
   LayoutDashboard,
   LogOut,
   Menu,
+  MessagesSquare,
   Plus,
   Search,
   Settings,
@@ -22,14 +22,18 @@ import { logout } from "@/app/login/actions";
 import styles from "./app-shell.module.css";
 import { CurrentUserProvider } from "@/components/auth/current-user-context";
 import type { CurrentUser } from "@/domain/current-user";
+import type { NotificationPreview } from "@/data/notification-repository";
 import { useI18n } from "@/i18n/i18n-provider";
 import { LanguageSwitcher } from "./language-switcher";
+import { NotificationCenter } from "./notification-center";
+import { NotificationProvider } from "./notification-context";
 
 const navigation = [
   { href: "/", labelKey: "navigation.dashboard", icon: LayoutDashboard },
   { href: "/kalender", labelKey: "navigation.calendar", icon: CalendarDays },
   { href: "/trainingsplaene", labelKey: "navigation.plans", icon: ClipboardList },
   { href: "/personen", labelKey: "navigation.people", icon: Users },
+  { href: "/postfach", labelKey: "navigation.inbox", icon: MessagesSquare },
   { href: "/organisation", labelKey: "navigation.organization", icon: Building2 },
 ];
 
@@ -43,9 +47,11 @@ const navigation = [
 export function AppShell({
   children,
   currentUser,
+  notificationPreview,
 }: {
   children: React.ReactNode;
   currentUser: CurrentUser | null;
+  notificationPreview: NotificationPreview;
 }) {
   const pathname = usePathname();
   const { t } = useI18n();
@@ -60,6 +66,7 @@ export function AppShell({
 
   return (
     <CurrentUserProvider user={currentUser}>
+      <NotificationProvider preview={notificationPreview}>
       <div className={styles.shell}>
       <aside className={`${styles.sidebar} ${mobileMenuOpen ? styles.open : ""}`}>
         <div className={styles.brand}>
@@ -106,10 +113,10 @@ export function AppShell({
             {t("navigation.createEvent")}
           </Link>
           <LanguageSwitcher />
-          <button type="button" className={styles.secondaryLink}>
+          <Link href="/einstellungen" className={styles.secondaryLink} onClick={closeMobileMenu}>
             <Settings size={19} />
             {t("navigation.settings")}
-          </button>
+          </Link>
           <form action={logout}>
             <button type="submit" className={styles.secondaryLink}>
               <LogOut size={19} />
@@ -141,12 +148,16 @@ export function AppShell({
           <strong>{t("common.appName")}</strong>
           <div className={styles.mobileActions}>
             <Search size={20} />
-            <Bell size={20} />
+            <NotificationCenter
+              initialItems={notificationPreview.items}
+              initialUnreadCount={notificationPreview.unreadCount}
+            />
           </div>
         </header>
         <main className={styles.main}>{children}</main>
       </div>
       </div>
+      </NotificationProvider>
     </CurrentUserProvider>
   );
 }

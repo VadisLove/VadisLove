@@ -7,6 +7,7 @@ import {
   getRoleAssignmentOptions,
 } from "@/data/supabase-organization-repository";
 import type {
+  OrganizationLevel,
   OrganizationOverview,
   OrganizationRole,
 } from "@/domain/models";
@@ -14,6 +15,20 @@ import { CreateStateOrganizationDialog } from "./create-state-organization-dialo
 import { AssignRolePanel } from "./assign-role-panel";
 import { getTranslations } from "@/i18n/server";
 import styles from "./page.module.css";
+
+const organizationRoles: OrganizationRole[] = [
+  "federal_chair",
+  "specialist",
+  "federal_trainer",
+  "state_trainer",
+  "club_trainer",
+  "club_board",
+  "athlete",
+  "guardian",
+  "medical",
+];
+
+const organizationLevels: OrganizationLevel[] = ["federal", "state", "club"];
 
 function describeRoles(
   organization: OrganizationOverview,
@@ -48,6 +63,21 @@ export default async function OrganizationPage() {
     getRoleAssignmentOptions(),
     getTranslations(),
   ]);
+  // Client Components dürfen keine Server-Funktionen als Props erhalten.
+  // Deshalb werden die übersetzten Bezeichnungen hier in einfache,
+  // serialisierbare Objekte umgewandelt.
+  const roleLabels = Object.fromEntries(
+    organizationRoles.map((role) => [
+      role,
+      t(`organization.roles.${role}`),
+    ]),
+  ) as Record<OrganizationRole, string>;
+  const levelLabels = Object.fromEntries(
+    organizationLevels.map((level) => [
+      level,
+      t(`organization.levels.${level}`),
+    ]),
+  ) as Record<OrganizationLevel, string>;
 
   return (
     <>
@@ -74,8 +104,8 @@ export default async function OrganizationPage() {
         profiles={assignableProfiles}
         organizations={organizations}
         options={roleAssignmentOptions}
-        roleLabel={(role) => t(`organization.roles.${role}`)}
-        levelLabel={(level) => t(`organization.levels.${level}`)}
+        roleLabels={roleLabels}
+        levelLabels={levelLabels}
       />
 
       {organizations.length === 0 ? (

@@ -78,27 +78,47 @@ export function Dashboard({ events, attendance, plans, regions }: DashboardProps
         showContext
       />
 
-      <section className={styles.nextEvent}>
-        <div>
-          <span>{t("dashboard.nextTraining")}</span>
-          <strong>{nextEvent.startTime}</strong>
-          <small>– {nextEvent.endTime}</small>
-        </div>
-        <div className={styles.nextEventDetails}>
-          <h2>{nextEvent.title}</h2>
-          <p><MapPin size={17} /> {nextEvent.location}</p>
-          <div><span>{t("eventTypes.training")}</span><span>{t("dashboard.indoor")}</span></div>
-        </div>
-        <div className={styles.capacity}>
-          <Users size={23} />
-          <strong>{nextEvent.confirmed} / {nextEvent.capacity}</strong>
-          <small>{t("dashboard.confirmed")}</small>
-        </div>
-        <button type="button" className={styles.primaryButton}>
-          {t("dashboard.viewParticipants")}
-          <ArrowRight size={18} />
-        </button>
-      </section>
+      {nextEvent ? (
+        <section className={styles.nextEvent}>
+          <div>
+            <span>{t("dashboard.nextEvent")}</span>
+            <strong>{nextEvent.startTime}</strong>
+            <small>
+              {formatShortDate(nextEvent.date, locale)} · {nextEvent.endTime}
+            </small>
+          </div>
+          <div className={styles.nextEventDetails}>
+            <h2>{nextEvent.title}</h2>
+            <p><MapPin size={17} /> {nextEvent.location}</p>
+            <div>
+              <span>{t(`eventTypes.${nextEvent.type}`)}</span>
+              {nextEvent.region ? <span>{nextEvent.region}</span> : null}
+            </div>
+          </div>
+          <div className={styles.capacity}>
+            <CalendarDays size={23} />
+            <strong>{formatShortDate(nextEvent.date, locale)}</strong>
+            <small>{nextEvent.startTime} – {nextEvent.endTime}</small>
+          </div>
+          <Link href="/kalender" className={styles.primaryButton}>
+            {t("dashboard.openCalendar")}
+            <ArrowRight size={18} />
+          </Link>
+        </section>
+      ) : (
+        <section className={`${styles.nextEvent} ${styles.emptyNextEvent}`}>
+          <CalendarDays size={34} />
+          <div className={styles.nextEventDetails}>
+            <span>{t("dashboard.nextEvent")}</span>
+            <h2>{t("dashboard.noUpcomingEvents")}</h2>
+            <p>{t("dashboard.noUpcomingEventsDescription")}</p>
+          </div>
+          <Link href="/kalender" className={styles.primaryButton}>
+            {t("dashboard.openCalendar")}
+            <ArrowRight size={18} />
+          </Link>
+        </section>
+      )}
 
       <div className={styles.dashboardGrid}>
         <section className={styles.panel}>
@@ -107,7 +127,7 @@ export function Dashboard({ events, attendance, plans, regions }: DashboardProps
             <Link href="/kalender">{t("dashboard.showAll")}</Link>
           </div>
           <div className={styles.agenda}>
-            {events.slice(0, 5).map((event, index) => (
+            {events.slice(0, 5).map((event) => (
               <article key={event.id} className={styles.agendaItem}>
                 <div className={styles.time}>
                   <strong>{event.startTime}</strong>
@@ -115,13 +135,19 @@ export function Dashboard({ events, attendance, plans, regions }: DashboardProps
                 </div>
                 <span className={`${styles.typeDot} ${styles[event.type]}`} />
                 <div>
-                  <small>{index < 2 ? (index === 0 ? t("common.today") : t("common.tomorrow")) : formatShortDate(event.date, locale)}</small>
+                  <small>{formatShortDate(event.date, locale)} · {t(`eventTypes.${event.type}`)}</small>
                   <h3>{event.title}</h3>
                   <p><MapPin size={13} /> {event.location}</p>
                 </div>
                 <strong className={styles.agendaCapacity}>{event.confirmed}/{event.capacity}</strong>
               </article>
             ))}
+            {events.length === 0 ? (
+              <div className={styles.emptyAgenda}>
+                <CalendarDays size={24} />
+                <p>{t("dashboard.noUpcomingEvents")}</p>
+              </div>
+            ) : null}
           </div>
         </section>
 

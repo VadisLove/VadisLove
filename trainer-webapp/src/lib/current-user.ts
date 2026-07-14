@@ -1,4 +1,5 @@
 import type { AccountType, CurrentUser } from "@/domain/current-user";
+import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,8 +24,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const userId = claimsData?.claims.sub;
+  const userId = await getAuthenticatedUserId(supabase);
 
   if (!userId) {
     return null;

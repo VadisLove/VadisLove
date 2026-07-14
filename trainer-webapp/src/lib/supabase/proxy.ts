@@ -32,17 +32,17 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // getClaims validiert das JWT. getSession allein wäre serverseitig nicht
-  // ausreichend, weil dessen Cookie-Inhalt manipuliert sein könnte.
-  const { data } = await supabase.auth.getClaims();
-  const claims = data?.claims;
+  // getUser() fragt Supabase Auth und ist deshalb die belastbare serverseitige
+  // Prüfung. getSession() allein würde nur den Cookie-Inhalt lesen.
+  const { data } = await supabase.auth.getUser();
+  const user = data?.user;
 
   const isPublicAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/auth/callback") ||
     request.nextUrl.pathname.startsWith("/einladung");
 
-  if (!claims && !isPublicAuthRoute) {
+  if (!user && !isPublicAuthRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set(
@@ -52,7 +52,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (claims && request.nextUrl.pathname.startsWith("/login")) {
+  if (user && request.nextUrl.pathname.startsWith("/login")) {
     const targetUrl = request.nextUrl.clone();
     targetUrl.pathname = request.nextUrl.searchParams.get("next") || "/";
     targetUrl.search = "";

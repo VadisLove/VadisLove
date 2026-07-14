@@ -1,4 +1,8 @@
-import type { OrganizationRole, Person } from "@/domain/models";
+import type {
+  OrganizationRole,
+  Person,
+  RelationshipType,
+} from "@/domain/models";
 import { createClient } from "@/lib/supabase/server";
 
 interface PeopleDirectoryRow {
@@ -9,6 +13,9 @@ interface PeopleDirectoryRow {
   roles: OrganizationRole[] | null;
   states: string[] | null;
   clubs: string[] | null;
+  active_relationships: RelationshipType[] | null;
+  pending_sent: RelationshipType[] | null;
+  pending_received: RelationshipType[] | null;
 }
 
 interface AssignableProfileFallbackRow {
@@ -67,6 +74,9 @@ function mapPerson(row: PeopleDirectoryRow): Person {
     roles,
     states,
     clubs,
+    activeRelationships: row.active_relationships || [],
+    pendingSent: row.pending_sent || [],
+    pendingReceived: row.pending_received || [],
   };
 }
 
@@ -108,6 +118,9 @@ export async function getPeopleDirectory(): Promise<Person[]> {
       roles: [],
       states: [],
       clubs: [],
+      active_relationships: [],
+      pending_sent: [],
+      pending_received: [],
     }),
   );
 }

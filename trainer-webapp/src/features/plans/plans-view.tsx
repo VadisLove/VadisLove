@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   BellRing,
   Check,
@@ -33,6 +33,7 @@ import type {
 import { PageHeader } from "@/components/ui/page-header";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./plans-view.module.css";
+import { shareTrainingPlanSnapshot } from "@/app/trainingsplaene/actions";
 
 type PlanFilter = "all" | "active" | "templates" | "public";
 
@@ -120,6 +121,10 @@ export function PlansView({
   const { t } = useI18n();
   const athletes = useMemo(() => people.filter((person) => person.role === "Athlet"), [people]);
   const trainers = useMemo(() => people.filter((person) => person.role === "Trainer"), [people]);
+  const shareableContacts = useMemo(
+    () => people.filter((person) => (person.activeRelationships?.length || 0) > 0),
+    [people],
+  );
   const [plans, setPlans] = useState(initialPlans);
   const [selectedPlanId, setSelectedPlanId] = useState(initialPlans[0]?.id ?? "");
   const [query, setQuery] = useState("");
@@ -128,6 +133,7 @@ export function PlansView({
   const [notice, setNotice] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [celebration, setCelebration] = useState("");
+  const [sharing, startSharing] = useTransition();
 
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[0];
 
@@ -268,16 +274,30 @@ export function PlansView({
   function handleSharePlan(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const selectedTrainerIds = trainers
-      .filter((trainer) => data.get(`share-${trainer.id}`))
-      .map((trainer) => trainer.id);
+    const selectedContactIds = shareableContacts
+      .filter((person) => data.get(`share-${person.id}`))
+      .map((person) => person.id);
 
-    updateSelectedPlan((plan) => ({
-      ...plan,
-      sharedTrainers: Array.from(new Set([...plan.sharedTrainers, ...selectedTrainerIds])),
-    }));
-    setDialog(null);
-    setNotice("Der Plan wurde mit den ausgewählten Trainern geteilt.");
+    if (!selectedPlan || selectedContactIds.length === 0) {
+      setNotice("Bitte mindestens einen bestätigten Kontakt auswählen.");
+      return;
+    }
+
+    startSharing(async () => {
+      const result = await shareTrainingPlanSnapshot({
+        plan: selectedPlan,
+        recipientUserIds: selectedContactIds,
+      });
+      setNotice(result.message);
+
+      if (result.status === "success") {
+        updateSelectedPlan((plan) => ({
+          ...plan,
+          sharedTrainers: Array.from(new Set([...plan.sharedTrainers, ...selectedContactIds])),
+        }));
+        setDialog(null);
+      }
+    });
   }
 
   function updateTrick(trickId: string, status: TrickProgressStatus) {
@@ -604,19 +624,21 @@ export function PlansView({
         <PlanDialog title={`„${selectedPlan.title}“ teilen`} onClose={() => setDialog(null)}>
           <form className={styles.shareForm} onSubmit={handleSharePlan}>
             <p>
-              Geteilte Trainer können diesen Plan unverändert an ihre Gruppe weitergeben
-              oder daraus eine eigene, bearbeitbare Kopie erzeugen.
+              Bestätigte Kontakte erhalten eine dauerhafte Kopie in ihrer Planbibliothek
+              und eine Benachrichtigung an der Glocke.
             </p>
             <SelectionFieldset
-              legend="Trainer auswählen"
-              items={trainers.map((trainer) => trainer.name)}
-              itemIds={trainers.map((trainer) => trainer.id)}
+              legend="Bestätigte Kontakte auswählen"
+              items={shareableContacts.map((person) => person.name)}
+              itemIds={shareableContacts.map((person) => person.id)}
               namePrefix="share"
               selectedIds={selectedPlan.sharedTrainers}
             />
             <div className={styles.dialogFooter}>
               <button type="button" onClick={() => setDialog(null)}>Abbrechen</button>
-              <button type="submit">Freigabe speichern</button>
+              <button type="submit" disabled={sharing || shareableContacts.length === 0}>
+                {sharing ? "Wird geteilt ..." : "Plan senden"}
+              </button>
             </div>
           </form>
         </PlanDialog>

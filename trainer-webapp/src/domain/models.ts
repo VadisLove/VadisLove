@@ -8,6 +8,19 @@
 export type EventType = "training" | "contest" | "medical" | "meeting";
 export type AttendanceStatus = "confirmed" | "open" | "declined";
 export type OrganizationLevel = "federal" | "state" | "club";
+export type RequestStatus = "pending" | "approved" | "rejected" | "withdrawn";
+export type RelationshipType = "friend" | "trainer_athlete" | "guardian";
+export type GroupMemberRole = "owner" | "admin" | "member";
+export type NotificationType =
+  | "relationship_request"
+  | "relationship_response"
+  | "membership_request"
+  | "membership_response"
+  | "group_invitation"
+  | "group_activity"
+  | "event_created"
+  | "training_plan_shared"
+  | "guardian_activity";
 export type OrganizationRole =
   | "federal_chair"
   | "specialist"
@@ -37,6 +50,88 @@ export interface Person {
   roles?: OrganizationRole[];
   states?: string[];
   clubs?: string[];
+  activeRelationships?: RelationshipType[];
+  pendingSent?: RelationshipType[];
+  pendingReceived?: RelationshipType[];
+}
+
+export interface RelationshipRequest {
+  id: string;
+  senderUserId: string;
+  recipientUserId: string;
+  relationshipType: RelationshipType;
+  status: RequestStatus;
+  message: string;
+  createdAt: string;
+  otherPerson: Pick<Person, "id" | "name" | "initials" | "accountType">;
+  direction: "incoming" | "outgoing";
+}
+
+export interface SocialGroup {
+  id: string;
+  name: string;
+  description: string;
+  role: GroupMemberRole;
+  memberCount: number;
+}
+
+export interface GroupInvitation {
+  id: string;
+  groupId: string;
+  groupName: string;
+  invitedBy: string;
+  invitedUserId: string;
+  status: RequestStatus;
+  createdAt: string;
+  actorName: string;
+  direction: "incoming" | "outgoing";
+}
+
+export interface MembershipInboxRequest {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  userId: string;
+  userName: string;
+  requestedRole: OrganizationRole;
+  status: RequestStatus;
+  note: string;
+  createdAt: string;
+  direction: "incoming" | "outgoing";
+}
+
+export interface JoinableOrganization {
+  id: string;
+  name: string;
+  level: OrganizationLevel;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationPreferences {
+  relationshipRequests: boolean;
+  requestUpdates: boolean;
+  groupActivity: boolean;
+  newEvents: boolean;
+  trainingPlans: boolean;
+  guardianActivity: boolean;
+}
+
+export interface InboxOverview {
+  relationshipRequests: RelationshipRequest[];
+  groupInvitations: GroupInvitation[];
+  membershipRequests: MembershipInboxRequest[];
+  groups: SocialGroup[];
+  people: Person[];
+  organizations: JoinableOrganization[];
 }
 
 export interface Attendance {
@@ -46,12 +141,21 @@ export interface Attendance {
   status: AttendanceStatus;
 }
 
+export interface EventParticipantSummary {
+  id: string;
+  name: string;
+  email: string;
+  accountType: string;
+  status: AttendanceStatus;
+}
+
 export interface CalendarEvent {
   id: string;
   organizationId?: string;
   title: string;
   type: EventType;
   date: string;
+  endDate: string;
   startTime: string;
   endTime: string;
   location: string;
@@ -59,6 +163,9 @@ export interface CalendarEvent {
   region: string;
   capacity: number;
   confirmed: number;
+  attendanceSummary: Record<AttendanceStatus, number>;
+  attendanceStatus?: AttendanceStatus;
+  participants: EventParticipantSummary[];
   description: string;
   createdBy?: string;
   canManage?: boolean;
@@ -67,6 +174,7 @@ export interface CalendarEvent {
 export interface EventOrganizationOption {
   id: string;
   name: string;
+  allowedEventTypes: EventType[];
 }
 
 export interface TrainingPlan {
