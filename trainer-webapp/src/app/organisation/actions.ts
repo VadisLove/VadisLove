@@ -10,6 +10,11 @@ export interface CreateStateOrganizationState {
   message: string;
 }
 
+export interface CreateClubOrganizationState {
+  status: "idle" | "success" | "error";
+  message: string;
+}
+
 export interface AssignRoleState {
   status: "idle" | "success" | "error";
   message: string;
@@ -103,6 +108,87 @@ export async function createStateOrganization(
   return {
     status: "success",
     message: "Landesverband und Fachwart wurden erfolgreich angelegt.",
+  };
+}
+
+/**
+ * Legt einen Verein über die abgesicherte Datenbankfunktion an.
+ *
+ * Das Formular liefert bewusst weder level noch state_code. PostgreSQL liest
+ * beide Werte vom Landesverband und prüft die bestätigte Fachwartrolle erneut.
+ */
+export async function createClubOrganization(
+  _previousState: CreateClubOrganizationState,
+  formData: FormData,
+): Promise<CreateClubOrganizationState> {
+  const stateOrganizationId = String(
+    formData.get("stateOrganizationId") || "",
+  ).trim();
+  const name = String(formData.get("name") || "").trim();
+  const regionName = String(formData.get("regionName") || "").trim();
+
+  if (!stateOrganizationId || !name || name.length > 120) {
+    return {
+      status: "error",
+      message: "Bitte einen gültigen Vereinsnamen eingeben.",
+    };
+  }
+
+  if (regionName.length > 120) {
+    return {
+      status: "error",
+      message: "Region oder Ort darf höchstens 120 Zeichen lang sein.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_club_organization", {
+    state_organization_id: stateOrganizationId,
+    club_name: name,
+    club_region_name: regionName || null,
+  });
+
+  if (error) {
+    const normalizedMessage = error.message.toLowerCase();
+
+    if (
+      error.code === "23505" ||
+      normalizedMessage.includes("club organization already exists")
+    ) {
+      return {
+        status: "error",
+        message: "Ein Verein mit diesem Namen besteht in diesem Landesverband bereits.",
+      };
+    }
+
+    if (
+      error.code === "42501" ||
+      normalizedMessage.includes("not allowed to create")
+    ) {
+      return {
+        status: "error",
+        message: "Du darfst in diesem Landesverband keinen Verein anlegen.",
+      };
+    }
+
+    if (normalizedMessage.includes("state organization was not found")) {
+      return {
+        status: "error",
+        message: "Der ausgewählte Landesverband wurde nicht gefunden.",
+      };
+    }
+
+    return {
+      status: "error",
+      message: "Der Verein konnte nicht angelegt werden. Bitte Eingaben und Berechtigung prüfen.",
+    };
+  }
+
+  revalidatePath("/organisation");
+
+  return {
+    status: "success",
+    message: `Der Verein „${name}“ wurde erfolgreich angelegt.`,
   };
 }
 

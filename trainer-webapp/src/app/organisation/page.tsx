@@ -14,6 +14,7 @@ import type {
   OrganizationRole,
 } from "@/domain/models";
 import { CreateStateOrganizationDialog } from "./create-state-organization-dialog";
+import { CreateClubOrganizationDialog } from "./create-club-organization-dialog";
 import { AssignRolePanel } from "./assign-role-panel";
 import { OrganizationJoinButton } from "./organization-join-button";
 import { getTranslations } from "@/i18n/server";
@@ -140,6 +141,9 @@ export default async function OrganizationPage() {
                   organization.level,
                 )
               : null;
+            const canCreateClub =
+              organization.level === "state" &&
+              Boolean(membershipStatus?.roles.includes("specialist"));
 
             return (
               <article
@@ -153,6 +157,12 @@ export default async function OrganizationPage() {
                   <p>{describeRoles(organization, t)}</p>
                 </div>
                 <div className={styles.cardAside}>
+                  {canCreateClub ? (
+                    <CreateClubOrganizationDialog
+                      stateOrganizationId={organization.id}
+                      stateOrganizationName={organization.name}
+                    />
+                  ) : null}
                   <OrganizationJoinButton
                     organizationId={organization.id}
                     organizationName={organization.name}

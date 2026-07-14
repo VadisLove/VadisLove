@@ -83,7 +83,7 @@ export async function getOrganizationOverview(): Promise<OrganizationOverview[]>
     throw new Error(`Organisationen konnten nicht geladen werden: ${error.message}`);
   }
 
-  return ((data || []) as OrganizationRow[]).map((organization) => {
+  const organizations = ((data || []) as OrganizationRow[]).map((organization) => {
     const roleCounts = organization.organization_memberships.reduce<
       Partial<Record<OrganizationRole, number>>
     >((counts, membership) => {
@@ -102,6 +102,50 @@ export async function getOrganizationOverview(): Promise<OrganizationOverview[]>
       roleCounts,
     };
   });
+
+  // Die Datenbank liefert flache Datensätze. Für die Oberfläche wird daraus
+  // eine stabile Tiefensortierung, sodass jeder Verein direkt nach seinem
+  // Landesverband erscheint und nicht gesammelt am Listenende.
+  const childrenByParent = new Map<string | null, OrganizationOverview[]>();
+  for (const organization of organizations) {
+    const siblings = childrenByParent.get(organization.parentId) || [];
+    siblings.push(organization);
+    childrenByParent.set(organization.parentId, siblings);
+  }
+
+  for (const siblings of childrenByParent.values()) {
+    siblings.sort((left, right) =>
+      left.name.localeCompare(right.name, "de", { sensitivity: "base" }),
+    );
+  }
+
+  const sortedOrganizations: OrganizationOverview[] = [];
+  const appendedOrganizationIds = new Set<string>();
+  const appendWithChildren = (organization: OrganizationOverview) => {
+    if (appendedOrganizationIds.has(organization.id)) {
+      return;
+    }
+
+    appendedOrganizationIds.add(organization.id);
+    sortedOrganizations.push(organization);
+    for (const child of childrenByParent.get(organization.id) || []) {
+      appendWithChildren(child);
+    }
+  };
+
+  for (const rootOrganization of childrenByParent.get(null) || []) {
+    appendWithChildren(rootOrganization);
+  }
+
+  // Verwaiste Alt-Datensätze bleiben sichtbar, auch wenn ihr parent_id nicht
+  // mehr in der geladenen Ergebnismenge enthalten sein sollte.
+  for (const organization of organizations) {
+    if (!appendedOrganizationIds.has(organization.id)) {
+      appendWithChildren(organization);
+    }
+  }
+
+  return sortedOrganizations;
 }
 
 /**

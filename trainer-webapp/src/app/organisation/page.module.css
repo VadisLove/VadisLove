@@ -49,6 +49,42 @@
   font-weight: 650;
 }
 
+.clubCreationArea {
+  position: relative;
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.createClubButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid var(--color-blue);
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--color-blue-dark);
+  font-size: 0.72rem;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.createClubButton:hover {
+  background: var(--color-blue-soft);
+}
+
+.clubSuccessMessage {
+  max-width: 260px;
+  color: var(--color-success);
+  font-size: 0.66rem;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: right;
+}
+
 .rolePanel {
   display: grid;
   gap: 16px;
@@ -478,6 +514,12 @@
   line-height: 1.45;
 }
 
+.optionalLabel {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
 .dialog input,
 .dialog select {
   width: 100%;
@@ -593,6 +635,14 @@
   .joinForm {
     min-width: min(190px, 100%);
     justify-items: start;
+  }
+
+  .clubCreationArea {
+    justify-items: start;
+  }
+
+  .clubSuccessMessage {
+    text-align: left;
   }
 
   .joinUnavailable,
