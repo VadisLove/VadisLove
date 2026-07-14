@@ -173,6 +173,18 @@ export function PlansView({
     ),
     [athletes],
   );
+  const assignableAthletes = useMemo(
+    () => athletes.filter(
+      (athlete) => athlete.activeRelationships?.includes("trainer_athlete"),
+    ),
+    [athletes],
+  );
+  const assignableTrainers = useMemo(
+    () => trainers.filter(
+      (trainer) => (trainer.activeRelationships?.length || 0) > 0,
+    ),
+    [trainers],
+  );
   const shareableContacts = useMemo(
     () => people.filter((person) => (person.activeRelationships?.length || 0) > 0),
     [people],
@@ -283,10 +295,10 @@ export function PlansView({
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const title = String(data.get("title")).trim();
-    const athleteIds = athletes
+    const athleteIds = assignableAthletes
       .filter((athlete) => data.get(`athlete-${athlete.id}`))
       .map((athlete) => athlete.id);
-    const trainerIds = trainers
+    const trainerIds = assignableTrainers
       .filter((trainer) => data.get(`trainer-${trainer.id}`))
       .map((trainer) => trainer.id);
     const selectedGroups = groups.filter((group) => data.get(`group-${group}`));
@@ -329,10 +341,31 @@ export function PlansView({
       })),
     };
 
-    setPlans((current) => [createdPlan, ...current]);
-    setSelectedPlanId(createdPlan.id);
     setDialog(null);
-    setNotice(`„${createdPlan.title}“ wurde erstellt und ist einsatzbereit.`);
+
+    const recipientUserIds = Array.from(new Set([...athleteIds, ...trainerIds]));
+    if (recipientUserIds.length === 0) {
+      setPlans((current) => [createdPlan, ...current]);
+      setSelectedPlanId(createdPlan.id);
+      setNotice(`„${createdPlan.title}“ wurde als eigener Plan erstellt.`);
+      return;
+    }
+
+    // Die Auswahl beim Erstellen ist eine echte Freigabe und nicht nur Metadaten.
+    startSharing(async () => {
+      const result = await shareTrainingPlanSnapshot({
+        plan: createdPlan,
+        recipientUserIds,
+      });
+
+      setPlans((current) => [createdPlan, ...current]);
+      setSelectedPlanId(createdPlan.id);
+      setNotice(
+        result.status === "success"
+          ? `„${createdPlan.title}“ wurde erstellt und ${recipientUserIds.length} Kontakt${recipientUserIds.length === 1 ? "" : "en"} zugestellt.`
+          : `„${createdPlan.title}“ wurde erstellt. ${result.message}`,
+      );
+    });
   }
 
   function duplicateSelectedPlan() {
@@ -757,20 +790,22 @@ export function PlansView({
             <SelectionFieldset legend="Gruppen auswählen" items={groups} namePrefix="group" />
             <SelectionFieldset
               legend="Individuelle Athleten"
-              items={athletes.map((athlete) => athlete.name)}
-              itemIds={athletes.map((athlete) => athlete.id)}
+              items={assignableAthletes.map((athlete) => athlete.name)}
+              itemIds={assignableAthletes.map((athlete) => athlete.id)}
               namePrefix="athlete"
             />
             <SelectionFieldset
               legend="Mit Trainern teilen"
-              items={trainers.map((trainer) => trainer.name)}
-              itemIds={trainers.map((trainer) => trainer.id)}
+              items={assignableTrainers.map((trainer) => trainer.name)}
+              itemIds={assignableTrainers.map((trainer) => trainer.id)}
               namePrefix="trainer"
             />
 
             <div className={styles.dialogFooter}>
               <button type="button" onClick={() => setDialog(null)}>Abbrechen</button>
-              <button type="submit">Plan erstellen</button>
+              <button type="submit" disabled={sharing}>
+                {sharing ? "Wird erstellt ..." : "Plan erstellen"}
+              </button>
             </div>
           </form>
         </PlanDialog>

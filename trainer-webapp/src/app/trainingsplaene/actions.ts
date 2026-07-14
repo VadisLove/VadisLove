@@ -101,20 +101,44 @@ export async function shareTrainingPlanSnapshot({
   const currentUserId = await getAuthenticatedUserId(supabase);
   if (!currentUserId) return { status: "error", message: "Bitte erneut anmelden." };
 
-  const { error } = await supabase.from("training_plan_snapshot_shares").insert(
-    uniqueRecipients.map((recipientUserId) => ({
-      shared_by: currentUserId,
-      target_type: "person",
-      recipient_user_id: recipientUserId,
-      title: plan.title.trim(),
-      plan_snapshot: plan,
-    })),
-  );
+  const { data, error } = await supabase
+    .from("training_plan_snapshot_shares")
+    .insert(
+      uniqueRecipients.map((recipientUserId) => ({
+        shared_by: currentUserId,
+        target_type: "person",
+        recipient_user_id: recipientUserId,
+        title: plan.title.trim(),
+        plan_snapshot: plan,
+      })),
+    )
+    .select("id, recipient_user_id");
 
   if (error) {
+    // Der Fehlercode hilft in den Runtime-Logs, ohne Planinhalte preiszugeben.
+    console.error("Trainingsplan konnte nicht geteilt werden.", {
+      code: error.code,
+      message: error.message,
+    });
     return {
       status: "error",
-      message: "Der Plan konnte nur mit bestätigten Kontakten geteilt werden.",
+      message: error.code === "42501"
+        ? "Der Plan kann nur an bestätigte Kontakte oder zugeordnete Athleten gesendet werden."
+        : "Der Trainingsplan konnte nicht zugestellt werden. Bitte erneut versuchen.",
+    };
+  }
+
+  const deliveredRecipients = new Set(
+    (data || []).map((share) => share.recipient_user_id),
+  );
+  if (deliveredRecipients.size !== uniqueRecipients.length) {
+    console.error("Trainingsplan-Freigabe wurde nicht vollständig bestätigt.", {
+      expectedRecipients: uniqueRecipients.length,
+      deliveredRecipients: deliveredRecipients.size,
+    });
+    return {
+      status: "error",
+      message: "Der Trainingsplan wurde nicht vollständig zugestellt. Bitte erneut versuchen.",
     };
   }
 
@@ -122,6 +146,6 @@ export async function shareTrainingPlanSnapshot({
   revalidatePath("/", "layout");
   return {
     status: "success",
-    message: `Der Plan wurde mit ${uniqueRecipients.length} Kontakt${uniqueRecipients.length === 1 ? "" : "en"} geteilt.`,
+    message: `Der Plan wurde ${uniqueRecipients.length} Kontakt${uniqueRecipients.length === 1 ? "" : "en"} zugestellt.`,
   };
 }
