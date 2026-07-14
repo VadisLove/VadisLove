@@ -135,6 +135,10 @@ export const en: DictionaryShape<typeof de> = {
     setup: "Initial setup", emptyTitle: "No organisation has been created",
     emptyDescription: "The federal association is created first by system administration. Federal chairs can then create state associations, and specialists can add their clubs.",
     memberships: "Memberships", noRoles: "No roles assigned yet",
+    requestJoin: "Request to join", requesting: "Sending ...",
+    requestPending: "Request pending", member: "Member",
+    requestAs: "as {role}", joinAria: "Request to join {organization}",
+    noCompatibleRole: "Joining is not available here for your account type.",
     levels: { federal: "Federal association", state: "State association", club: "Club" },
     roles: {
       federal_chair: "Federal chair", specialist: "Discipline lead",

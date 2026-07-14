@@ -33,6 +33,22 @@ interface RoleAssignmentOptionRow {
   role: OrganizationRole;
 }
 
+interface OwnOrganizationMembershipRow {
+  organization_id: string;
+  role: OrganizationRole;
+}
+
+interface OwnPendingMembershipRequestRow {
+  organization_id: string;
+  requested_role: OrganizationRole;
+}
+
+export interface OrganizationMembershipStatus {
+  organizationId: string;
+  roles: OrganizationRole[];
+  pendingRequestedRole: OrganizationRole | null;
+}
+
 function isMissingRpcFunction(error: { code?: string; message?: string }) {
   return (
     error.code === "PGRST202" ||
@@ -86,6 +102,74 @@ export async function getOrganizationOverview(): Promise<OrganizationOverview[]>
       roleCounts,
     };
   });
+}
+
+/**
+ * Lädt ausschließlich die eigenen Rollen und offenen Beitrittsanfragen.
+ * Die Organisationskarten können damit klar zwischen „Beitreten“,
+ * „Anfrage ausstehend“ und einer vorhandenen Mitgliedschaft unterscheiden.
+ */
+export async function getOwnOrganizationMembershipStatuses(): Promise<
+  OrganizationMembershipStatus[]
+> {
+  const supabase = await createClient();
+  const userId = await getAuthenticatedUserId(supabase);
+
+  if (!userId) {
+    return [];
+  }
+
+  const [membershipResult, requestResult] = await Promise.all([
+    supabase
+      .from("organization_memberships")
+      .select("organization_id, role")
+      .eq("user_id", userId),
+    supabase
+      .from("membership_requests")
+      .select("organization_id, requested_role")
+      .eq("user_id", userId)
+      .eq("status", "pending"),
+  ]);
+
+  if (membershipResult.error) {
+    throw new Error(
+      `Eigene Mitgliedschaften konnten nicht geladen werden: ${membershipResult.error.message}`,
+    );
+  }
+
+  if (requestResult.error) {
+    throw new Error(
+      `Offene Beitrittsanfragen konnten nicht geladen werden: ${requestResult.error.message}`,
+    );
+  }
+
+  const statuses = new Map<string, OrganizationMembershipStatus>();
+  const ensureStatus = (organizationId: string) => {
+    const existing = statuses.get(organizationId);
+    if (existing) return existing;
+
+    const created: OrganizationMembershipStatus = {
+      organizationId,
+      roles: [],
+      pendingRequestedRole: null,
+    };
+    statuses.set(organizationId, created);
+    return created;
+  };
+
+  for (const membership of (membershipResult.data || []) as OwnOrganizationMembershipRow[]) {
+    const status = ensureStatus(membership.organization_id);
+    if (!status.roles.includes(membership.role)) {
+      status.roles.push(membership.role);
+    }
+  }
+
+  for (const request of (requestResult.data || []) as OwnPendingMembershipRequestRow[]) {
+    ensureStatus(request.organization_id).pendingRequestedRole =
+      request.requested_role;
+  }
+
+  return Array.from(statuses.values());
 }
 
 /**

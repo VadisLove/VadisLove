@@ -24,6 +24,7 @@ import {
 import { useCurrentUser } from "@/components/auth/current-user-context";
 import { PageHeader } from "@/components/ui/page-header";
 import type { AccountType } from "@/domain/current-user";
+import { getRequestedOrganizationRole } from "@/domain/organization-membership";
 import type {
   GroupInvitation,
   InboxOverview,
@@ -61,34 +62,6 @@ const organizationRoleLabels: Record<OrganizationRole, string> = {
   guardian: "Erziehungsberechtigte/r",
   medical: "Medizinische Fachkraft",
 };
-
-/**
- * Leitet aus Kontotyp und Organisationsebene die passende Beitrittsrolle ab.
- * Mächtige Verwaltungsrollen werden nur beantragt und müssen weiterhin durch
- * eine bereits berechtigte Person bestätigt werden.
- */
-function getRequestedOrganizationRole(
-  accountType: AccountType | undefined,
-  level: InboxOverview["organizations"][number]["level"],
-): OrganizationRole | null {
-  if (accountType === "trainer") {
-    if (level === "federal") return "federal_trainer";
-    if (level === "state") return "state_trainer";
-    return "club_trainer";
-  }
-
-  if (accountType === "organization_staff") {
-    if (level === "federal") return "federal_chair";
-    if (level === "state") return "specialist";
-    return "club_board";
-  }
-
-  if (accountType === "medical") return "medical";
-  if (accountType === "athlete" && level === "club") return "athlete";
-  if (accountType === "guardian" && level === "club") return "guardian";
-
-  return null;
-}
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("de-DE", {
@@ -416,7 +389,6 @@ function MembershipRequestForm({
       <Building2 size={22} />
       <h2>Organisation beitreten</h2>
       <p>Die zuständige Verwaltung erhält deine Anfrage im Postfach.</p>
-      <input type="hidden" name="requestedRole" value={requestedRole || ""} />
       <label>
         Verein oder Verband
         <select

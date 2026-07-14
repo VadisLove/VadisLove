@@ -127,6 +127,10 @@ export const de = {
     setup: "Ersteinrichtung", emptyTitle: "Noch keine Organisation angelegt",
     emptyDescription: "Zuerst wird der Bundesverband durch die Systemadministration angelegt. Danach können Bundesvorsitzende Landesverbände und Fachwarte die zugehörigen Vereine erstellen.",
     memberships: "Mitgliedschaften", noRoles: "Noch keine Rollen vergeben",
+    requestJoin: "Beitritt anfragen", requesting: "Wird gesendet ...",
+    requestPending: "Anfrage ausstehend", member: "Mitglied",
+    requestAs: "als {role}", joinAria: "Beitritt bei {organization} anfragen",
+    noCompatibleRole: "Für deinen Kontotyp ist hier kein Beitritt vorgesehen.",
     levels: { federal: "Bundesverband", state: "Landesverband", club: "Verein" },
     roles: {
       federal_chair: "Bundesvorsitz", specialist: "Fachwart",

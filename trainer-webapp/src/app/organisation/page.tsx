@@ -3,9 +3,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import {
   getAssignableProfiles,
   getManageableFederalOrganizations,
+  getOwnOrganizationMembershipStatuses,
   getOrganizationOverview,
   getRoleAssignmentOptions,
 } from "@/data/supabase-organization-repository";
+import { getRequestedOrganizationRole } from "@/domain/organization-membership";
 import type {
   OrganizationLevel,
   OrganizationOverview,
@@ -13,7 +15,9 @@ import type {
 } from "@/domain/models";
 import { CreateStateOrganizationDialog } from "./create-state-organization-dialog";
 import { AssignRolePanel } from "./assign-role-panel";
+import { OrganizationJoinButton } from "./organization-join-button";
 import { getTranslations } from "@/i18n/server";
+import { getCurrentUser } from "@/lib/current-user";
 import styles from "./page.module.css";
 
 const organizationRoles: OrganizationRole[] = [
@@ -55,12 +59,16 @@ export default async function OrganizationPage() {
     manageableFederalOrganizations,
     assignableProfiles,
     roleAssignmentOptions,
+    ownMembershipStatuses,
+    currentUser,
     { t },
   ] = await Promise.all([
     getOrganizationOverview(),
     getManageableFederalOrganizations(),
     getAssignableProfiles(),
     getRoleAssignmentOptions(),
+    getOwnOrganizationMembershipStatuses(),
+    getCurrentUser(),
     getTranslations(),
   ]);
   // Client Components dürfen keine Server-Funktionen als Props erhalten.
@@ -78,6 +86,9 @@ export default async function OrganizationPage() {
       t(`organization.levels.${level}`),
     ]),
   ) as Record<OrganizationLevel, string>;
+  const membershipStatusByOrganization = new Map(
+    ownMembershipStatuses.map((status) => [status.organizationId, status]),
+  );
 
   return (
     <>
@@ -119,24 +130,50 @@ export default async function OrganizationPage() {
         </section>
       ) : (
         <section className={styles.hierarchy}>
-          {organizations.map((organization) => (
-            <article
-              key={organization.id}
-              style={{ "--organization-depth": organization.level === "federal" ? 0 : organization.level === "state" ? 1 : 2 } as React.CSSProperties}
-            >
-              <span className={styles.icon}><Building2 size={22} /></span>
-              <div>
-                <small>{t(`organization.levels.${organization.level}`)}</small>
-                <h2>{organization.name}</h2>
-                <p>{describeRoles(organization, t)}</p>
-              </div>
-              <div className={styles.count}>
-                <Users size={17} />
-                <strong>{organization.memberCount}</strong>
-                <span>{t("organization.memberships")}</span>
-              </div>
-            </article>
-          ))}
+          {organizations.map((organization) => {
+            const membershipStatus = membershipStatusByOrganization.get(
+              organization.id,
+            );
+            const requestedRole = currentUser
+              ? getRequestedOrganizationRole(
+                  currentUser.accountType,
+                  organization.level,
+                )
+              : null;
+
+            return (
+              <article
+                key={organization.id}
+                style={{ "--organization-depth": organization.level === "federal" ? 0 : organization.level === "state" ? 1 : 2 } as React.CSSProperties}
+              >
+                <span className={styles.icon}><Building2 size={22} /></span>
+                <div>
+                  <small>{t(`organization.levels.${organization.level}`)}</small>
+                  <h2>{organization.name}</h2>
+                  <p>{describeRoles(organization, t)}</p>
+                </div>
+                <div className={styles.cardAside}>
+                  <OrganizationJoinButton
+                    organizationId={organization.id}
+                    organizationName={organization.name}
+                    requestedRole={requestedRole}
+                    requestedRoleLabel={requestedRole ? roleLabels[requestedRole] : null}
+                    memberRoleLabels={(membershipStatus?.roles || []).map(
+                      (role) => roleLabels[role],
+                    )}
+                    pendingRoleLabel={membershipStatus?.pendingRequestedRole
+                      ? roleLabels[membershipStatus.pendingRequestedRole]
+                      : null}
+                  />
+                  <div className={styles.count}>
+                    <Users size={17} />
+                    <strong>{organization.memberCount}</strong>
+                    <span>{t("organization.memberships")}</span>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
     </>

@@ -1,7 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { OrganizationRole, RequestStatus } from "@/domain/models";
+import type { AccountType } from "@/domain/current-user";
+import { getRequestedOrganizationRole } from "@/domain/organization-membership";
+import type {
+  OrganizationLevel,
+  OrganizationRole,
+  RequestStatus,
+} from "@/domain/models";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,6 +31,7 @@ const selfRequestRoles = new Set<OrganizationRole>([
 
 function refreshInbox() {
   revalidatePath("/postfach");
+  revalidatePath("/organisation");
   revalidatePath("/personen");
   revalidatePath("/kalender");
   revalidatePath("/", "layout");
@@ -168,13 +175,46 @@ export async function createMembershipRequest(
   formData: FormData,
 ): Promise<InboxActionState> {
   const organizationId = String(formData.get("organizationId") || "");
-  const requestedRole = String(formData.get("requestedRole") || "") as OrganizationRole;
   const note = String(formData.get("note") || "").trim();
   const supabase = await createClient();
   const currentUserId = await getAuthenticatedUserId(supabase);
 
-  if (!organizationId || !currentUserId || !selfRequestRoles.has(requestedRole)) {
-    return { status: "error", message: "Bitte Organisation und Rolle auswählen." };
+  if (!organizationId || !currentUserId) {
+    return { status: "error", message: "Bitte Organisation auswählen." };
+  }
+
+  // Kontotyp und Organisationsebene werden serverseitig geladen. Dadurch kann
+  // ein manipulierter Formularwert keine fachlich unpassende Rolle beantragen.
+  const [profileResult, organizationResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", currentUserId)
+      .maybeSingle(),
+    supabase
+      .from("organizations")
+      .select("level")
+      .eq("id", organizationId)
+      .maybeSingle(),
+  ]);
+  const accountType = profileResult.data?.account_type as AccountType | undefined;
+  const organizationLevel = organizationResult.data?.level as
+    | OrganizationLevel
+    | undefined;
+  const requestedRole = organizationLevel
+    ? getRequestedOrganizationRole(accountType, organizationLevel)
+    : null;
+
+  if (
+    profileResult.error ||
+    organizationResult.error ||
+    !requestedRole ||
+    !selfRequestRoles.has(requestedRole)
+  ) {
+    return {
+      status: "error",
+      message: "Für deinen Kontotyp ist in dieser Organisation keine passende Rolle verfügbar.",
+    };
   }
 
   const { error } = await supabase.from("membership_requests").insert({

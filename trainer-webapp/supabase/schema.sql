@@ -641,7 +641,7 @@ as $$
     select 1
     from public.organizations target_organization
     join public.organization_memberships actor_membership
-      on actor_membership.user_id = auth.uid()
+      on actor_membership.user_id = (select auth.uid())
     join public.organizations actor_organization
       on actor_organization.id = actor_membership.organization_id
     where target_organization.id = target_organization_id
@@ -654,7 +654,7 @@ as $$
         or (
           target_organization.parent_id = actor_organization.id
           and actor_membership.role = 'federal_chair'
-          and target_role = 'specialist'
+          and target_role in ('specialist', 'state_trainer', 'medical')
         )
         or (
           actor_organization.id = target_organization.id
@@ -664,7 +664,13 @@ as $$
         or (
           target_organization.parent_id = actor_organization.id
           and actor_membership.role = 'specialist'
-          and target_role = 'club_board'
+          and target_role in (
+            'club_board',
+            'club_trainer',
+            'athlete',
+            'guardian',
+            'medical'
+          )
         )
         or (
           actor_organization.id = target_organization.id
@@ -1070,7 +1076,11 @@ grant usage on schema private to authenticated;
 revoke execute on function private.role_allowed_for_level(
   public.organization_level,
   public.member_role
-) from public, anon, authenticated;
+) from public, anon;
+grant execute on function private.role_allowed_for_level(
+  public.organization_level,
+  public.member_role
+) to authenticated;
 revoke execute on function private.validate_organization_hierarchy()
   from public, anon, authenticated;
 revoke execute on function private.validate_membership_role()
