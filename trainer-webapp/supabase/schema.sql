@@ -1374,7 +1374,10 @@ create policy "participants_manage_event"
       select 1
       from public.events event
       where event.id = event_id
-        and private.can_manage_organization(event.organization_id)
+        and (
+          event.created_by = (select auth.uid())
+          or private.can_manage_organization(event.organization_id)
+        )
     )
   )
   with check (
@@ -1382,7 +1385,10 @@ create policy "participants_manage_event"
       select 1
       from public.events event
       where event.id = event_id
-        and private.can_manage_organization(event.organization_id)
+        and (
+          event.created_by = (select auth.uid())
+          or private.can_manage_organization(event.organization_id)
+        )
     )
   );
 

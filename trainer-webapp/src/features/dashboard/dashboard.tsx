@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -13,12 +14,12 @@ import {
   Users,
 } from "lucide-react";
 import type {
-  Attendance,
   AttendanceStatus,
   CalendarEvent,
   Region,
   TrainingPlan,
 } from "@/domain/models";
+import { inviteEventParticipant } from "@/app/kalender/actions";
 import { formatShortDate } from "@/lib/event-display";
 import { PageHeader } from "@/components/ui/page-header";
 import { useCurrentUser } from "@/components/auth/current-user-context";
@@ -27,47 +28,78 @@ import styles from "./dashboard.module.css";
 
 interface DashboardProps {
   events: CalendarEvent[];
-  attendance: Attendance[];
   plans: TrainingPlan[];
   regions: Region[];
 }
 
 /**
+ * Erstellt kompakte Avatar-Initialen auch für eingeladene Personen, deren
+ * Profil noch nicht vollständig angelegt ist.
+ */
+function createInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "TH";
+}
+
+/**
  * People-First-Dashboard des MVP.
  *
- * Die Daten werden serverseitig über das Repository geladen und hier nur für
- * lokale UI-Zustände weiterverwendet. Einladungen und Filter sind im MVP
- * simuliert; ihre Handler bilden bereits die späteren API-Aktionen ab.
+ * Die Daten werden serverseitig geladen und hier nur für lokale UI-Zustände
+ * weiterverwendet. Die Teilnahme-Liste gehört immer zum nächsten Termin, der
+ * direkt darüber angezeigt wird. Neue Einladungen werden per Server Action
+ * dauerhaft in Supabase gespeichert.
  */
-export function Dashboard({ events, attendance, plans, regions }: DashboardProps) {
+export function Dashboard({ events, plans, regions }: DashboardProps) {
+  const router = useRouter();
   const currentUser = useCurrentUser();
   const { dictionary, locale, t } = useI18n();
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceStatus | "all">("all");
   const [email, setEmail] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [invitePending, startInviteTransition] = useTransition();
 
   const nextEvent = events[0];
-  const visibleAttendance = useMemo(
-    () =>
-      attendanceFilter === "all"
-        ? attendance
-        : attendance.filter((entry) => entry.status === attendanceFilter),
-    [attendance, attendanceFilter],
+  const eventParticipants = useMemo(
+    () => nextEvent?.participants ?? [],
+    [nextEvent],
+  );
+  const visibleParticipants = useMemo(
+    () => attendanceFilter === "all"
+      ? eventParticipants
+      : eventParticipants.filter(
+          (participant) => participant.status === attendanceFilter,
+        ),
+    [attendanceFilter, eventParticipants],
   );
 
-  /**
-   * Simuliert eine Einladung. Beim Supabase-Anschluss ruft diese Funktion eine
-   * Server Action auf; `email` bleibt dabei der wiederverwendete Formularwert.
-   */
+  /** Speichert eine echte Einladung für den oben angezeigten Supabase-Termin. */
   function handleInvite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!nextEvent) {
+      setFeedback(t("dashboard.noEventParticipants"));
+      return;
+    }
+
     if (!email.includes("@")) {
       setFeedback(t("dashboard.invalidEmail"));
       return;
     }
 
-    setFeedback(t("dashboard.inviteQueued", { email }));
-    setEmail("");
+    startInviteTransition(async () => {
+      const result = await inviteEventParticipant(nextEvent.id, email);
+      setFeedback(result.message);
+
+      if (result.status === "success") {
+        setEmail("");
+        router.refresh();
+      }
+    });
   }
 
   return (
@@ -154,6 +186,7 @@ export function Dashboard({ events, attendance, plans, regions }: DashboardProps
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <h2><Users size={19} /> {t("dashboard.participation")}</h2>
+            {nextEvent ? <span title={nextEvent.title}>{nextEvent.title}</span> : null}
           </div>
           <form className={styles.inviteForm} onSubmit={handleInvite}>
             <label>
@@ -164,16 +197,20 @@ export function Dashboard({ events, attendance, plans, regions }: DashboardProps
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder={t("dashboard.invitePlaceholder")}
                 aria-label={t("dashboard.inviteAria")}
+                disabled={!nextEvent || invitePending}
+                required
               />
             </label>
-            <button type="submit">{t("dashboard.invite")}</button>
+            <button type="submit" disabled={!nextEvent || invitePending}>
+              {invitePending ? t("dashboard.inviting") : t("dashboard.invite")}
+            </button>
           </form>
           {feedback ? <p className={styles.feedback}>{feedback}</p> : null}
           <div className={styles.tabs}>
             {(["all", "confirmed", "open", "declined"] as const).map((status) => {
               const count = status === "all"
-                ? attendance.length
-                : attendance.filter((entry) => entry.status === status).length;
+                ? eventParticipants.length
+                : eventParticipants.filter((entry) => entry.status === status).length;
               return (
                 <button
                   key={status}
@@ -187,18 +224,28 @@ export function Dashboard({ events, attendance, plans, regions }: DashboardProps
             })}
           </div>
           <div className={styles.participantList}>
-            {visibleAttendance.map((entry) => (
-              <div key={entry.id} className={styles.participant}>
-                <span className={styles.avatar}>{entry.person.initials}</span>
+            {visibleParticipants.map((participant) => (
+              <div key={participant.id} className={styles.participant}>
+                <span className={styles.avatar}>{createInitials(participant.name)}</span>
                 <div>
-                  <strong>{entry.person.name}</strong>
-                  <small>{entry.person.role}</small>
+                  <strong>{participant.name}</strong>
+                  <small>{t(`accountTypes.${participant.accountType}`)}</small>
                 </div>
-                <span className={`${styles.status} ${styles[entry.status]}`}>
-                  {t(`attendance.${entry.status}`)}
+                <span className={`${styles.status} ${styles[participant.status]}`}>
+                  {t(`attendance.${participant.status}`)}
                 </span>
               </div>
             ))}
+            {visibleParticipants.length === 0 ? (
+              <div className={styles.emptyParticipants}>
+                <Users size={24} />
+                <p>
+                  {nextEvent
+                    ? t("dashboard.noParticipants")
+                    : t("dashboard.noEventParticipants")}
+                </p>
+              </div>
+            ) : null}
           </div>
         </section>
 

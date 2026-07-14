@@ -19,6 +19,7 @@ export interface CalendarMutationResult {
 }
 
 const responseStatuses = new Set<AttendanceStatus>(["confirmed", "declined"]);
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const eventTypes = new Set<EventType>([
   "training",
@@ -353,6 +354,72 @@ export async function respondToCalendarEvent(
         ? "Deine Zusage wurde gespeichert."
         : "Deine Absage wurde gespeichert.",
     event: data ? mapCalendarEvent(data, currentUserId, email) : undefined,
+  };
+}
+
+/**
+ * Fügt dem angegebenen Event eine eingeladene Person mit offenem Status hinzu.
+ *
+ * Existiert bereits ein sichtbares Profil mit dieser E-Mail-Adresse, wird die
+ * Einladung direkt mit dem Nutzer verknüpft. Andernfalls bleibt `user_id` leer,
+ * bis sich die Person später mit derselben E-Mail-Adresse anmeldet. RLS erlaubt
+ * diese Änderung nur dem Event-Ersteller oder organisatorisch Verantwortlichen.
+ */
+export async function inviteEventParticipant(
+  eventId: string,
+  rawEmail: string,
+): Promise<CalendarMutationResult> {
+  const email = rawEmail.trim().toLowerCase();
+
+  if (!eventId || !emailPattern.test(email)) {
+    return {
+      status: "error",
+      message: "Bitte eine gültige E-Mail-Adresse eingeben.",
+    };
+  }
+
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+
+  if (!currentUserId) {
+    return { status: "error", message: "Bitte melde dich erneut an." };
+  }
+
+  // Die Profilabfrage respektiert RLS. Nicht sichtbare oder noch nicht
+  // registrierte Personen werden weiterhin sicher per E-Mail eingeladen.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("event_participants").insert({
+    event_id: eventId,
+    user_id: profile?.id || null,
+    invited_email: email,
+    invited_by: currentUserId,
+    status: "open",
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message:
+        error.code === "23505"
+          ? "Diese Person ist für den Termin bereits eingetragen."
+          : "Die Person konnte nicht eingeladen werden. Nur der Event-Ersteller oder organisatorisch Verantwortliche dürfen Teilnehmende hinzufügen.",
+    };
+  }
+
+  // Dashboard und Kalender verwenden dieselbe Teilnehmerquelle und müssen nach
+  // der Mutation gemeinsam aktualisiert werden.
+  revalidatePath("/");
+  revalidatePath("/kalender");
+
+  return {
+    status: "success",
+    message: `${email} wurde zum Termin eingeladen.`,
   };
 }
 
