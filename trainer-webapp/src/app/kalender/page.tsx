@@ -4,7 +4,15 @@ import {
 } from "@/data/supabase-event-repository";
 import { CalendarView } from "@/features/calendar/calendar-view";
 
-export default async function CalendarPage() {
+interface CalendarPageProps {
+  searchParams: Promise<{ event?: string | string[] }>;
+}
+
+export default async function CalendarPage({ searchParams }: CalendarPageProps) {
+  const params = await searchParams;
+  const selectedEventId = typeof params.event === "string"
+    ? params.event
+    : undefined;
   const [events, organizationOptions] = await Promise.all([
     getCalendarEvents(),
     getEventOrganizationOptions(),
@@ -14,6 +22,7 @@ export default async function CalendarPage() {
     <CalendarView
       initialEvents={events}
       organizationOptions={organizationOptions}
+      initialSelectedEventId={selectedEventId}
     />
   );
 }

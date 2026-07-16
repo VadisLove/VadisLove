@@ -120,10 +120,14 @@ export function PlansView({
   initialPlans,
   people,
   initialLeaderboard,
+  initialSelectedPlanId,
+  initialDialog,
 }: {
   initialPlans: TrainingPlan[];
   people: Person[];
   initialLeaderboard: TrainingLeaderboardEntry[] | null;
+  initialSelectedPlanId?: string;
+  initialDialog?: "share" | null;
 }) {
   const { t } = useI18n();
   const currentUser = useCurrentUser();
@@ -189,12 +193,21 @@ export function PlansView({
     () => people.filter((person) => (person.activeRelationships?.length || 0) > 0),
     [people],
   );
+  const requestedPlanId = initialSelectedPlanId
+    && initialPlans.some((plan) => plan.id === initialSelectedPlanId)
+    ? initialSelectedPlanId
+    : initialPlans[0]?.id ?? "";
   const [plans, setPlans] = useState(initialPlans);
   const [persistedLeaderboard, setPersistedLeaderboard] = useState(initialLeaderboard);
-  const [selectedPlanId, setSelectedPlanId] = useState(initialPlans[0]?.id ?? "");
+  const [selectedPlanId, setSelectedPlanId] = useState(requestedPlanId);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PlanFilter>("all");
-  const [dialog, setDialog] = useState<"create" | "share" | null>(null);
+  // Ein Dashboard-Teilen-Link darf den vorhandenen, persistenten Dialog direkt öffnen.
+  const [dialog, setDialog] = useState<"create" | "share" | null>(() =>
+    initialDialog === "share" && requestedPlanId === initialSelectedPlanId
+      ? "share"
+      : null,
+  );
   const [notice, setNotice] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [celebration, setCelebration] = useState("");

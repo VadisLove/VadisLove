@@ -30,6 +30,7 @@ import styles from "./calendar-view.module.css";
 interface CalendarViewProps {
   initialEvents: CalendarEvent[];
   organizationOptions: EventOrganizationOption[];
+  initialSelectedEventId?: string;
 }
 
 interface CalendarContextMenu {
@@ -247,15 +248,21 @@ function buildWeekEventSegments(
 export function CalendarView({
   initialEvents,
   organizationOptions,
+  initialSelectedEventId,
 }: CalendarViewProps) {
+  const initialSelectedEvent = initialEvents.find(
+    (event) => event.id === initialSelectedEventId,
+  ) ?? initialEvents[0] ?? null;
   const [events, setEvents] = useState(initialEvents);
   const { dictionary, locale, t } = useI18n();
-  const [monthCursor, setMonthCursor] = useState(() => new Date());
+  const [monthCursor, setMonthCursor] = useState(() =>
+    initialSelectedEvent ? fromIsoDate(initialSelectedEvent.date) : new Date(),
+  );
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [colorMode, setColorMode] = useState<CalendarColorMode>("type");
   const [stateFilter, setStateFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState<EventType | "all">("all");
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(initialEvents[0] ?? null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(initialSelectedEvent);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState(

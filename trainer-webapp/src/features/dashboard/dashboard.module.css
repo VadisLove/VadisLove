@@ -192,15 +192,37 @@
 
 .agendaItem {
   display: grid;
+  width: 100%;
   grid-template-columns: 50px 7px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   min-height: 89px;
+  padding: 0 6px;
   border-bottom: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: inherit;
+  text-align: left;
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .agendaItem:last-child {
   border-bottom: 0;
+}
+
+.agendaItem:hover,
+.agendaItem:focus-visible {
+  background: color-mix(in srgb, var(--color-blue) 8%, white);
+  box-shadow: inset 3px 0 0 var(--color-blue);
+}
+
+.agendaItem:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: -2px;
+}
+
+.selectedAgendaItem {
+  background: color-mix(in srgb, var(--color-blue) 6%, white);
+  box-shadow: inset 3px 0 0 var(--color-blue);
 }
 
 .time {
@@ -422,7 +444,7 @@
 
 .planItem {
   display: grid;
-  grid-template-columns: 47px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 92px;
   align-items: center;
   gap: 10px;
@@ -431,6 +453,25 @@
 
 .planItem:last-child {
   border-bottom: 0;
+}
+
+.planMainLink {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 47px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--radius-sm);
+}
+
+.planMainLink:hover .planCopy strong,
+.planMainLink:focus-visible .planCopy strong {
+  color: var(--color-blue-dark);
+}
+
+.planMainLink:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 4px;
 }
 
 .planCover {
@@ -445,12 +486,22 @@
   font-size: 1.05rem;
 }
 
-.planItem h3 {
-  font-size: 0.8rem;
+.planCopy {
+  display: block;
+  min-width: 0;
 }
 
-.planItem p,
-.planItem small {
+.planCopy strong {
+  display: block;
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+
+.planCopy > span,
+.planCopy small {
   display: block;
   margin-top: 4px;
   color: var(--color-muted);
@@ -463,14 +514,27 @@
   gap: 5px;
 }
 
-.planActions button {
+.planActions a {
+  display: grid;
   min-height: 30px;
+  place-items: center;
   padding: 0 9px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-blue-dark);
   font-size: 0.68rem;
   font-weight: 650;
+}
+
+.planActions a:hover,
+.planActions a:focus-visible {
+  border-color: var(--color-blue);
+  background: color-mix(in srgb, var(--color-blue) 8%, white);
+}
+
+.planActions a:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
 }
 
 .lowerGrid {

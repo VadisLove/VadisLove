@@ -33,7 +33,8 @@ export const en: DictionaryShape<typeof de> = {
   dashboard: {
     greeting: "Good morning, {name}", description: "Here is your overview for today.",
     nextTraining: "Next training today", indoor: "Indoor", confirmed: "Confirmed",
-    nextEvent: "Next event", openCalendar: "Open in calendar",
+    nextEvent: "Next event", selectedEvent: "Selected event",
+    selectEvent: "Select {name}", openCalendar: "Open in calendar",
     noUpcomingEvents: "No upcoming events",
     noUpcomingEventsDescription: "As soon as a visible event is added to the calendar, it will automatically appear here.",
     viewParticipants: "View participants", schedule: "My schedule", showAll: "Show all",

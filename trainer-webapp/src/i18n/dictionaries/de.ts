@@ -24,7 +24,8 @@ export const de = {
   dashboard: {
     greeting: "Guten Morgen, {name}", description: "Hier ist dein Überblick für heute.",
     nextTraining: "Nächstes Training heute", indoor: "Indoor", confirmed: "Zugesagt",
-    nextEvent: "Nächster Termin", openCalendar: "Im Kalender öffnen",
+    nextEvent: "Nächster Termin", selectedEvent: "Ausgewählter Termin",
+    selectEvent: "{name} auswählen", openCalendar: "Im Kalender öffnen",
     noUpcomingEvents: "Keine kommenden Termine",
     noUpcomingEventsDescription: "Sobald ein sichtbarer Termin im Kalender liegt, erscheint er hier automatisch.",
     viewParticipants: "Teilnehmende ansehen", schedule: "Mein Zeitplan",

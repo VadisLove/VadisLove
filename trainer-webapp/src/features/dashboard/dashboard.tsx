@@ -59,14 +59,18 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
   const currentUser = useCurrentUser();
   const { dictionary, locale, t } = useI18n();
   const [attendanceFilter, setAttendanceFilter] = useState<AttendanceStatus | "all">("all");
+  const [selectedEventId, setSelectedEventId] = useState(events[0]?.id ?? "");
   const [email, setEmail] = useState("");
   const [feedback, setFeedback] = useState("");
   const [invitePending, startInviteTransition] = useTransition();
 
-  const nextEvent = events[0];
+  const selectedEvent = useMemo(
+    () => events.find((event) => event.id === selectedEventId) ?? events[0],
+    [events, selectedEventId],
+  );
   const eventParticipants = useMemo(
-    () => nextEvent?.participants ?? [],
-    [nextEvent],
+    () => selectedEvent?.participants ?? [],
+    [selectedEvent],
   );
   const visibleParticipants = useMemo(
     () => attendanceFilter === "all"
@@ -81,7 +85,7 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
   function handleInvite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!nextEvent) {
+    if (!selectedEvent) {
       setFeedback(t("dashboard.noEventParticipants"));
       return;
     }
@@ -92,7 +96,7 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
     }
 
     startInviteTransition(async () => {
-      const result = await inviteEventParticipant(nextEvent.id, email);
+      const result = await inviteEventParticipant(selectedEvent.id, email);
       setFeedback(result.message);
 
       if (result.status === "success") {
@@ -100,6 +104,16 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
         router.refresh();
       }
     });
+  }
+
+  /**
+   * Hält Kopfbereich, Einladungsziel und Teilnehmerliste beim Terminwechsel
+   * synchron. Filter und alte Rückmeldungen werden bewusst zurückgesetzt.
+   */
+  function handleSelectEvent(eventId: string) {
+    setSelectedEventId(eventId);
+    setAttendanceFilter("all");
+    setFeedback("");
   }
 
   return (
@@ -110,29 +124,36 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
         showContext
       />
 
-      {nextEvent ? (
-        <section className={styles.nextEvent}>
+      {selectedEvent ? (
+        <section className={styles.nextEvent} aria-live="polite">
           <div>
-            <span>{t("dashboard.nextEvent")}</span>
-            <strong>{nextEvent.startTime}</strong>
+            <span>
+              {selectedEvent.id === events[0]?.id
+                ? t("dashboard.nextEvent")
+                : t("dashboard.selectedEvent")}
+            </span>
+            <strong>{selectedEvent.startTime}</strong>
             <small>
-              {formatShortDate(nextEvent.date, locale)} · {nextEvent.endTime}
+              {formatShortDate(selectedEvent.date, locale)} · {selectedEvent.endTime}
             </small>
           </div>
           <div className={styles.nextEventDetails}>
-            <h2>{nextEvent.title}</h2>
-            <p><MapPin size={17} /> {nextEvent.location}</p>
+            <h2>{selectedEvent.title}</h2>
+            <p><MapPin size={17} /> {selectedEvent.location}</p>
             <div>
-              <span>{t(`eventTypes.${nextEvent.type}`)}</span>
-              {nextEvent.region ? <span>{nextEvent.region}</span> : null}
+              <span>{t(`eventTypes.${selectedEvent.type}`)}</span>
+              {selectedEvent.region ? <span>{selectedEvent.region}</span> : null}
             </div>
           </div>
           <div className={styles.capacity}>
             <CalendarDays size={23} />
-            <strong>{formatShortDate(nextEvent.date, locale)}</strong>
-            <small>{nextEvent.startTime} – {nextEvent.endTime}</small>
+            <strong>{formatShortDate(selectedEvent.date, locale)}</strong>
+            <small>{selectedEvent.startTime} – {selectedEvent.endTime}</small>
           </div>
-          <Link href="/kalender" className={styles.primaryButton}>
+          <Link
+            href={`/kalender?event=${encodeURIComponent(selectedEvent.id)}`}
+            className={styles.primaryButton}
+          >
             {t("dashboard.openCalendar")}
             <ArrowRight size={18} />
           </Link>
@@ -160,7 +181,16 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
           </div>
           <div className={styles.agenda}>
             {events.slice(0, 5).map((event) => (
-              <article key={event.id} className={styles.agendaItem}>
+              <button
+                key={event.id}
+                type="button"
+                className={`${styles.agendaItem} ${
+                  event.id === selectedEvent?.id ? styles.selectedAgendaItem : ""
+                }`}
+                onClick={() => handleSelectEvent(event.id)}
+                aria-pressed={event.id === selectedEvent?.id}
+                aria-label={t("dashboard.selectEvent", { name: event.title })}
+              >
                 <div className={styles.time}>
                   <strong>{event.startTime}</strong>
                   <span>{event.endTime}</span>
@@ -172,7 +202,7 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
                   <p><MapPin size={13} /> {event.location}</p>
                 </div>
                 <strong className={styles.agendaCapacity}>{event.confirmed}/{event.capacity}</strong>
-              </article>
+              </button>
             ))}
             {events.length === 0 ? (
               <div className={styles.emptyAgenda}>
@@ -186,7 +216,7 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <h2><Users size={19} /> {t("dashboard.participation")}</h2>
-            {nextEvent ? <span title={nextEvent.title}>{nextEvent.title}</span> : null}
+            {selectedEvent ? <span title={selectedEvent.title}>{selectedEvent.title}</span> : null}
           </div>
           <form className={styles.inviteForm} onSubmit={handleInvite}>
             <label>
@@ -197,11 +227,11 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder={t("dashboard.invitePlaceholder")}
                 aria-label={t("dashboard.inviteAria")}
-                disabled={!nextEvent || invitePending}
+                disabled={!selectedEvent || invitePending}
                 required
               />
             </label>
-            <button type="submit" disabled={!nextEvent || invitePending}>
+            <button type="submit" disabled={!selectedEvent || invitePending}>
               {invitePending ? t("dashboard.inviting") : t("dashboard.invite")}
             </button>
           </form>
@@ -240,7 +270,7 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
               <div className={styles.emptyParticipants}>
                 <Users size={24} />
                 <p>
-                  {nextEvent
+                  {selectedEvent
                     ? t("dashboard.noParticipants")
                     : t("dashboard.noEventParticipants")}
                 </p>
@@ -257,15 +287,28 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
           <div className={styles.planList}>
             {plans.map((plan) => (
               <article key={plan.id} className={styles.planItem}>
-                <div className={styles.planCover}>{plan.title.slice(0, 3).toUpperCase()}</div>
-                <div>
-                  <h3>{plan.title}</h3>
-                  <p>v{plan.version} · {plan.author}</p>
-                  <small>{t("dashboard.federalToState")}</small>
-                </div>
+                <Link
+                  href={`/trainingsplaene?plan=${encodeURIComponent(plan.id)}`}
+                  className={styles.planMainLink}
+                  aria-label={`${plan.title} ${t("common.open")}`}
+                >
+                  <span className={styles.planCover}>{plan.title.slice(0, 3).toUpperCase()}</span>
+                  <span className={styles.planCopy}>
+                    <strong>{plan.title}</strong>
+                    <span>v{plan.version} · {plan.author}</span>
+                    <small>{t("dashboard.federalToState")}</small>
+                  </span>
+                </Link>
                 <div className={styles.planActions}>
-                  <button type="button">{t("common.open")}</button>
-                  <button type="button" aria-label={t("common.share", { name: plan.title })}><Share2 size={15} /></button>
+                  <Link href={`/trainingsplaene?plan=${encodeURIComponent(plan.id)}`}>
+                    {t("common.open")}
+                  </Link>
+                  <Link
+                    href={`/trainingsplaene?plan=${encodeURIComponent(plan.id)}&action=share`}
+                    aria-label={t("common.share", { name: plan.title })}
+                  >
+                    <Share2 size={15} />
+                  </Link>
                 </div>
               </article>
             ))}

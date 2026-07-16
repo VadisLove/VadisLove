@@ -6,7 +6,23 @@ import {
 } from "@/data/shared-training-plan-repository";
 import { PlansView } from "@/features/plans/plans-view";
 
-export default async function TrainingPlansPage() {
+interface TrainingPlansPageProps {
+  searchParams: Promise<{
+    plan?: string | string[];
+    action?: string | string[];
+  }>;
+}
+
+export default async function TrainingPlansPage({
+  searchParams,
+}: TrainingPlansPageProps) {
+  const params = await searchParams;
+  const selectedPlanId = typeof params.plan === "string"
+    ? params.plan
+    : undefined;
+  const requestedAction = typeof params.action === "string"
+    ? params.action
+    : undefined;
   const [plans, people, sharedPlans, leaderboard] = await Promise.all([
     trainerRepository.getTrainingPlans(),
     getPeopleDirectory(),
@@ -18,6 +34,8 @@ export default async function TrainingPlansPage() {
       initialPlans={[...sharedPlans, ...plans]}
       people={people}
       initialLeaderboard={leaderboard}
+      initialSelectedPlanId={selectedPlanId}
+      initialDialog={requestedAction === "share" ? "share" : null}
     />
   );
 }
