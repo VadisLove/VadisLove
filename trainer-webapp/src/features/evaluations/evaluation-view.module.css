@@ -1,0 +1,430 @@
+.page {
+  --eval-ink: #10243d;
+  --eval-blue: #158cf2;
+  --eval-mint: #32d6a0;
+  --eval-warm: #ffb44c;
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  overflow-x: hidden;
+  padding-bottom: 92px;
+}
+
+.page > *,
+.contentGrid,
+.contentGrid > *,
+.skillGrid,
+.skillGrid > *,
+.goalGrid,
+.goalGrid > * {
+  min-width: 0;
+}
+
+.commandBar,
+.athleteHero,
+.panel,
+.skillSection,
+.goalPanel,
+.notesPanel,
+.comparePanel,
+.emptyState {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.commandBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 8px;
+}
+
+.modeSwitch {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 11px;
+  background: #edf2f7;
+}
+
+.modeSwitch button,
+.compareActions button,
+.hiddenContests button,
+.addGoal button,
+.exportButton,
+.saveButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border-radius: 8px;
+  color: var(--color-muted);
+  font-size: .7rem;
+  font-weight: 800;
+  transition: 160ms ease;
+}
+
+.modeSwitch .activeMode {
+  background: #fff;
+  color: var(--eval-ink);
+  box-shadow: 0 3px 10px rgba(20, 45, 75, .1);
+}
+
+.periodFields {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-right: 4px;
+  color: var(--color-muted);
+}
+
+.periodFields label,
+.heroFields label,
+.compareActions label {
+  display: grid;
+  gap: 4px;
+  color: var(--color-muted);
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.periodFields input,
+.heroFields input,
+.compareActions select,
+.contestRow input,
+.addGoal input {
+  min-height: 38px;
+  border: 1px solid #dce4ec;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--eval-ink);
+  font: inherit;
+  font-size: .7rem;
+  font-weight: 650;
+  outline: none;
+  transition: border 150ms ease, box-shadow 150ms ease;
+}
+
+.periodFields input,
+.heroFields input,
+.compareActions select { padding: 0 10px; }
+
+.periodFields input:focus,
+.heroFields input:focus,
+.compareActions select:focus,
+.contestRow input:focus,
+.addGoal input:focus,
+.speechField textarea:focus {
+  border-color: var(--eval-blue);
+  box-shadow: 0 0 0 3px rgba(21, 140, 242, .12);
+}
+
+.athleteHero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(230px, .8fr) minmax(420px, 1.5fr);
+  gap: 22px;
+  overflow: hidden;
+  padding: 24px 24px 0;
+  background:
+    radial-gradient(circle at 82% 8%, rgba(51, 214, 160, .24), transparent 28%),
+    linear-gradient(130deg, #10243d, #153b64 68%, #136d7c);
+  color: #fff;
+}
+
+.athleteHero::after {
+  position: absolute;
+  top: -80px;
+  right: 8%;
+  width: 190px;
+  height: 260px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  content: "";
+  transform: rotate(28deg);
+}
+
+.athleteIdentity,
+.heroFields,
+.metricStrip { position: relative; z-index: 1; }
+
+.athleteIdentity {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-bottom: 21px;
+}
+
+.avatar {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, .13);
+  font-size: 1.15rem;
+  font-weight: 900;
+  backdrop-filter: blur(10px);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--eval-blue);
+  font-size: .58rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.athleteIdentity .eyebrow { color: #7ae8c2; }
+.athleteIdentity select {
+  max-width: 270px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 900;
+  outline: none;
+}
+.athleteIdentity select option { color: var(--eval-ink); }
+.athleteIdentity p { margin-top: 4px; color: rgba(255,255,255,.65); font-size: .65rem; }
+
+.heroFields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 21px;
+}
+.heroFields label { color: rgba(255,255,255,.6); }
+.heroFields input { border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.1); color: #fff; }
+.heroFields input::placeholder { color: rgba(255,255,255,.4); }
+.heroFields input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: .7; }
+
+.metricStrip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0 -24px;
+  border-top: 1px solid rgba(255,255,255,.12);
+  background: rgba(5, 20, 38, .28);
+}
+.metricStrip article { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 66px; border-right: 1px solid rgba(255,255,255,.1); color: #78e9c1; }
+.metricStrip article:last-child { border-right: 0; }
+.metricStrip span { display: grid; color: rgba(255,255,255,.62); font-size: .62rem; }
+.metricStrip strong { color: #fff; font-size: 1rem; }
+
+.contentGrid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(230px, .65fr); gap: 18px; }
+.panel > header,
+.goalPanel > header {
+  display: flex;
+  gap: 11px;
+  padding: 17px 19px;
+  border-bottom: 1px solid var(--color-border);
+}
+.panel > header > span,
+.goalPanel > header > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: #eaf5ff;
+  color: var(--eval-blue);
+}
+.panel h2,
+.goalPanel h2,
+.skillSection h2,
+.comparePanel h2 { color: var(--eval-ink); font-size: .9rem; }
+.panel header p,
+.goalPanel header p,
+.skillSection header p,
+.comparePanel header p { margin-top: 3px; color: var(--color-muted); font-size: .63rem; line-height: 1.45; }
+
+.contestPanel { min-width: 0; overflow: hidden; }
+.contestTable { width: 100%; max-width: 100%; overflow-x: auto; }
+.contestHead,
+.contestRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.25fr) 105px 70px minmax(150px, 1fr) 34px;
+  align-items: center;
+  gap: 8px;
+  min-width: 650px;
+  padding: 9px 15px;
+}
+.contestHead { min-height: 36px; background: #f6f8fa; color: var(--color-muted); font-size: .55rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.contestRow { border-top: 1px solid #edf0f3; }
+.contestRow:first-of-type { border-top: 0; }
+.contestRow > span { display: grid; gap: 2px; font-size: .69rem; }
+.contestRow small { color: var(--color-muted); font-size: .58rem; }
+.contestRow input { width: 100%; min-width: 0; padding: 0 8px; }
+.contestRow button { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; color: var(--color-muted); }
+.contestRow button:hover { background: #fff0f0; color: var(--color-danger); }
+.hiddenContests { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 10px 15px 14px; border-top: 1px dashed var(--color-border); color: var(--color-muted); font-size: .6rem; }
+.hiddenContests button { min-height: 30px; padding: 0 9px; background: #f2f5f8; font-size: .6rem; }
+.inlineEmpty { padding: 18px; color: var(--color-muted); font-size: .68rem; text-align: center; }
+
+.attendancePanel { min-height: 250px; }
+.attendancePanel > header > span { background: #eafaf4; color: #16a675; }
+.attendanceGauge {
+  --attendance: 0%;
+  position: relative;
+  display: grid;
+  width: 148px;
+  height: 148px;
+  margin: 24px auto;
+  place-content: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--eval-mint) var(--attendance), #e9eef2 0);
+  text-align: center;
+}
+.attendanceGauge::before { position: absolute; inset: 13px; border-radius: inherit; background: #fff; content: ""; }
+.attendanceGauge strong,
+.attendanceGauge span { position: relative; z-index: 1; }
+.attendanceGauge strong { color: var(--eval-ink); font-size: 1.35rem; }
+.attendanceGauge span { margin-top: 2px; color: var(--color-muted); font-size: .58rem; }
+
+.skillGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.skillSection:first-child { grid-row: span 2; }
+.skillSection > header { display: flex; gap: 12px; align-items: center; padding: 18px 19px; border-bottom: 1px solid var(--color-border); }
+.sectionNumber { color: #d4dce4; font-size: 1.3rem; font-weight: 950; letter-spacing: -.05em; }
+.skillList { display: grid; }
+.skillCard { display: grid; gap: 10px; padding: 15px 18px; border-bottom: 1px solid #edf0f3; }
+.skillCard:last-child { border-bottom: 0; }
+.skillTitle { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.skillTitle h3 { color: var(--eval-ink); font-size: .72rem; }
+.skillTitle span { padding: 4px 7px; border-radius: 6px; background: #f0f4f8; color: var(--color-muted); font-size: .56rem; font-weight: 800; }
+.ratingScale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.ratingScale button { min-height: 32px; border: 1px solid #dfe6ed; border-radius: 7px; color: var(--color-muted); font-size: .64rem; font-weight: 850; }
+.ratingScale button:hover:not(:disabled),
+.ratingScale .activeRating { border-color: var(--eval-blue); background: var(--eval-blue); color: #fff; transform: translateY(-1px); }
+.ratingScale button:disabled { cursor: default; }
+
+.speechField { position: relative; }
+.speechField textarea { width: 100%; resize: vertical; border: 1px solid #dfe6ed; border-radius: 9px; padding: 10px 42px 10px 11px; color: var(--eval-ink); font: inherit; font-size: .67rem; line-height: 1.5; outline: none; }
+.speechButton,
+.listeningButton { position: absolute; right: 8px; bottom: 8px; display: grid; width: 30px; height: 30px; place-items: center; border-radius: 8px; background: #eef5fb; color: var(--eval-blue); }
+.speechButton:disabled { color: #aab3bd; cursor: not-allowed; }
+.listeningButton { background: #ffeded; color: #df3945; animation: pulse 1.2s infinite; }
+
+.goalGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.goalPanel { overflow: hidden; }
+.goalPanel:nth-child(2) > header > span { background: #fff5e8; color: #e78a16; }
+.goalList { display: grid; }
+.goalItem,
+.completedGoal { display: flex; width: 100%; align-items: center; gap: 10px; padding: 11px 17px; border-bottom: 1px solid #eef1f4; background: transparent; text-align: left; }
+.goalItem > span,
+.completedGoal > span { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border: 1px solid #d8e1e8; border-radius: 50%; color: var(--color-muted); }
+.goalItem > div,
+.completedGoal > div { display: grid; gap: 2px; }
+.goalItem strong,
+.completedGoal strong { color: var(--eval-ink); font-size: .68rem; }
+.goalItem small,
+.completedGoal small { color: var(--color-muted); font-size: .56rem; }
+.completedGoal { background: #f4fbf8; }
+.completedGoal > span { border-color: #31c996; background: #31c996; color: #fff; }
+.completedGoal strong { color: #547065; text-decoration: line-through; }
+.addGoal { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 13px 15px; background: #f8fafb; }
+.addGoal input { padding: 0 10px; }
+.addGoal button { background: var(--eval-ink); color: #fff; }
+.addGoal button:disabled { opacity: .45; }
+
+.notesPanel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding: 19px; }
+.notesPanel > div { display: grid; gap: 7px; }
+.notesPanel label { color: var(--eval-ink); font-size: .72rem; font-weight: 850; }
+
+.saveBar { position: fixed; z-index: 20; right: 26px; bottom: 18px; left: calc(var(--sidebar-width, 230px) + 26px); display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px; min-height: 64px; padding: 9px 12px 9px 15px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: rgba(16, 36, 61, .94); color: #fff; box-shadow: 0 16px 42px rgba(7, 24, 45, .28); backdrop-filter: blur(16px); }
+.saveBar > div { display: flex; align-items: center; gap: 9px; color: #77e4be; }
+.saveBar > div span { display: grid; color: #fff; font-size: .68rem; }
+.saveBar small { color: rgba(255,255,255,.55); font-size: .56rem; }
+.saveBar p { justify-self: end; font-size: .64rem; }
+.success { color: #76e1bd; }
+.error { color: #ff9c9c; }
+.exportButton { border: 1px solid rgba(255,255,255,.2); color: #fff; }
+.saveButton { background: var(--eval-blue); color: #fff; }
+.saveButton:disabled { opacity: .55; }
+
+.comparePanel { overflow: hidden; }
+.compareHeader { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 24px; background: radial-gradient(circle at 88% 0, rgba(50,214,160,.16), transparent 34%), #fff; }
+.compareHeader h2 { font-size: 1.25rem; }
+.compareActions { display: flex; align-items: end; gap: 8px; }
+.compareActions select { min-width: 165px; }
+.compareActions button { background: var(--eval-ink); color: #fff; }
+.weightRail { display: grid; grid-template-columns: repeat(4, 1fr); border-block: 1px solid var(--color-border); background: #f6f8fa; }
+.weightRail span { display: flex; justify-content: space-between; gap: 8px; padding: 11px 16px; border-right: 1px solid var(--color-border); color: var(--color-muted); font-size: .62rem; }
+.weightRail span:last-child { border-right: 0; }
+.weightRail strong { color: var(--eval-ink); }
+.rankingTable { overflow-x: auto; }
+.rankingHead,
+.rankingRow { display: grid; grid-template-columns: minmax(230px, 1.5fr) repeat(5, minmax(95px, .7fr)); align-items: center; min-width: 850px; }
+.rankingHead { min-height: 38px; padding: 0 18px; background: var(--eval-ink); color: rgba(255,255,255,.66); font-size: .55rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+.rankingRow { min-height: 76px; padding: 0 18px; border-bottom: 1px solid #edf0f3; }
+.rankingRow:last-child { border-bottom: 0; }
+.rankingRow > span:not(.riderCell) { display: grid; gap: 3px; color: var(--eval-ink); font-size: .78rem; font-weight: 850; }
+.rankingRow small { color: var(--color-muted); font-size: .55rem; font-weight: 500; }
+.riderCell { display: flex; align-items: center; gap: 9px; }
+.riderCell > b { width: 22px; color: #a7b2bd; font-size: .72rem; }
+.riderCell > i { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 11px; background: #eaf5ff; color: var(--eval-blue); font-size: .62rem; font-style: normal; font-weight: 900; }
+.riderCell > span { display: grid; gap: 2px; }
+.riderCell strong { color: var(--eval-ink); font-size: .72rem; }
+.overallScore { color: var(--eval-blue) !important; font-size: 1.1rem !important; }
+
+.emptyState { display: grid; min-height: 280px; place-content: center; justify-items: center; gap: 8px; color: var(--color-muted); text-align: center; }
+.emptyState h1,
+.emptyState h2 { color: var(--eval-ink); font-size: 1rem; }
+.emptyState p { max-width: 380px; font-size: .7rem; line-height: 1.55; }
+
+@keyframes pulse {
+  50% { box-shadow: 0 0 0 6px rgba(223,57,69,.12); }
+}
+
+@media (max-width: 1100px) {
+  .athleteHero { grid-template-columns: 1fr; }
+  .heroFields { padding-top: 0; }
+  .contentGrid { grid-template-columns: 1fr; }
+  .attendancePanel { min-height: 0; }
+  .skillGrid { grid-template-columns: 1fr; }
+  .skillSection:first-child { grid-row: auto; }
+}
+
+@media (max-width: 760px) {
+  .page { padding-bottom: 132px; }
+  .commandBar,
+  .compareHeader { align-items: stretch; flex-direction: column; }
+  .modeSwitch button { flex: 1; }
+  .periodFields { justify-content: space-between; padding: 0 4px 4px; }
+  .periodFields label { flex: 1; }
+  .periodFields input { width: 100%; }
+  .athleteHero { padding: 19px 16px 0; }
+  .heroFields { grid-template-columns: 1fr; }
+  .metricStrip { grid-template-columns: repeat(2, 1fr); margin: 0 -16px; }
+  .metricStrip article:nth-child(2) { border-right: 0; }
+  .metricStrip article:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.1); }
+  .goalGrid,
+  .notesPanel { grid-template-columns: 1fr; }
+  .compareActions { align-items: stretch; flex-direction: column; }
+  .weightRail { grid-template-columns: repeat(2, 1fr); }
+  .weightRail span:nth-child(2) { border-right: 0; }
+  .weightRail span:nth-child(-n+2) { border-bottom: 1px solid var(--color-border); }
+  .saveBar { right: 12px; bottom: 10px; left: 12px; grid-template-columns: 1fr 1fr; }
+  .saveBar > div { grid-column: 1 / -1; }
+  .saveBar > p,
+  .saveBar > span { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listeningButton { animation: none; }
+  .modeSwitch button,
+  .ratingScale button { transition: none; }
+}

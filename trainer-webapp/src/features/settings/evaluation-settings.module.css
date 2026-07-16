@@ -1,0 +1,43 @@
+.card { max-width: 920px; overflow: hidden; border: 1px solid var(--color-border); border-radius: 16px; background: #fff; box-shadow: var(--shadow-soft); }
+.card > header { display: flex; gap: 13px; padding: 20px; border-bottom: 1px solid var(--color-border); background: radial-gradient(circle at 90% 0, rgba(50,214,160,.2), transparent 35%), linear-gradient(120deg, #10243d, #184d73); color: #fff; }
+.card > header > span { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: rgba(255,255,255,.12); }
+.card h2 { font-size: .95rem; }
+.card header p { margin-top: 4px; color: rgba(255,255,255,.68); font-size: .7rem; }
+.weightSection,
+.skillSection { padding: 20px; border-bottom: 1px solid var(--color-border); }
+.sectionTitle { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; color: #168cf2; }
+.sectionTitle > div { flex: 1; }
+.sectionTitle h3 { color: var(--color-navy); font-size: .78rem; }
+.sectionTitle p { margin-top: 2px; color: var(--color-muted); font-size: .63rem; }
+.validTotal,
+.invalidTotal { padding: 6px 9px; border-radius: 8px; font-size: .68rem; }
+.validTotal { background: #e8f8f2; color: #148d68; }
+.invalidTotal { background: #fff0f0; color: var(--color-danger); }
+.weightGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.weightGrid label { display: grid; gap: 6px; color: var(--color-muted); font-size: .6rem; font-weight: 800; }
+.weightGrid label span { display: flex; align-items: center; border: 1px solid #dce4ec; border-radius: 9px; overflow: hidden; }
+.weightGrid input { width: 100%; min-width: 0; min-height: 42px; padding: 0 10px; border: 0; color: var(--color-navy); font: inherit; font-weight: 900; outline: none; }
+.weightGrid b { padding-right: 10px; color: var(--color-muted); }
+.sectionTitle button,
+.card footer button { display: inline-flex; min-height: 38px; align-items: center; gap: 6px; padding: 0 12px; border-radius: 8px; background: #10243d; color: #fff; font-size: .65rem; font-weight: 850; }
+.skillList { display: grid; gap: 7px; }
+.skillRow { display: grid; grid-template-columns: 36px minmax(0, 1fr) 150px 70px; align-items: center; gap: 8px; }
+.skillRow > button { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 8px; }
+.visibleButton { background: #e9f8f2; color: #14946d; }
+.hiddenButton { background: #f0f2f4; color: #8b959f; }
+.skillRow input,
+.skillRow select { width: 100%; min-width: 0; min-height: 38px; border: 1px solid #dce4ec; border-radius: 8px; padding: 0 9px; background: #fff; color: var(--color-navy); font: inherit; font-size: .66rem; outline: none; }
+.skillRow small { color: var(--color-muted); font-size: .54rem; }
+.card footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; }
+.card footer p { font-size: .66rem; }
+.card footer button { background: #168cf2; }
+.card footer button:disabled { opacity: .5; }
+.success { color: var(--color-success); }
+.error { color: var(--color-danger); }
+@media (max-width: 760px) {
+  .weightGrid { grid-template-columns: repeat(2, 1fr); }
+  .skillRow { grid-template-columns: 36px minmax(0, 1fr); }
+  .skillRow select,
+  .skillRow small { grid-column: 2; }
+  .card footer { align-items: stretch; flex-direction: column; }
+}

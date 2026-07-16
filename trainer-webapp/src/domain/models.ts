@@ -282,6 +282,75 @@ export interface TrainingLeaderboardEntry {
   xpTotal: number;
 }
 
+export type EvaluationSkillCategory = "skateboarding" | "mental" | "athletic";
+
+export interface EvaluationWeights {
+  attendance: number;
+  contests: number;
+  tasks: number;
+  skills: number;
+}
+
+export interface EvaluationSkillDefinition {
+  key: string;
+  label: string;
+  category: EvaluationSkillCategory;
+  visible: boolean;
+  sortOrder: number;
+  custom: boolean;
+}
+
+export interface EvaluationSkillRating {
+  skillKey: string;
+  rating: number;
+  note: string;
+}
+
+export interface EvaluationContestOverride {
+  eventId: string;
+  excluded: boolean;
+  category: string;
+  placement: number | null;
+  note: string;
+}
+
+export interface AthleteEvaluation {
+  id: string;
+  trainerId: string;
+  athleteId: string;
+  periodStart: string;
+  periodEnd: string;
+  title: string;
+  conversationOn: string;
+  squad: string;
+  dalidStatus: string;
+  personalNotes: string;
+  measures: string;
+  skillRatings: EvaluationSkillRating[];
+  contestOverrides: EvaluationContestOverride[];
+}
+
+export interface AthletePersonalGoal {
+  id: string;
+  athleteId: string;
+  title: string;
+  completed: boolean;
+  createdBy: string;
+}
+
+/** Rohdaten fuer die Auswertungsoberflaeche; Kennzahlen werden pro Zeitraum im Client berechnet. */
+export interface EvaluationDashboardData {
+  currentUserId: string;
+  canManage: boolean;
+  athletes: Person[];
+  events: CalendarEvent[];
+  plans: TrainingPlan[];
+  evaluations: AthleteEvaluation[];
+  personalGoals: AthletePersonalGoal[];
+  skills: EvaluationSkillDefinition[];
+  weights: EvaluationWeights;
+}
+
 export interface OrganizationOverview {
   id: string;
   parentId: string | null;

@@ -1,3 +1,8 @@
+.settingsStack {
+  display: grid;
+  gap: 18px;
+}
+
 .settingsCard {
   max-width: 820px;
   overflow: hidden;

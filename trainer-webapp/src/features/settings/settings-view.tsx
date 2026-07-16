@@ -7,7 +7,10 @@ import {
   type SettingsActionState,
 } from "@/app/einstellungen/actions";
 import { PageHeader } from "@/components/ui/page-header";
+import { useCurrentUser } from "@/components/auth/current-user-context";
 import type { NotificationPreferences } from "@/domain/models";
+import type { EvaluationSkillDefinition, EvaluationWeights } from "@/domain/models";
+import { EvaluationSettings } from "./evaluation-settings";
 import styles from "./settings-view.module.css";
 
 const initialState: SettingsActionState = { status: "idle", message: "" };
@@ -58,7 +61,14 @@ const options = [
 ] as const;
 
 /** Einstellungsseite fuer alle aktuell erzeugten In-App-Hinweise. */
-export function SettingsView({ preferences }: { preferences: NotificationPreferences }) {
+export function SettingsView({
+  preferences,
+  evaluationPreferences,
+}: {
+  preferences: NotificationPreferences;
+  evaluationPreferences: { skills: EvaluationSkillDefinition[]; weights: EvaluationWeights };
+}) {
+  const currentUser = useCurrentUser();
   const [state, action, pending] = useActionState(saveNotificationPreferences, initialState);
 
   return (
@@ -67,6 +77,7 @@ export function SettingsView({ preferences }: { preferences: NotificationPrefere
         title="Einstellungen"
         description="Lege fest, welche Aktivitäten in deiner Glocke erscheinen."
       />
+      <div className={styles.settingsStack}>
       <form action={action} className={styles.settingsCard}>
         <header>
           <span><BellRing size={22} /></span>
@@ -108,6 +119,11 @@ export function SettingsView({ preferences }: { preferences: NotificationPrefere
           </button>
         </footer>
       </form>
+      {currentUser?.accountType !== "athlete" ? <EvaluationSettings
+        initialSkills={evaluationPreferences.skills}
+        initialWeights={evaluationPreferences.weights}
+      /> : null}
+      </div>
     </>
   );
 }
