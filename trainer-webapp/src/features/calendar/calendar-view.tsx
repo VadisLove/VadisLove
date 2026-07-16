@@ -25,6 +25,7 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { getIntlLocale } from "@/i18n/config";
 import { useI18n } from "@/i18n/i18n-provider";
+import { getInitialCalendarCursor } from "@/lib/calendar-date-time";
 import styles from "./calendar-view.module.css";
 
 interface CalendarViewProps {
@@ -253,10 +254,13 @@ export function CalendarView({
   const initialSelectedEvent = initialEvents.find(
     (event) => event.id === initialSelectedEventId,
   ) ?? initialEvents[0] ?? null;
+  const explicitlySelectedEvent = initialEvents.find(
+    (event) => event.id === initialSelectedEventId,
+  );
   const [events, setEvents] = useState(initialEvents);
   const { dictionary, locale, t } = useI18n();
   const [monthCursor, setMonthCursor] = useState(() =>
-    initialSelectedEvent ? fromIsoDate(initialSelectedEvent.date) : new Date(),
+    getInitialCalendarCursor(explicitlySelectedEvent?.date),
   );
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [colorMode, setColorMode] = useState<CalendarColorMode>("type");

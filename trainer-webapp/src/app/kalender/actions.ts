@@ -7,6 +7,7 @@ import {
   type CalendarEventRow,
 } from "@/data/supabase-event-repository";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
+import { parseBerlinCalendarDateTime } from "@/lib/calendar-date-time";
 import { createClient } from "@/lib/supabase/server";
 
 export interface CalendarMutationResult {
@@ -96,14 +97,14 @@ function parseEventForm(formData: FormData) {
     return null;
   }
 
-  // Start- und Enddatum werden getrennt erfasst, damit mehrtägige Termine
-  // ohne zusätzliche Tabellen weiterhin als ein fachlicher Termin bestehen.
-  const startsAt = new Date(`${startDate}T${startTime}:00`);
-  const endsAt = new Date(`${endDate}T${endTime}:00`);
+  // Kalenderwerte sind Berliner Ortszeiten. Die explizite Umwandlung verhindert,
+  // dass die Zeitzone des Servers gespeicherte Uhrzeiten unbemerkt verschiebt.
+  const startsAt = parseBerlinCalendarDateTime(startDate, startTime);
+  const endsAt = parseBerlinCalendarDateTime(endDate, endTime);
 
   if (
-    Number.isNaN(startsAt.getTime()) ||
-    Number.isNaN(endsAt.getTime()) ||
+    !startsAt ||
+    !endsAt ||
     endsAt <= startsAt
   ) {
     return null;

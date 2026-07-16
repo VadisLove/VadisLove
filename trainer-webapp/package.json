@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:calendar": "node --experimental-strip-types --test tests/calendar-date-time.test.mjs",
     "test:youtube": "node --experimental-strip-types --test tests/youtube-video.test.mjs"
   },
   "dependencies": {
