@@ -223,6 +223,17 @@
   content: "";
 }
 
+.organizationGroup,
+.clubChildren {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.clubChildren[hidden] {
+  display: none;
+}
+
 .hierarchy article {
   position: relative;
   z-index: 1;
@@ -265,6 +276,40 @@
 .hierarchy p {
   color: var(--color-muted);
   font-size: 0.74rem;
+}
+
+.clubToggleButton {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+  padding: 5px 9px;
+  border: 1px solid rgba(18, 132, 255, 0.22);
+  border-radius: 999px;
+  background: var(--color-blue-soft);
+  color: var(--color-blue-dark);
+  font-size: 0.68rem;
+  font-weight: 750;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.clubToggleButton:hover {
+  border-color: rgba(18, 132, 255, 0.42);
+  background: #dfeeff;
+}
+
+.clubToggleButton:focus-visible {
+  outline: 3px solid rgba(18, 132, 255, 0.24);
+  outline-offset: 2px;
+}
+
+.clubToggleButton svg {
+  transition: transform 180ms ease;
+}
+
+.clubToggleButton[aria-expanded="false"] svg {
+  transform: rotate(-90deg);
 }
 
 .cardAside {
@@ -676,7 +721,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .joinForm button {
+  .joinForm button,
+  .clubToggleButton,
+  .clubToggleButton svg {
     transition: none;
   }
 
