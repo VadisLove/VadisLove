@@ -753,6 +753,84 @@
   font-weight: 800;
 }
 
+.fieldHint {
+  margin: 0 0 11px;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.exerciseList {
+  display: grid;
+  gap: 8px;
+}
+
+.exerciseInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: end;
+  gap: 8px;
+}
+
+.exerciseInputRow label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.exerciseInputRow input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+  outline: none;
+}
+
+.exerciseInputRow input:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(20, 140, 242, 0.1);
+}
+
+.exerciseInputRow > button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+}
+
+.exerciseInputRow > button:hover,
+.exerciseInputRow > button:focus-visible {
+  border-color: #e05252;
+  color: #b82e2e;
+}
+
+.addExerciseButton {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 0 13px;
+  border: 1px dashed var(--color-blue);
+  border-radius: var(--radius-md);
+  color: var(--color-blue);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.addExerciseButton:hover,
+.addExerciseButton:focus-visible {
+  background: var(--color-blue-soft);
+}
+
 .selectionGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

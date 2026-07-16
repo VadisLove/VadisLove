@@ -315,8 +315,11 @@ export function PlansView({
       .filter((trainer) => data.get(`trainer-${trainer.id}`))
       .map((trainer) => trainer.id);
     const selectedGroups = groups.filter((group) => data.get(`group-${group}`));
-    const trickNames = [1, 2, 3]
-      .map((number) => String(data.get(`trick-${number}`)).trim())
+    // Gleichnamige Formularfelder erlauben eine beliebig lange Uebungsliste.
+    // Im bestehenden Datenmodell bleiben sie als "tricks" gespeichert, damit
+    // bereits geteilte Plaene und Fortschrittsdaten kompatibel bleiben.
+    const trickNames = data.getAll("exercise")
+      .map((name) => String(name).trim())
       .filter(Boolean);
 
     const createdPlan: TrainingPlan = {
@@ -741,14 +744,14 @@ export function PlansView({
             <section className={styles.trickSection}>
               <div className={styles.sectionHeading}>
                 <div>
-                  <h2><Sparkles size={18} /> Trickliste & Level</h2>
+                  <h2><Sparkles size={18} /> Übungen & Tricks</h2>
                   <p>Athleten reichen Erfolge ein, Trainer bestätigen sie.</p>
                 </div>
                 <span>{selectedPlan.tricks.filter((trick) => trick.status === "confirmed").length} / {selectedPlan.tricks.length} bestätigt</span>
               </div>
               <div className={styles.trickTable}>
                 <div className={styles.trickHeader}>
-                  <span>Trick</span><span>Athlet</span><span>Status</span><span>Aktion</span>
+                  <span>Übung / Trick</span><span>Athlet</span><span>Status</span><span>Aktion</span>
                 </div>
                 {selectedPlan.tricks.map((trick) => (
                   <TrickRow
@@ -760,7 +763,7 @@ export function PlansView({
                   />
                 ))}
                 {selectedPlan.tricks.length === 0 ? (
-                  <div className={styles.emptyTricks}>Diese Vorlage enthält noch keine Tricks.</div>
+                  <div className={styles.emptyTricks}>Diese Vorlage enthält noch keine Übungen.</div>
                 ) : null}
               </div>
             </section>
@@ -778,7 +781,7 @@ export function PlansView({
               <label className={styles.fullWidth}>Beschreibung<textarea name="description" rows={3} required placeholder="Was soll mit diesem Plan erreicht werden?" /></label>
               <label>Sichtbarkeit<select name="visibility"><option value="private">Privat</option><option value="public">Öffentlich</option></select></label>
               <label>Level<select name="level"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option></select></label>
-              <label>Trickgruppe<input name="trickGroup" defaultValue="Flat" /></label>
+              <label>Übungs- / Trickgruppe<input name="trickGroup" defaultValue="Flat" /></label>
               <label className={styles.checkboxLabel}><input name="isTemplate" type="checkbox" /> Zusätzlich als Vorlage speichern</label>
             </div>
 
@@ -791,14 +794,7 @@ export function PlansView({
               </div>
             </fieldset>
 
-            <fieldset>
-              <legend>Erste Tricks</legend>
-              <div className={styles.formGrid}>
-                {[1, 2, 3].map((number) => (
-                  <label key={number}>Trick {number}<input name={`trick-${number}`} placeholder={number === 1 ? "z. B. Ollie" : "Optional"} /></label>
-                ))}
-              </div>
-            </fieldset>
+            <ExerciseFields />
 
             <SelectionFieldset legend="Gruppen auswählen" items={groups} namePrefix="group" />
             <SelectionFieldset
@@ -859,6 +855,64 @@ export function PlansView({
         </div>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Dynamische Uebungsliste fuer den Plan-Editor.
+ *
+ * Die Zeilen leben bewusst in einer eigenen Komponente: Beim Schliessen des
+ * Dialogs wird ihr Zustand automatisch verworfen und ein neuer Plan beginnt
+ * wieder mit genau einem leeren Feld.
+ */
+function ExerciseFields() {
+  const [rowIds, setRowIds] = useState([0]);
+
+  function addRow() {
+    setRowIds((current) => [
+      ...current,
+      Math.max(...current) + 1,
+    ]);
+  }
+
+  function removeRow(rowId: number) {
+    setRowIds((current) => current.filter((id) => id !== rowId));
+  }
+
+  return (
+    <fieldset>
+      <legend>Übungen & Tricks</legend>
+      <p className={styles.fieldHint}>
+        Füge so viele Übungen hinzu, wie der Plan braucht. Leere Felder werden ignoriert.
+      </p>
+      <div className={styles.exerciseList}>
+        {rowIds.map((rowId, index) => (
+          <div className={styles.exerciseInputRow} key={rowId}>
+            <label>
+              <span>Übung {index + 1}</span>
+              <input
+                name="exercise"
+                placeholder={index === 0 ? "z. B. Ollie" : "Weitere Übung oder Trick"}
+              />
+            </label>
+            {rowIds.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => removeRow(rowId)}
+                aria-label={`Übung ${index + 1} entfernen`}
+                title="Übung entfernen"
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      <button className={styles.addExerciseButton} type="button" onClick={addRow}>
+        <Plus size={16} aria-hidden="true" />
+        Weitere Übung hinzufügen
+      </button>
+    </fieldset>
   );
 }
 
