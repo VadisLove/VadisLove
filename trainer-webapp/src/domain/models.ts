@@ -222,6 +222,20 @@ export interface TrainingTrick {
   status: TrickProgressStatus;
 }
 
+/**
+ * Externer Videonachweis, getrennt vom Plan-Snapshot.
+ * So kann die spaetere RLS den Zugriff pro Athlet und Trainer absichern.
+ */
+export interface TrainingVideoEvidence {
+  id: string;
+  planId: string;
+  trickId: string;
+  athleteId: string;
+  provider: "youtube";
+  videoId: string;
+  submittedAt: string;
+}
+
 export interface TrainingLeaderboardEntry {
   userId: string;
   displayName: string;

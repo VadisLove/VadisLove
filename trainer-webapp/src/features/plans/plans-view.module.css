@@ -1,3 +1,31 @@
+.roleTabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.roleTabs button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.roleTabs .activeRoleTab {
+  background: var(--color-navy);
+  color: white;
+}
+
 .overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -138,6 +166,230 @@
   display: grid;
   margin-left: auto;
   place-items: center;
+}
+
+.trainerWorkspace {
+  display: grid;
+  grid-template-columns: minmax(230px, 270px) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.athleteDirectory {
+  position: sticky;
+  top: 16px;
+  overflow: hidden;
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.athleteDirectory > header {
+  padding: 15px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-navy);
+  color: white;
+}
+
+.athleteDirectory > header div {
+  display: grid;
+}
+
+.athleteDirectory > header span {
+  color: #9eb8d0;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.athleteDirectory > header strong {
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.athleteList {
+  display: grid;
+  gap: 5px;
+  overflow-y: auto;
+  max-height: calc(100vh - 104px);
+  padding: 8px;
+}
+
+.athleteList > button {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.athleteList > button:hover {
+  border-color: var(--color-border);
+  background: #f7fafc;
+}
+
+.athleteList > .selectedAthlete {
+  border-color: var(--color-blue);
+  background: var(--color-blue-soft);
+}
+
+.athleteAvatar,
+.focusAvatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-navy);
+  color: white;
+  font-weight: 850;
+}
+
+.athleteAvatar {
+  width: 38px;
+  height: 38px;
+  font-size: 0.62rem;
+}
+
+.athleteIdentity {
+  display: grid;
+  min-width: 0;
+}
+
+.athleteIdentity strong {
+  overflow: hidden;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.athleteIdentity small,
+.athleteSummary {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.58rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.athleteSummary {
+  grid-column: 2 / -1;
+}
+
+.waitingBadge {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: #6840a3;
+  color: white;
+  font-size: 0.58rem;
+  font-weight: 850;
+}
+
+.directoryEmpty,
+.emptyFocus {
+  padding: 24px 16px;
+  color: var(--color-muted);
+  text-align: center;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.focusArea {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.athleteFocus {
+  display: flex;
+  min-height: 112px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 20px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(57, 183, 255, 0.22), transparent 34%),
+    var(--color-navy);
+  color: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.focusIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 13px;
+}
+
+.focusAvatar {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.82rem;
+}
+
+.focusIdentity small {
+  color: #7fc8ff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.focusIdentity h2 {
+  margin-top: 3px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.45rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.focusIdentity p {
+  margin-top: 5px;
+  color: #b9cde0;
+  font-size: 0.65rem;
+}
+
+.focusMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(70px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.focusMetrics > span {
+  display: grid;
+  min-height: 58px;
+  align-content: center;
+  padding: 8px 11px;
+  background: rgba(7, 24, 45, 0.65);
+  text-align: center;
+}
+
+.focusMetrics strong {
+  color: #72c5ff;
+  font-size: 0.9rem;
+}
+
+.focusMetrics small {
+  margin-top: 2px;
+  color: #b9cde0;
+  font-size: 0.54rem;
+  white-space: nowrap;
 }
 
 .workspace {
@@ -425,6 +677,86 @@
 .trickSection {
   padding: 20px 22px;
   border-bottom: 1px solid var(--color-border);
+}
+
+.evidenceSection {
+  padding: 20px 22px;
+  border-top: 1px solid var(--color-border);
+}
+
+.evidenceList {
+  display: grid;
+  gap: 8px;
+}
+
+.evidenceList article {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #fafbfd;
+}
+
+.evidenceList article > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: #f0e9fb;
+  color: #6840a3;
+}
+
+.evidenceList article > div {
+  display: grid;
+}
+
+.evidenceList article strong {
+  font-size: 0.72rem;
+}
+
+.evidenceList article small {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.6rem;
+}
+
+.evidenceList article a {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-blue-dark);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.emptyEvidence {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+}
+
+.emptyEvidence > div {
+  display: grid;
+}
+
+.emptyEvidence strong {
+  color: var(--color-text);
+  font-size: 0.72rem;
+}
+
+.emptyEvidence small {
+  margin-top: 3px;
+  font-size: 0.62rem;
 }
 
 .trickSection {
@@ -992,6 +1324,20 @@
     grid-template-columns: 1fr;
   }
 
+  .trainerWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .athleteDirectory {
+    position: static;
+    max-height: none;
+  }
+
+  .athleteList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: none;
+  }
+
   .planList {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1022,6 +1368,14 @@
     display: grid;
   }
 
+  .athleteFocus {
+    display: grid;
+  }
+
+  .focusMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .assignmentGrid,
   .goalGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1046,6 +1400,17 @@
 }
 
 @media (max-width: 560px) {
+  .roleTabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .roleTabs button {
+    justify-content: center;
+    padding: 0 9px;
+  }
+
   .overview {
     grid-template-columns: 1fr;
   }
@@ -1067,6 +1432,27 @@
   .detailActions {
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .athleteList {
+    grid-template-columns: 1fr;
+  }
+
+  .athleteFocus {
+    padding: 16px;
+  }
+
+  .focusMetrics {
+    width: 100%;
+  }
+
+  .evidenceList article {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .evidenceList article a {
+    grid-column: 1 / -1;
+    text-align: center;
   }
 
   .assignmentGrid,

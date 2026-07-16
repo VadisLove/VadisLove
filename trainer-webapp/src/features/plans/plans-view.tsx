@@ -12,6 +12,8 @@ import {
   EyeOff,
   FileText,
   Flag,
+  LayoutGrid,
+  ListChecks,
   Plus,
   Search,
   Share2,
@@ -19,6 +21,7 @@ import {
   Trophy,
   UserRound,
   Users,
+  Video,
   Volume2,
   VolumeX,
   X,
@@ -29,6 +32,7 @@ import type {
   TrainingLeaderboardEntry,
   TrainingPlan,
   TrainingTrick,
+  TrainingVideoEvidence,
   TrickProgressStatus,
 } from "@/domain/models";
 import { useCurrentUser } from "@/components/auth/current-user-context";
@@ -41,6 +45,7 @@ import {
 } from "@/app/trainingsplaene/actions";
 
 type PlanFilter = "all" | "active" | "templates" | "public";
+type WorkspaceMode = "athletes" | "plans";
 
 const groups = ["U14 München", "U18 Augsburg", "Kader Bayern", "Open Session Nürnberg"];
 
@@ -70,6 +75,23 @@ function getPlanProgress(plan: TrainingPlan) {
   const confirmedTricks = plan.tricks.filter((trick) => trick.status === "confirmed").length;
   const total = plan.goals.length + plan.tricks.length;
   return total === 0 ? 0 : Math.round(((completedGoals + confirmedTricks) / total) * 100);
+}
+
+function planIncludesAthlete(plan: TrainingPlan, athleteId: string) {
+  return plan.assignedAthletes.includes(athleteId)
+    || plan.tricks.some((trick) => trick.athleteId === athleteId);
+}
+
+/** Berechnet den Fortschritt nur aus den einem Athleten zugewiesenen Uebungen. */
+function getAthletePlanProgress(plan: TrainingPlan, athleteId: string) {
+  const athleteTricks = plan.tricks.filter((trick) => trick.athleteId === athleteId);
+  if (athleteTricks.length === 0) return 0;
+  const confirmed = athleteTricks.filter((trick) => trick.status === "confirmed").length;
+  return Math.round((confirmed / athleteTricks.length) * 100);
+}
+
+function isSafeYoutubeVideoId(videoId: string) {
+  return /^[A-Za-z0-9_-]{11}$/.test(videoId);
 }
 
 function getInitials(name: string) {
@@ -122,12 +144,14 @@ export function PlansView({
   initialLeaderboard,
   initialSelectedPlanId,
   initialDialog,
+  initialVideoEvidence = [],
 }: {
   initialPlans: TrainingPlan[];
   people: Person[];
   initialLeaderboard: TrainingLeaderboardEntry[] | null;
   initialSelectedPlanId?: string;
   initialDialog?: "share" | null;
+  initialVideoEvidence?: TrainingVideoEvidence[];
 }) {
   const { t } = useI18n();
   const currentUser = useCurrentUser();
@@ -197,9 +221,20 @@ export function PlansView({
     && initialPlans.some((plan) => plan.id === initialSelectedPlanId)
     ? initialSelectedPlanId
     : initialPlans[0]?.id ?? "";
+  const requestedPlan = initialPlans.find((plan) => plan.id === requestedPlanId);
+  const requestedAthleteId = [
+    ...(requestedPlan?.assignedAthletes || []),
+    ...(requestedPlan?.tricks.map((trick) => trick.athleteId) || []),
+  ].find((athleteId) => assignableAthletes.some((athlete) => athlete.id === athleteId));
   const [plans, setPlans] = useState(initialPlans);
   const [persistedLeaderboard, setPersistedLeaderboard] = useState(initialLeaderboard);
   const [selectedPlanId, setSelectedPlanId] = useState(requestedPlanId);
+  const [selectedAthleteId, setSelectedAthleteId] = useState(
+    requestedAthleteId ?? assignableAthletes[0]?.id ?? "",
+  );
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
+    currentUser?.accountType === "trainer" ? "athletes" : "plans",
+  );
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PlanFilter>("all");
   // Ein Dashboard-Teilen-Link darf den vorhandenen, persistenten Dialog direkt öffnen.
@@ -213,14 +248,34 @@ export function PlansView({
   const [celebration, setCelebration] = useState("");
   const [sharing, startSharing] = useTransition();
 
-  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[0];
+  const isTrainerView = currentUser?.accountType === "trainer";
+  const isAthleteView = currentUser?.accountType === "athlete";
+  const isTrainerAthleteMode = isTrainerView && workspaceMode === "athletes";
+  const focusAthleteId = isTrainerAthleteMode
+    ? selectedAthleteId
+    : isAthleteView
+      ? currentUser.id
+      : "";
+  const focusAthlete = athletes.find((athlete) => athlete.id === focusAthleteId);
+  const filteredAthletes = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return assignableAthletes.filter((athlete) =>
+      `${athlete.name} ${athlete.region}`.toLowerCase().includes(normalizedQuery),
+    );
+  }, [assignableAthletes, query]);
+  const plansInScope = useMemo(
+    () => focusAthleteId
+      ? plans.filter((plan) => planIncludesAthlete(plan, focusAthleteId))
+      : plans,
+    [focusAthleteId, plans],
+  );
 
   const filteredPlans = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return plans.filter((plan) => {
+    return plansInScope.filter((plan) => {
       const matchesQuery = `${plan.title} ${plan.category} ${plan.author}`
         .toLowerCase()
-        .includes(normalizedQuery);
+        .includes(isTrainerAthleteMode ? "" : normalizedQuery);
       const matchesFilter =
         filter === "all"
         || (filter === "active" && plan.status === "active")
@@ -228,13 +283,42 @@ export function PlansView({
         || (filter === "public" && plan.visibility === "public");
       return matchesQuery && matchesFilter;
     });
-  }, [filter, plans, query]);
+  }, [filter, isTrainerAthleteMode, plansInScope, query]);
 
-  const pendingConfirmations = plans.reduce(
-    (count, plan) =>
-      count + plan.tricks.filter((trick) => trick.status === "awaiting_confirmation").length,
-    0,
+  const selectedPlan = filteredPlans.find((plan) => plan.id === selectedPlanId)
+    ?? filteredPlans[0];
+  const displayedTricks = selectedPlan
+    ? focusAthleteId
+      ? selectedPlan.tricks.filter((trick) => trick.athleteId === focusAthleteId)
+      : selectedPlan.tricks
+    : [];
+  const scopedTricks = plansInScope.flatMap((plan) =>
+    focusAthleteId
+      ? plan.tricks.filter((trick) => trick.athleteId === focusAthleteId)
+      : plan.tricks,
   );
+  const videoEvidenceItems = initialVideoEvidence.filter(
+    (evidence) => evidence.provider === "youtube"
+      && (!focusAthleteId || evidence.athleteId === focusAthleteId)
+      && isSafeYoutubeVideoId(evidence.videoId),
+  );
+  const selectedVideoEvidence = videoEvidenceItems.filter(
+    (evidence) => evidence.planId === selectedPlan?.id
+      && displayedTricks.some((trick) => trick.id === evidence.trickId),
+  );
+
+  const pendingConfirmations = scopedTricks.filter(
+    (trick) => trick.status === "awaiting_confirmation",
+  ).length;
+  const activeExercises = scopedTricks.filter(
+    (trick) => trick.status === "in_progress",
+  ).length;
+  const confirmedExercises = scopedTricks.filter(
+    (trick) => trick.status === "confirmed",
+  ).length;
+  const focusProgress = scopedTricks.length === 0
+    ? 0
+    : Math.round((confirmedExercises / scopedTricks.length) * 100);
 
   const leaderboard = useMemo(() => {
     const entries = persistedLeaderboard === null
@@ -299,9 +383,30 @@ export function PlansView({
   }
 
   function updateSelectedPlan(updater: (plan: TrainingPlan) => TrainingPlan) {
+    const targetPlanId = selectedPlan?.id ?? selectedPlanId;
     setPlans((current) =>
-      current.map((plan) => (plan.id === selectedPlanId ? updater(plan) : plan)),
+      current.map((plan) => (plan.id === targetPlanId ? updater(plan) : plan)),
     );
+  }
+
+  /** Oeffnet einen Athleten und springt direkt zu seinem ersten Plan. */
+  function selectAthlete(athleteId: string) {
+    setSelectedAthleteId(athleteId);
+    const firstPlan = plans.find((plan) => planIncludesAthlete(plan, athleteId));
+    setSelectedPlanId(firstPlan?.id ?? "");
+  }
+
+  function switchWorkspaceMode(mode: WorkspaceMode) {
+    setWorkspaceMode(mode);
+    setQuery("");
+    setFilter("all");
+
+    if (mode === "plans") {
+      setSelectedPlanId(plans[0]?.id ?? "");
+    } else if (selectedAthleteId) {
+      const firstPlan = plans.find((plan) => planIncludesAthlete(plan, selectedAthleteId));
+      setSelectedPlanId(firstPlan?.id ?? "");
+    }
   }
 
   function handleCreatePlan(event: React.FormEvent<HTMLFormElement>) {
@@ -537,34 +642,65 @@ export function PlansView({
     <>
       <PageHeader
         title={t("plans.title")}
-        description="Individuelle Skateboard-Ziele planen, zuweisen und als Trainer bestätigen."
+        description={isTrainerView
+          ? "Athleten einzeln begleiten, Fortschritt prüfen und Trainingspläne verwalten."
+          : "Deine aktuellen Übungen, Ziele und Rückmeldungen auf einen Blick."}
         showContext
       />
+
+      {isTrainerView ? (
+        <nav className={styles.roleTabs} aria-label="Trainingsplan-Ansicht wechseln">
+          <button
+            type="button"
+            className={workspaceMode === "athletes" ? styles.activeRoleTab : ""}
+            onClick={() => switchWorkspaceMode("athletes")}
+          >
+            <Users size={18} /> Athleten betreuen
+          </button>
+          <button
+            type="button"
+            className={workspaceMode === "plans" ? styles.activeRoleTab : ""}
+            onClick={() => switchWorkspaceMode("plans")}
+          >
+            <LayoutGrid size={18} /> Planbibliothek
+          </button>
+        </nav>
+      ) : null}
 
       <section className={styles.overview}>
         <article>
           <span><FileText size={20} /></span>
-          <div><strong>{plans.length}</strong><small>Trainingspläne</small></div>
+          <div>
+            <strong>{plansInScope.length}</strong>
+            <small>{focusAthleteId ? "zugewiesene Pläne" : "Trainingspläne"}</small>
+          </div>
+        </article>
+        <article>
+          <span><ListChecks size={20} /></span>
+          <div><strong>{activeExercises}</strong><small>aktuell in Arbeit</small></div>
         </article>
         <article>
           <span><BellRing size={20} /></span>
           <div><strong>{pendingConfirmations}</strong><small>offene Bestätigungen</small></div>
         </article>
-        <article>
-          <span><Users size={20} /></span>
-          <div><strong>{athletes.length}</strong><small>aktive Athleten</small></div>
-        </article>
-        <article className={styles.soundCard}>
-          <span><Sparkles size={20} /></span>
-          <div><strong>Belohnungen</strong><small>Animation an</small></div>
-          <button
-            type="button"
-            aria-label={soundEnabled ? "Belohnungssound ausschalten" : "Belohnungssound einschalten"}
-            onClick={() => setSoundEnabled((enabled) => !enabled)}
-          >
-            {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-          </button>
-        </article>
+        {focusAthleteId ? (
+          <article>
+            <span><Video size={20} /></span>
+            <div><strong>{videoEvidenceItems.length}</strong><small>Videonachweise</small></div>
+          </article>
+        ) : (
+          <article className={styles.soundCard}>
+            <span><Sparkles size={20} /></span>
+            <div><strong>{athletes.length}</strong><small>aktive Athleten</small></div>
+            <button
+              type="button"
+              aria-label={soundEnabled ? "Belohnungssound ausschalten" : "Belohnungssound einschalten"}
+              onClick={() => setSoundEnabled((enabled) => !enabled)}
+            >
+              {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+          </article>
+        )}
       </section>
 
       <div className={styles.toolbar}>
@@ -573,10 +709,10 @@ export function PlansView({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("plans.searchPlaceholder")}
+            placeholder={isTrainerAthleteMode ? "Athleten suchen ..." : t("plans.searchPlaceholder")}
           />
         </label>
-        <div className={styles.filters} aria-label="Trainingspläne filtern">
+        {!isTrainerAthleteMode ? <div className={styles.filters} aria-label="Trainingspläne filtern">
           {([
             ["all", "Alle"],
             ["active", "Aktiv"],
@@ -592,10 +728,12 @@ export function PlansView({
               {label}
             </button>
           ))}
-        </div>
-        <button type="button" className={styles.createButton} onClick={() => setDialog("create")}>
-          <Plus size={18} /> {t("plans.create")}
-        </button>
+        </div> : null}
+        {!isAthleteView ? (
+          <button type="button" className={styles.createButton} onClick={() => setDialog("create")}>
+            <Plus size={18} /> {t("plans.create")}
+          </button>
+        ) : null}
       </div>
 
       {notice ? (
@@ -608,10 +746,81 @@ export function PlansView({
         </div>
       ) : null}
 
-      <div className={styles.workspace}>
+      <div className={isTrainerAthleteMode ? styles.trainerWorkspace : undefined}>
+        {isTrainerAthleteMode ? (
+          <aside className={styles.athleteDirectory} aria-label="Zugeordnete Athleten">
+            <header>
+              <div>
+                <span>Athleten</span>
+                <strong>{assignableAthletes.length} zugeordnet</strong>
+              </div>
+            </header>
+            <div className={styles.athleteList}>
+              {filteredAthletes.map((athlete) => {
+                const athletePlans = plans.filter((plan) => planIncludesAthlete(plan, athlete.id));
+                const athleteTricks = athletePlans.flatMap((plan) =>
+                  plan.tricks.filter((trick) => trick.athleteId === athlete.id),
+                );
+                const waiting = athleteTricks.filter(
+                  (trick) => trick.status === "awaiting_confirmation",
+                ).length;
+
+                return (
+                  <button
+                    key={athlete.id}
+                    type="button"
+                    className={athlete.id === selectedAthleteId ? styles.selectedAthlete : ""}
+                    onClick={() => selectAthlete(athlete.id)}
+                  >
+                    <span className={styles.athleteAvatar}>{athlete.initials}</span>
+                    <span className={styles.athleteIdentity}>
+                      <strong>{athlete.name}</strong>
+                      <small>{athlete.region}</small>
+                    </span>
+                    {waiting > 0 ? <span className={styles.waitingBadge}>{waiting}</span> : null}
+                    <span className={styles.athleteSummary}>
+                      {athletePlans.length} Pläne · {athleteTricks.length} Übungen
+                    </span>
+                  </button>
+                );
+              })}
+              {filteredAthletes.length === 0 ? (
+                <div className={styles.directoryEmpty}>Keine zugeordneten Athleten gefunden.</div>
+              ) : null}
+            </div>
+          </aside>
+        ) : null}
+
+        <div className={styles.focusArea}>
+          {focusAthlete ? (
+            <section className={styles.athleteFocus} aria-label={`Trainingsübersicht für ${focusAthlete.name}`}>
+              <div className={styles.focusIdentity}>
+                <span className={styles.focusAvatar}>{focusAthlete.initials}</span>
+                <div>
+                  <small>{isTrainerView ? "Athletenansicht" : "Mein Training"}</small>
+                  <h2>{focusAthlete.name}</h2>
+                  <p>{focusAthlete.region}</p>
+                </div>
+              </div>
+              <div className={styles.focusMetrics}>
+                <span><strong>{focusProgress}%</strong><small>Fortschritt</small></span>
+                <span><strong>{activeExercises}</strong><small>in Arbeit</small></span>
+                <span><strong>{pendingConfirmations}</strong><small>zur Prüfung</small></span>
+                <span><strong>{confirmedExercises}</strong><small>bestätigt</small></span>
+              </div>
+            </section>
+          ) : isTrainerAthleteMode ? (
+            <div className={styles.emptyFocus}>
+              Wähle links einen bestätigten Athleten aus, um sein Training zu öffnen.
+            </div>
+          ) : null}
+
+          <div className={styles.workspace}>
         <section className={styles.planList} aria-label="Trainingspläne">
           {filteredPlans.map((plan) => {
-            const progress = getPlanProgress(plan);
+            const progress = focusAthleteId
+              ? getAthletePlanProgress(plan, focusAthleteId)
+              : getPlanProgress(plan);
             return (
               <button
                 key={plan.id}
@@ -643,7 +852,7 @@ export function PlansView({
             <div className={styles.emptyState}>Keine passenden Trainingspläne gefunden.</div>
           ) : null}
 
-          <section className={styles.leaderboard}>
+          {!focusAthleteId ? <section className={styles.leaderboard}>
             <div className={styles.sectionHeading}>
               <h2><Trophy size={18} /> Gruppen-Rangliste</h2>
               <small>nur bestätigte Tricks</small>
@@ -656,7 +865,7 @@ export function PlansView({
                 <b>{points} XP</b>
               </div>
             ))}
-          </section>
+          </section> : null}
         </section>
 
         {selectedPlan ? (
@@ -673,14 +882,14 @@ export function PlansView({
                 <h2>{selectedPlan.title}</h2>
                 <p>{selectedPlan.description}</p>
               </div>
-              <div className={styles.detailActions}>
+              {!isAthleteView ? <div className={styles.detailActions}>
                 <button type="button" onClick={duplicateSelectedPlan}>
                   <Copy size={17} /> Als Vorlage nutzen
                 </button>
                 <button type="button" onClick={() => setDialog("share")}>
                   <Share2 size={17} /> Teilen
                 </button>
-              </div>
+              </div> : null}
             </header>
 
             <div className={styles.assignmentGrid}>
@@ -696,8 +905,10 @@ export function PlansView({
                 <div>
                   <small>Individuell zugewiesen</small>
                   <strong>
-                    {selectedPlan.assignedAthletes.length
-                      ? selectedPlan.assignedAthletes.map(personName).join(", ")
+                    {focusAthlete
+                      ? focusAthlete.name
+                      : selectedPlan.assignedAthletes.length
+                        ? selectedPlan.assignedAthletes.map(personName).join(", ")
                       : "Noch keine Athleten"}
                   </strong>
                 </div>
@@ -747,13 +958,13 @@ export function PlansView({
                   <h2><Sparkles size={18} /> Übungen & Tricks</h2>
                   <p>Athleten reichen Erfolge ein, Trainer bestätigen sie.</p>
                 </div>
-                <span>{selectedPlan.tricks.filter((trick) => trick.status === "confirmed").length} / {selectedPlan.tricks.length} bestätigt</span>
+                <span>{displayedTricks.filter((trick) => trick.status === "confirmed").length} / {displayedTricks.length} bestätigt</span>
               </div>
               <div className={styles.trickTable}>
                 <div className={styles.trickHeader}>
                   <span>Übung / Trick</span><span>Athlet</span><span>Status</span><span>Aktion</span>
                 </div>
-                {selectedPlan.tricks.map((trick) => (
+                {displayedTricks.map((trick) => (
                   <TrickRow
                     key={trick.id}
                     trick={trick}
@@ -762,13 +973,58 @@ export function PlansView({
                     onUpdate={updateTrick}
                   />
                 ))}
-                {selectedPlan.tricks.length === 0 ? (
-                  <div className={styles.emptyTricks}>Diese Vorlage enthält noch keine Übungen.</div>
+                {displayedTricks.length === 0 ? (
+                  <div className={styles.emptyTricks}>Für diesen Athleten sind in diesem Plan noch keine Übungen eingetragen.</div>
                 ) : null}
               </div>
             </section>
+
+            {focusAthleteId ? (
+              <section className={styles.evidenceSection}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <h2><Video size={18} /> Eingereichte Videonachweise</h2>
+                    <p>Externe Videos werden erst nach einem bewussten Klick geöffnet.</p>
+                  </div>
+                </div>
+                <div className={styles.evidenceList}>
+                  {selectedVideoEvidence.map((evidence) => {
+                    const trick = displayedTricks.find(
+                      (entry) => entry.id === evidence.trickId,
+                    );
+                    return (
+                      <article key={evidence.id}>
+                        <span><Video size={18} /></span>
+                        <div>
+                          <strong>{trick?.name || "Videonachweis"}</strong>
+                          <small>Eingereicht am {evidence.submittedAt}</small>
+                        </div>
+                        <a
+                          href={`https://www.youtube.com/watch?v=${evidence.videoId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Bei YouTube öffnen
+                        </a>
+                      </article>
+                    );
+                  })}
+                  {selectedVideoEvidence.length === 0 ? (
+                    <div className={styles.emptyEvidence}>
+                      <Video size={22} />
+                      <div>
+                        <strong>Noch keine Videolinks eingereicht</strong>
+                        <small>Sichere YouTube-Nachweise erscheinen später genau hier.</small>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
           </section>
         ) : null}
+          </div>
+        </div>
       </div>
 
       {dialog === "create" ? (
