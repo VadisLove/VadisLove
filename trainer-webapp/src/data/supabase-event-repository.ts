@@ -47,6 +47,61 @@ const allEventTypes: EventType[] = [
   "meeting",
 ];
 
+const dashboardEventLimit = 5;
+const calendarEventSelect = `
+  id,
+  organization_id,
+  created_by,
+  title,
+  description,
+  type,
+  starts_at,
+  ends_at,
+  location,
+  state_code,
+  region_name,
+  capacity,
+  event_participants(
+    status,
+    user_id,
+    invited_email,
+    profiles:user_id(display_name, email, account_type)
+  )
+`;
+
+/**
+ * Sortiert Termine nach ihrer tatsächlichen zeitlichen Nähe zum aktuellen
+ * Zeitpunkt. So verdrängt ein alter, mehrtägiger Termin keinen Termin, der
+ * gerade erst begonnen hat oder als Nächstes startet.
+ */
+export function sortCalendarEventRowsByRelevance(
+  rows: CalendarEventRow[],
+  referenceTime: Date,
+) {
+  const referenceTimestamp = referenceTime.getTime();
+
+  return [...rows].sort((left, right) => {
+    const leftStart = new Date(left.starts_at).getTime();
+    const rightStart = new Date(right.starts_at).getTime();
+    const distanceDifference = Math.abs(leftStart - referenceTimestamp)
+      - Math.abs(rightStart - referenceTimestamp);
+
+    if (distanceDifference !== 0) {
+      return distanceDifference;
+    }
+
+    // Bei gleichem Abstand ist der noch kommende Termin eindeutiger als ein
+    // bereits laufender Termin. Danach entscheidet der frühere Start.
+    const leftIsUpcoming = leftStart >= referenceTimestamp;
+    const rightIsUpcoming = rightStart >= referenceTimestamp;
+    if (leftIsUpcoming !== rightIsUpcoming) {
+      return leftIsUpcoming ? -1 : 1;
+    }
+
+    return leftStart - rightStart;
+  });
+}
+
 function formatDatePart(value: string) {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Berlin",
@@ -155,26 +210,7 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
 
   const { data, error } = await supabase
     .from("events")
-    .select(`
-      id,
-      organization_id,
-      created_by,
-      title,
-      description,
-      type,
-      starts_at,
-      ends_at,
-      location,
-      state_code,
-      region_name,
-      capacity,
-      event_participants(
-        status,
-        user_id,
-        invited_email,
-        profiles:user_id(display_name, email, account_type)
-      )
-    `)
+    .select(calendarEventSelect)
     .order("starts_at");
 
   if (error) {
@@ -189,9 +225,9 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
 /**
  * Lädt die nächsten sichtbaren Termine für das Dashboard.
  *
- * Der Filter liegt in PostgreSQL statt im React-Renderpfad. Termine bleiben
- * bis zu ihrem tatsächlichen Ende sichtbar und kommen bereits chronologisch
- * sortiert aus derselben RLS-geschützten Quelle wie der Kalender.
+ * Kommende und bereits laufende Termine werden getrennt geladen, damit alte
+ * Langzeit-Termine nicht das Datenbank-Limit belegen. Anschließend entscheidet
+ * die zeitliche Nähe des Starts, welcher Termin in der Hauptanzeige steht.
  */
 export async function getUpcomingCalendarEvents(): Promise<CalendarEvent[]> {
   const supabase = await createClient();
@@ -207,39 +243,40 @@ export async function getUpcomingCalendarEvents(): Promise<CalendarEvent[]> {
     .eq("id", currentUserId)
     .maybeSingle();
 
-  const { data, error } = await supabase
-    .from("events")
-    .select(`
-      id,
-      organization_id,
-      created_by,
-      title,
-      description,
-      type,
-      starts_at,
-      ends_at,
-      location,
-      state_code,
-      region_name,
-      capacity,
-      event_participants(
-        status,
-        user_id,
-        invited_email,
-        profiles:user_id(display_name, email, account_type)
-      )
-    `)
-    .gte("ends_at", new Date().toISOString())
-    .order("starts_at")
-    .limit(5);
+  const referenceTime = new Date();
+  const referenceIso = referenceTime.toISOString();
+  const [upcomingResult, ongoingResult] = await Promise.all([
+    supabase
+      .from("events")
+      .select(calendarEventSelect)
+      .gte("starts_at", referenceIso)
+      .order("starts_at")
+      .limit(dashboardEventLimit),
+    supabase
+      .from("events")
+      .select(calendarEventSelect)
+      .lt("starts_at", referenceIso)
+      .gte("ends_at", referenceIso)
+      .order("starts_at", { ascending: false })
+      .limit(dashboardEventLimit),
+  ]);
 
-  if (error) {
+  if (upcomingResult.error || ongoingResult.error) {
+    const error = upcomingResult.error || ongoingResult.error;
     throw new Error(
-      `Kommende Termine konnten nicht geladen werden: ${error.message}`,
+      `Kommende Termine konnten nicht geladen werden: ${error?.message}`,
     );
   }
 
-  return ((data || []) as unknown as CalendarEventRow[]).map((row) =>
+  const relevantRows = sortCalendarEventRowsByRelevance(
+    [
+      ...((upcomingResult.data || []) as unknown as CalendarEventRow[]),
+      ...((ongoingResult.data || []) as unknown as CalendarEventRow[]),
+    ],
+    referenceTime,
+  ).slice(0, dashboardEventLimit);
+
+  return relevantRows.map((row) =>
     mapCalendarEvent(row, currentUserId, profile?.email || ""),
   );
 }
