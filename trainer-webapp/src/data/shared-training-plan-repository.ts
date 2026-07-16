@@ -1,4 +1,5 @@
 import type {
+  TrainingExerciseDemoVideo,
   TrainingLeaderboardEntry,
   TrainingPlan,
   TrainingVideoEvidence,
@@ -36,6 +37,19 @@ interface TrainingVideoEvidenceRow {
   trainer_feedback: string;
   reviewed_by: string | null;
   reviewed_at: string | null;
+}
+
+interface TrainingExerciseDemoVideoRow {
+  id: string;
+  source_plan_id: string;
+  trick_id: string;
+  created_by: string;
+  provider: "youtube";
+  video_id: string;
+  title: string;
+  trainer_note: string;
+  visibility: "assigned" | "public";
+  created_at: string;
 }
 
 function isTrainingPlan(value: unknown): value is TrainingPlan {
@@ -184,6 +198,38 @@ export async function getTrainingVideoEvidence(): Promise<TrainingVideoEvidence[
     trainerFeedback: evidence.trainer_feedback,
     reviewedBy: evidence.reviewed_by || undefined,
     reviewedAt: evidence.reviewed_at || undefined,
+  }));
+}
+
+/** Laedt nur die Trainer-Demos, die RLS fuer das aktuelle Konto freigibt. */
+export async function getTrainingExerciseDemoVideos(): Promise<TrainingExerciseDemoVideo[]> {
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId) return [];
+
+  const { data, error } = await supabase
+    .from("training_exercise_demo_videos")
+    .select(
+      "id, source_plan_id, trick_id, created_by, provider, video_id, title, trainer_note, visibility, created_at",
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (isMissingProgressSchema(error)) return [];
+    throw new Error(`Trainer-Demos konnten nicht geladen werden: ${error.message}`);
+  }
+
+  return ((data || []) as TrainingExerciseDemoVideoRow[]).map((demo) => ({
+    id: demo.id,
+    sourcePlanId: demo.source_plan_id,
+    trickId: demo.trick_id,
+    createdBy: demo.created_by,
+    provider: demo.provider,
+    videoId: demo.video_id,
+    title: demo.title,
+    trainerNote: demo.trainer_note,
+    visibility: demo.visibility,
+    createdAt: demo.created_at,
   }));
 }
 

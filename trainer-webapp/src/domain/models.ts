@@ -258,6 +258,23 @@ export interface TrainingVideoEvidence {
   reviewedAt?: string;
 }
 
+/**
+ * YouTube-Demonstration eines Trainers fuer eine konkrete Uebung.
+ * Auch hier bleibt die rohe URL ausserhalb des Datenmodells.
+ */
+export interface TrainingExerciseDemoVideo {
+  id: string;
+  sourcePlanId: string;
+  trickId: string;
+  createdBy: string;
+  provider: "youtube";
+  videoId: string;
+  title: string;
+  trainerNote: string;
+  visibility: "assigned" | "public";
+  createdAt: string;
+}
+
 export interface TrainingLeaderboardEntry {
   userId: string;
   displayName: string;

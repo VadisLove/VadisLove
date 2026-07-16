@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type {
+  TrainingExerciseDemoVideo,
   TrainingPlan,
   TrainingVideoEvidence,
   TrickProgressStatus,
@@ -34,6 +35,12 @@ export interface TrainingEvidenceActionResult {
   evidence?: TrainingVideoEvidence;
   athleteUserId?: string;
   xpTotal?: number;
+}
+
+export interface TrainingDemoActionResult {
+  status: "success" | "error";
+  message: string;
+  demo?: TrainingExerciseDemoVideo;
 }
 
 const sharedPlanPrefix = "shared-";
@@ -75,6 +82,36 @@ function mapEvidenceRow(row: TrainingVideoEvidenceActionRow): TrainingVideoEvide
 }
 
 const evidenceSelect = "id, snapshot_share_id, trick_id, athlete_id, provider, video_id, athlete_comment, attempt_count, self_rating, submitted_at, review_status, trainer_feedback, reviewed_by, reviewed_at";
+
+interface TrainingExerciseDemoVideoActionRow {
+  id: string;
+  source_plan_id: string;
+  trick_id: string;
+  created_by: string;
+  provider: "youtube";
+  video_id: string;
+  title: string;
+  trainer_note: string;
+  visibility: "assigned" | "public";
+  created_at: string;
+}
+
+const demoSelect = "id, source_plan_id, trick_id, created_by, provider, video_id, title, trainer_note, visibility, created_at";
+
+function mapDemoRow(row: TrainingExerciseDemoVideoActionRow): TrainingExerciseDemoVideo {
+  return {
+    id: row.id,
+    sourcePlanId: row.source_plan_id,
+    trickId: row.trick_id,
+    createdBy: row.created_by,
+    provider: row.provider,
+    videoId: row.video_id,
+    title: row.title,
+    trainerNote: row.trainer_note,
+    visibility: row.visibility,
+    createdAt: row.created_at,
+  };
+}
 
 /**
  * Persistiert einen Trickstatus ueber die abgesicherte Datenbankfunktion.
@@ -280,6 +317,93 @@ export async function reviewTrainingVideoEvidence({
     evidence,
     athleteUserId: evidence.athleteId,
     xpTotal: typeof xpEntry?.xp_total === "number" ? xpEntry.xp_total : undefined,
+  };
+}
+
+/**
+ * Speichert ein Trainer-Demo fuer die logische Plan-ID. Die Server Action
+ * validiert dieselbe YouTube-URL nochmals und uebergibt nur die Video-ID an
+ * Supabase; RLS prueft zusaetzlich Plan, Uebung und erstellenden Trainer.
+ */
+export async function submitTrainingExerciseDemoVideo({
+  planId,
+  sourcePlanId,
+  trickId,
+  youtubeUrl,
+  title,
+  trainerNote,
+  visibility,
+}: {
+  planId: string;
+  sourcePlanId: string;
+  trickId: string;
+  youtubeUrl: string;
+  title: string;
+  trainerNote: string;
+  visibility: "assigned" | "public";
+}): Promise<TrainingDemoActionResult> {
+  const parsedUrl = parseYoutubeVideoUrl(youtubeUrl);
+  const normalizedTitle = title.trim();
+  const normalizedNote = trainerNote.trim();
+  if (!planId.startsWith(sharedPlanPrefix) || !sourcePlanId.trim() || !trickId.trim()) {
+    return { status: "error", message: "Die geteilte Übung wurde nicht gefunden." };
+  }
+  if (!parsedUrl.ok) {
+    return { status: "error", message: parsedUrl.error };
+  }
+  if (!normalizedTitle || normalizedTitle.length > 160) {
+    return { status: "error", message: "Der Titel muss zwischen 1 und 160 Zeichen lang sein." };
+  }
+  if (normalizedNote.length > 2_000) {
+    return { status: "error", message: "Der Hinweis darf höchstens 2.000 Zeichen lang sein." };
+  }
+  if (visibility !== "assigned" && visibility !== "public") {
+    return { status: "error", message: "Bitte eine gültige Sichtbarkeit wählen." };
+  }
+
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId) return { status: "error", message: "Bitte erneut anmelden." };
+
+  const { data, error } = await supabase
+    .from("training_exercise_demo_videos")
+    .insert({
+      origin_snapshot_share_id: planId.slice(sharedPlanPrefix.length),
+      source_plan_id: sourcePlanId.trim(),
+      trick_id: trickId,
+      created_by: currentUserId,
+      provider: parsedUrl.provider,
+      video_id: parsedUrl.videoId,
+      title: normalizedTitle,
+      trainer_note: normalizedNote,
+      visibility,
+    })
+    .select(demoSelect)
+    .single();
+
+  if (error) {
+    // Weder rohe URL noch Formulardaten landen in Runtime-Logs.
+    console.error("Trainer-Demo konnte nicht gespeichert werden.", {
+      code: error.code,
+      message: error.message,
+    });
+    return {
+      status: "error",
+      message: error.code === "23505"
+        ? "Dieses Demo ist für die Übung bereits hinterlegt."
+        : error.code === "42501"
+          ? "Nur der Trainer der persönlichen Planfreigabe darf ein Demo hinterlegen."
+          : "Das Trainer-Demo konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    };
+  }
+
+  revalidatePath("/trainingsplaene");
+  return {
+    status: "success",
+    message: visibility === "public"
+      ? "Trainer-Demo für alle angemeldeten Nutzer veröffentlicht."
+      : "Trainer-Demo für zugewiesene Athleten veröffentlicht.",
+    demo: mapDemoRow(data as TrainingExerciseDemoVideoActionRow),
   };
 }
 

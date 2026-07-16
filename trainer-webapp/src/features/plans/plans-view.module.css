@@ -935,6 +935,36 @@
   font-size: 0.65rem;
 }
 
+.trickSectionControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trickSectionControls > span {
+  color: var(--color-muted);
+  font-size: 0.65rem;
+}
+
+.trickSectionControls button {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--color-blue-dark);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.trickSectionControls button:focus-visible,
+.exerciseCardHeader > button:focus-visible,
+.demoSectionHeading > button:focus-visible,
+.demoList a:focus-visible {
+  outline: 3px solid rgba(20, 140, 242, 0.24);
+  outline-offset: 2px;
+}
+
 .goalGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1014,14 +1044,34 @@
   background: #fafbfd;
 }
 
-.exerciseCard > header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 13px 14px;
+.exerciseCardHeader {
   border-bottom: 1px solid var(--color-border);
   background: white;
+}
+
+.exerciseCardHeader > button {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: 58px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.exerciseCardHeader > button:hover {
+  background: #f8fafc;
+}
+
+.exerciseCardHeader > button > svg {
+  color: var(--color-muted);
+  transition: transform 160ms ease;
+}
+
+.exerciseCardHeader .chevronExpanded {
+  transform: rotate(180deg);
 }
 
 .exerciseTitle {
@@ -1190,12 +1240,133 @@
   font-weight: 750;
 }
 
-.exerciseCard > .trickActions {
+.exerciseCardBody > .trickActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
   padding: 0 14px 13px;
+}
+
+.demoSection {
+  margin: 0 14px 13px;
+  overflow: hidden;
+  border: 1px solid #cfe0ed;
+  border-radius: var(--radius-md);
+  background: white;
+}
+
+.demoSectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  background: #f2f8fc;
+}
+
+.demoSectionHeading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.demoSectionHeading strong,
+.demoSectionHeading button,
+.demoList a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demoSectionHeading strong {
+  color: var(--color-blue-dark);
+  font-size: 0.66rem;
+}
+
+.demoSectionHeading small {
+  color: var(--color-muted);
+  font-size: 0.58rem;
+}
+
+.demoSectionHeading button {
+  min-height: 36px;
+  flex: 0 0 auto;
+  padding: 0 10px;
+  border: 1px solid var(--color-blue);
+  border-radius: var(--radius-sm);
+  color: var(--color-blue-dark);
+  font-size: 0.61rem;
+  font-weight: 800;
+}
+
+.demoList {
+  display: grid;
+}
+
+.demoList article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.demoIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8f3fb;
+  color: var(--color-blue-dark);
+}
+
+.demoList article > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.demoList article strong {
+  font-size: 0.68rem;
+}
+
+.demoList article p {
+  color: #425466;
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.demoList article small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-muted);
+  font-size: 0.57rem;
+}
+
+.demoList a {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-blue-dark);
+  font-size: 0.6rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.emptyDemo {
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.62rem;
+}
+
+.demoForm {
+  border-top-color: #cfe0ed;
+  background: #f7fbfe;
 }
 
 .trickActions .videoEvidenceButton {
@@ -1860,6 +2031,15 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .sectionHeading {
+    align-items: flex-start;
+  }
+
+  .trickSectionControls {
+    display: grid;
+    justify-items: end;
+  }
+
   .athleteList {
     grid-template-columns: 1fr;
   }
@@ -1894,14 +2074,41 @@
     grid-template-columns: 1fr;
   }
 
-  .exerciseCard > header,
+  .exerciseCardHeader > button,
   .evidenceCard > header {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .exerciseCard > header .trickStatus,
+  .exerciseCardHeader .trickStatus,
   .evidenceCard > header .evidenceStatus {
     grid-column: 1 / -1;
+  }
+
+  .exerciseCardHeader > button > svg {
+    position: absolute;
+    right: 14px;
+  }
+
+  .exerciseCardHeader > button {
+    padding-right: 44px;
+  }
+
+  .demoSectionHeading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .demoSectionHeading button {
+    justify-content: center;
+  }
+
+  .demoList article {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .demoList a {
+    grid-column: 1 / -1;
+    justify-content: center;
   }
 
   .evidenceForm .evidenceComment {

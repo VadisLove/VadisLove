@@ -2,6 +2,7 @@ import { trainerRepository } from "@/data/trainer-repository";
 import { getPeopleDirectory } from "@/data/supabase-people-repository";
 import {
   getSharedTrainingPlanSnapshots,
+  getTrainingExerciseDemoVideos,
   getTrainingVideoEvidence,
   getTrainingXpLeaderboard,
 } from "@/data/shared-training-plan-repository";
@@ -24,12 +25,13 @@ export default async function TrainingPlansPage({
   const requestedAction = typeof params.action === "string"
     ? params.action
     : undefined;
-  const [plans, people, sharedPlans, leaderboard, videoEvidence] = await Promise.all([
+  const [plans, people, sharedPlans, leaderboard, videoEvidence, demoVideos] = await Promise.all([
     trainerRepository.getTrainingPlans(),
     getPeopleDirectory(),
     getSharedTrainingPlanSnapshots(),
     getTrainingXpLeaderboard(),
     getTrainingVideoEvidence(),
+    getTrainingExerciseDemoVideos(),
   ]);
   return (
     <PlansView
@@ -37,6 +39,7 @@ export default async function TrainingPlansPage({
       people={people}
       initialLeaderboard={leaderboard}
       initialVideoEvidence={videoEvidence}
+      initialDemoVideos={demoVideos}
       initialSelectedPlanId={selectedPlanId}
       initialDialog={requestedAction === "share" ? "share" : null}
     />

@@ -7,6 +7,7 @@ import {
   BellRing,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Clock3,
   Copy,
@@ -33,6 +34,7 @@ import {
 import type {
   GoalCadence,
   Person,
+  TrainingExerciseDemoVideo,
   TrainingLeaderboardEntry,
   TrainingPlan,
   TrainingTargetType,
@@ -47,6 +49,7 @@ import styles from "./plans-view.module.css";
 import {
   reviewTrainingVideoEvidence,
   shareTrainingPlanSnapshot,
+  submitTrainingExerciseDemoVideo,
   submitTrainingVideoEvidence,
   updateSharedTrickProgress,
 } from "@/app/trainingsplaene/actions";
@@ -165,6 +168,7 @@ export function PlansView({
   initialSelectedPlanId,
   initialDialog,
   initialVideoEvidence = [],
+  initialDemoVideos = [],
 }: {
   initialPlans: TrainingPlan[];
   people: Person[];
@@ -172,6 +176,7 @@ export function PlansView({
   initialSelectedPlanId?: string;
   initialDialog?: "share" | null;
   initialVideoEvidence?: TrainingVideoEvidence[];
+  initialDemoVideos?: TrainingExerciseDemoVideo[];
 }) {
   const { t } = useI18n();
   const currentUser = useCurrentUser();
@@ -248,6 +253,7 @@ export function PlansView({
   ].find((athleteId) => assignableAthletes.some((athlete) => athlete.id === athleteId));
   const [plans, setPlans] = useState(initialPlans);
   const [videoEvidence, setVideoEvidence] = useState(initialVideoEvidence);
+  const [demoVideos, setDemoVideos] = useState(initialDemoVideos);
   const [persistedLeaderboard, setPersistedLeaderboard] = useState(initialLeaderboard);
   const [selectedPlanId, setSelectedPlanId] = useState(requestedPlanId);
   const [selectedAthleteId, setSelectedAthleteId] = useState(
@@ -271,6 +277,9 @@ export function PlansView({
   const [submittingTrickId, setSubmittingTrickId] = useState("");
   const [reviewingEvidenceId, setReviewingEvidenceId] = useState("");
   const [openEvidenceTrickId, setOpenEvidenceTrickId] = useState("");
+  const [openDemoTrickId, setOpenDemoTrickId] = useState("");
+  const [submittingDemoTrickId, setSubmittingDemoTrickId] = useState("");
+  const [expandedTrickIds, setExpandedTrickIds] = useState<Set<string>>(() => new Set());
   const [feedbackByEvidence, setFeedbackByEvidence] = useState<Record<string, string>>({});
 
   const isTrainerView = currentUser?.accountType === "trainer";
@@ -336,6 +345,22 @@ export function PlansView({
   const selectedVideoEvidence = videoEvidenceItems.filter(
     (evidence) => evidence.planId === selectedPlan?.id
       && displayedTricks.some((trick) => trick.id === evidence.trickId),
+  );
+  const selectedSourcePlanId = selectedPlan?.sourcePlanId ?? selectedPlan?.id;
+  // Ein bereits verteilter Snapshot dient auch in der Planbibliothek als
+  // verifizierbarer Anker fuer Trainer-Demos des logischen Ursprungsplans.
+  const demoAnchorPlan = selectedPlan
+    ? selectedPlan.id.startsWith("shared-")
+      ? selectedPlan
+      : plans.find((plan) =>
+          plan.id.startsWith("shared-") && plan.sourcePlanId === selectedSourcePlanId,
+        )
+    : undefined;
+  const selectedDemoVideos = demoVideos.filter(
+    (demo) => demo.provider === "youtube"
+      && demo.sourcePlanId === selectedSourcePlanId
+      && displayedTricks.some((trick) => trick.id === demo.trickId)
+      && buildYoutubeVideoUrl(demo.videoId) !== null,
   );
 
   const pendingConfirmations = scopedTricks.filter(
@@ -719,6 +744,68 @@ export function PlansView({
     }
   }
 
+  /**
+   * Prueft die Trainer-URL sofort im Formular und ueberlaesst die verbindliche
+   * Rollen- und Planpruefung anschliessend der Server Action und RLS.
+   */
+  async function submitDemo(
+    trick: TrainingTrick,
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!selectedPlan || !selectedSourcePlanId || !demoAnchorPlan) {
+      setNotice("Trainer-Demos können erst in einem persönlich verteilten Plan hinterlegt werden.");
+      return;
+    }
+
+    const data = new FormData(event.currentTarget);
+    const youtubeUrl = String(data.get("demoYoutubeUrl"));
+    const parsedUrl = parseYoutubeVideoUrl(youtubeUrl);
+    if (!parsedUrl.ok) {
+      setNotice(parsedUrl.error);
+      return;
+    }
+
+    setSubmittingDemoTrickId(trick.id);
+    const result = await submitTrainingExerciseDemoVideo({
+      planId: demoAnchorPlan.id,
+      sourcePlanId: selectedSourcePlanId,
+      trickId: trick.id,
+      youtubeUrl,
+      title: String(data.get("demoTitle")),
+      trainerNote: String(data.get("demoTrainerNote")),
+      visibility: String(data.get("demoVisibility")) as "assigned" | "public",
+    });
+    setSubmittingDemoTrickId("");
+    setNotice(result.message);
+
+    if (result.status === "success" && result.demo) {
+      setDemoVideos((current) => [result.demo as TrainingExerciseDemoVideo, ...current]);
+      setOpenDemoTrickId("");
+      form.reset();
+    }
+  }
+
+  function toggleTrickDetails(trickId: string) {
+    setExpandedTrickIds((current) => {
+      const next = new Set(current);
+      if (next.has(trickId)) next.delete(trickId);
+      else next.add(trickId);
+      return next;
+    });
+  }
+
+  function setAllTricksExpanded(expanded: boolean) {
+    setExpandedTrickIds(
+      expanded ? new Set(displayedTricks.map((trick) => trick.id)) : new Set(),
+    );
+    if (!expanded) {
+      setOpenEvidenceTrickId("");
+      setOpenDemoTrickId("");
+    }
+  }
+
   async function reviewEvidence(
     evidence: TrainingVideoEvidence,
     decision: "approved" | "changes_requested",
@@ -1091,9 +1178,23 @@ export function PlansView({
               <div className={styles.sectionHeading}>
                 <div>
                   <h2><Sparkles size={18} /> Übungen & Tricks</h2>
-                  <p>Athleten reichen Erfolge ein, Trainer bestätigen sie.</p>
+                  <p>Details und Aktionen lassen sich je Übung platzsparend öffnen.</p>
                 </div>
-                <span>{displayedTricks.filter((trick) => trick.status === "confirmed").length} / {displayedTricks.length} bestätigt</span>
+                <div className={styles.trickSectionControls}>
+                  <span>{displayedTricks.filter((trick) => trick.status === "confirmed").length} / {displayedTricks.length} bestätigt</span>
+                  {displayedTricks.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setAllTricksExpanded(
+                        !displayedTricks.every((trick) => expandedTrickIds.has(trick.id)),
+                      )}
+                    >
+                      {displayedTricks.every((trick) => expandedTrickIds.has(trick.id))
+                        ? "Alle schließen"
+                        : "Alle öffnen"}
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <div className={styles.exerciseCardList}>
                 {displayedTricks.map((trick) => (
@@ -1103,15 +1204,29 @@ export function PlansView({
                     athleteName={personName(trick.athleteId)}
                     permissions={getTrickPermissions(trick)}
                     onUpdate={updateTrick}
+                    expanded={expandedTrickIds.has(trick.id)}
+                    onToggleExpanded={() => toggleTrickDetails(trick.id)}
                     evidenceHistory={selectedVideoEvidence.filter(
                       (evidence) => evidence.trickId === trick.id,
                     )}
-                    evidenceFormOpen={openEvidenceTrickId === trick.id}
-                    isSubmitting={submittingTrickId === trick.id}
-                    onToggleEvidenceForm={() => setOpenEvidenceTrickId((current) =>
-                      current === trick.id ? "" : trick.id,
+                    demoVideos={selectedDemoVideos.filter(
+                      (demo) => demo.trickId === trick.id,
                     )}
+                    evidenceFormOpen={openEvidenceTrickId === trick.id}
+                    demoFormOpen={openDemoTrickId === trick.id}
+                    isSubmitting={submittingTrickId === trick.id}
+                    isSubmittingDemo={submittingDemoTrickId === trick.id}
+                    canAddDemo={isTrainerView && Boolean(demoAnchorPlan)}
+                    onToggleEvidenceForm={() => {
+                      setExpandedTrickIds((current) => new Set(current).add(trick.id));
+                      setOpenEvidenceTrickId((current) => current === trick.id ? "" : trick.id);
+                    }}
+                    onToggleDemoForm={() => {
+                      setExpandedTrickIds((current) => new Set(current).add(trick.id));
+                      setOpenDemoTrickId((current) => current === trick.id ? "" : trick.id);
+                    }}
                     onSubmitEvidence={(event) => submitEvidence(trick, event)}
+                    onSubmitDemo={(event) => submitDemo(trick, event)}
                   />
                 ))}
                 {displayedTricks.length === 0 ? (
@@ -1420,11 +1535,19 @@ function TrickRow({
   athleteName,
   permissions,
   onUpdate,
+  expanded,
+  onToggleExpanded,
   evidenceHistory,
+  demoVideos,
   evidenceFormOpen,
+  demoFormOpen,
   isSubmitting,
+  isSubmittingDemo,
+  canAddDemo,
   onToggleEvidenceForm,
+  onToggleDemoForm,
   onSubmitEvidence,
+  onSubmitDemo,
 }: {
   trick: TrainingTrick;
   athleteName: string;
@@ -1434,107 +1557,209 @@ function TrickRow({
     confirmationHint: string;
   };
   onUpdate: (trickId: string, status: TrickProgressStatus) => void;
+  expanded: boolean;
+  onToggleExpanded: () => void;
   evidenceHistory: TrainingVideoEvidence[];
+  demoVideos: TrainingExerciseDemoVideo[];
   evidenceFormOpen: boolean;
+  demoFormOpen: boolean;
   isSubmitting: boolean;
+  isSubmittingDemo: boolean;
+  canAddDemo: boolean;
   onToggleEvidenceForm: () => void;
+  onToggleDemoForm: () => void;
   onSubmitEvidence: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmitDemo: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   const targetType = trick.targetType ?? "free";
   const latestEvidence = evidenceHistory[0];
   const hasPendingEvidence = evidenceHistory.some(
     (evidence) => evidence.reviewStatus === "pending",
   );
+  const detailsId = `trick-details-${trick.id}`;
 
   return (
     <article className={styles.exerciseCard}>
-      <header>
-        <span className={styles.level}>LVL {trick.level}</span>
-        <div className={styles.exerciseTitle}>
-          <strong>{trick.name}</strong>
-          <small>{trick.group} · Position {(trick.sortOrder ?? 0) + 1}</small>
-        </div>
-        <span className={`${styles.trickStatus} ${styles[trick.status]}`}>
-          {trickStatusLabels[trick.status]}
-        </span>
+      <header className={styles.exerciseCardHeader}>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          onClick={onToggleExpanded}
+        >
+          <span className={styles.level}>LVL {trick.level}</span>
+          <span className={styles.exerciseTitle}>
+            <strong>{trick.name}</strong>
+            <small>{trick.group} · Position {(trick.sortOrder ?? 0) + 1}</small>
+          </span>
+          <span className={`${styles.trickStatus} ${styles[trick.status]}`}>
+            {trickStatusLabels[trick.status]}
+          </span>
+          <ChevronDown className={expanded ? styles.chevronExpanded : ""} size={19} aria-hidden="true" />
+        </button>
       </header>
-      <div className={styles.exerciseDetails}>
-        <div><small>Zielart</small><strong>{targetTypeLabels[targetType]}</strong></div>
-        <div><small>Zielwert</small><strong>{trick.targetValue || "Nach Trainerabsprache"}</strong></div>
-        <div><small>Athlet</small><strong>{athleteName}</strong></div>
-        <div><small>Material</small><strong>{trick.equipment || "Kein Zusatzmaterial"}</strong></div>
-      </div>
-      <div className={styles.trainerNote}>
-        <small>Trainerhinweis</small>
-        <p>{trick.trainerNote || "Auf eine sichere und kontrollierte Ausführung achten."}</p>
-      </div>
-      {latestEvidence?.trainerFeedback ? (
-        <div className={styles.inlineFeedback}>
-          <strong>Letztes Trainerfeedback</strong>
-          <p>{latestEvidence.trainerFeedback}</p>
-        </div>
-      ) : null}
-      <div className={styles.trickActions}>
-        {trick.status === "not_started" && permissions.canReportProgress ? (
-          <button type="button" onClick={() => onUpdate(trick.id, "in_progress")}>Starten</button>
-        ) : null}
-        {trick.status === "in_progress" && permissions.canReportProgress ? (
-          <>
-            <button type="button" onClick={() => onUpdate(trick.id, "awaiting_confirmation")}>Ohne Video zur Prüfung</button>
-            <button
-              type="button"
-              className={styles.videoEvidenceButton}
-              disabled={hasPendingEvidence}
-              onClick={onToggleEvidenceForm}
-            ><Video size={15} /> YouTube-Nachweis</button>
-          </>
-        ) : null}
-        {trick.status === "awaiting_confirmation" && permissions.canConfirm ? (
-          <button type="button" className={styles.confirmButton} onClick={() => onUpdate(trick.id, "confirmed")}>
-            <Check size={15} /> Bestätigen
-          </button>
-        ) : null}
-        {trick.status === "awaiting_confirmation" && !permissions.canConfirm ? (
-          <small className={styles.permissionHint}>{permissions.confirmationHint}</small>
-        ) : null}
-        {trick.status === "confirmed" ? <CheckCircle2 size={20} className={styles.confirmedIcon} /> : null}
-      </div>
-      {evidenceFormOpen && trick.status === "in_progress" && permissions.canReportProgress ? (
-        <form className={styles.evidenceForm} onSubmit={onSubmitEvidence}>
-          <div>
-            <label>YouTube-Link
-              <input
-                name="youtubeUrl"
-                type="url"
-                inputMode="url"
-                autoComplete="url"
-                required
-                placeholder="https://youtu.be/…"
-              />
-            </label>
-            <label>Anzahl Versuche
-              <input name="attemptCount" type="number" min="1" max="100000" required />
-            </label>
-            <label>Selbsteinschätzung
-              <select name="selfRating" required defaultValue="3">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <option value={rating} key={rating}>{rating} von 5</option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.evidenceComment}>Kommentar
-              <textarea name="athleteComment" rows={3} maxLength={2000} placeholder="Was lief gut, wobei brauchst du Feedback?" />
-            </label>
+      {expanded ? (
+        <div className={styles.exerciseCardBody} id={detailsId}>
+          <div className={styles.exerciseDetails}>
+            <div><small>Zielart</small><strong>{targetTypeLabels[targetType]}</strong></div>
+            <div><small>Zielwert</small><strong>{trick.targetValue || "Nach Trainerabsprache"}</strong></div>
+            <div><small>Athlet</small><strong>{athleteName}</strong></div>
+            <div><small>Material</small><strong>{trick.equipment || "Kein Zusatzmaterial"}</strong></div>
           </div>
-          <p>
-            Es werden nur sichere HTTPS-Links von YouTube akzeptiert. Nicht gelistete Videos
-            können von jeder Person mit dem Link weitergegeben werden. Das Video wird hier
-            nicht automatisch geladen.
-          </p>
-          <button type="submit" disabled={isSubmitting}>
-            <Send size={15} /> {isSubmitting ? "Wird eingereicht …" : "Zur Prüfung absenden"}
-          </button>
-        </form>
+          <div className={styles.trainerNote}>
+            <small>Trainerhinweis</small>
+            <p>{trick.trainerNote || "Auf eine sichere und kontrollierte Ausführung achten."}</p>
+          </div>
+
+          <section className={styles.demoSection} aria-label={`Trainer-Demos für ${trick.name}`}>
+            <div className={styles.demoSectionHeading}>
+              <div>
+                <strong><Video size={16} /> Trainer-Demos</strong>
+                <small>Videos werden ausschließlich nach einem bewussten Klick bei YouTube geöffnet.</small>
+              </div>
+              {canAddDemo ? (
+                <button type="button" onClick={onToggleDemoForm}>
+                  <Plus size={15} /> {demoFormOpen ? "Formular schließen" : "Demo hinzufügen"}
+                </button>
+              ) : null}
+            </div>
+
+            {demoVideos.length > 0 ? (
+              <div className={styles.demoList}>
+                {demoVideos.map((demo) => {
+                  const youtubeUrl = buildYoutubeVideoUrl(demo.videoId);
+                  return (
+                    <article key={demo.id}>
+                      <span className={styles.demoIcon}><Video size={17} /></span>
+                      <div>
+                        <strong>{demo.title}</strong>
+                        {demo.trainerNote ? <p>{demo.trainerNote}</p> : null}
+                        <small>
+                          {demo.visibility === "public" ? <Eye size={13} /> : <Users size={13} />}
+                          {demo.visibility === "public"
+                            ? "Alle angemeldeten Nutzer"
+                            : "Nur zugewiesene Athleten"}
+                        </small>
+                      </div>
+                      {youtubeUrl ? (
+                        <a href={youtubeUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink size={15} /> Bei YouTube öffnen
+                        </a>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.emptyDemo}>Noch kein Trainer-Demo für diese Übung.</p>
+            )}
+
+            {demoFormOpen && canAddDemo ? (
+              <form className={`${styles.evidenceForm} ${styles.demoForm}`} onSubmit={onSubmitDemo}>
+                <div>
+                  <label>YouTube-Link
+                    <input
+                      name="demoYoutubeUrl"
+                      type="url"
+                      inputMode="url"
+                      autoComplete="url"
+                      required
+                      placeholder="https://youtu.be/…"
+                    />
+                  </label>
+                  <label>Titel
+                    <input name="demoTitle" required maxLength={160} placeholder="Was wird im Video gezeigt?" />
+                  </label>
+                  <label>Sichtbarkeit
+                    <select name="demoVisibility" defaultValue="assigned" required>
+                      <option value="assigned">Nur zugewiesene Athleten</option>
+                      <option value="public">Alle angemeldeten Nutzer</option>
+                    </select>
+                  </label>
+                  <label className={styles.evidenceComment}>Hinweis zum Demo <small>optional</small>
+                    <textarea name="demoTrainerNote" rows={3} maxLength={2000} placeholder="Worauf sollen Athleten achten?" />
+                  </label>
+                </div>
+                <p>
+                  Es wird ausschließlich die geprüfte YouTube-ID gespeichert. Nicht gelistete
+                  Videos können von jeder Person mit dem Link weitergegeben werden.
+                </p>
+                <button type="submit" disabled={isSubmittingDemo}>
+                  <Send size={15} /> {isSubmittingDemo ? "Wird veröffentlicht …" : "Demo veröffentlichen"}
+                </button>
+              </form>
+            ) : null}
+          </section>
+
+          {latestEvidence?.trainerFeedback ? (
+            <div className={styles.inlineFeedback}>
+              <strong>Letztes Trainerfeedback</strong>
+              <p>{latestEvidence.trainerFeedback}</p>
+            </div>
+          ) : null}
+          <div className={styles.trickActions}>
+            {trick.status === "not_started" && permissions.canReportProgress ? (
+              <button type="button" onClick={() => onUpdate(trick.id, "in_progress")}>Starten</button>
+            ) : null}
+            {trick.status === "in_progress" && permissions.canReportProgress ? (
+              <>
+                <button type="button" onClick={() => onUpdate(trick.id, "awaiting_confirmation")}>Ohne Video zur Prüfung</button>
+                <button
+                  type="button"
+                  className={styles.videoEvidenceButton}
+                  disabled={hasPendingEvidence}
+                  onClick={onToggleEvidenceForm}
+                ><Video size={15} /> YouTube-Nachweis</button>
+              </>
+            ) : null}
+            {trick.status === "awaiting_confirmation" && permissions.canConfirm ? (
+              <button type="button" className={styles.confirmButton} onClick={() => onUpdate(trick.id, "confirmed")}>
+                <Check size={15} /> Bestätigen
+              </button>
+            ) : null}
+            {trick.status === "awaiting_confirmation" && !permissions.canConfirm ? (
+              <small className={styles.permissionHint}>{permissions.confirmationHint}</small>
+            ) : null}
+            {trick.status === "confirmed" ? <CheckCircle2 size={20} className={styles.confirmedIcon} /> : null}
+          </div>
+          {evidenceFormOpen && trick.status === "in_progress" && permissions.canReportProgress ? (
+            <form className={styles.evidenceForm} onSubmit={onSubmitEvidence}>
+              <div>
+                <label>YouTube-Link
+                  <input
+                    name="youtubeUrl"
+                    type="url"
+                    inputMode="url"
+                    autoComplete="url"
+                    required
+                    placeholder="https://youtu.be/…"
+                  />
+                </label>
+                <label>Anzahl Versuche
+                  <input name="attemptCount" type="number" min="1" max="100000" required />
+                </label>
+                <label>Selbsteinschätzung
+                  <select name="selfRating" required defaultValue="3">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <option value={rating} key={rating}>{rating} von 5</option>
+                    ))}
+                  </select>
+                </label>
+                <label className={styles.evidenceComment}>Kommentar
+                  <textarea name="athleteComment" rows={3} maxLength={2000} placeholder="Was lief gut, wobei brauchst du Feedback?" />
+                </label>
+              </div>
+              <p>
+                Es werden nur sichere HTTPS-Links von YouTube akzeptiert. Nicht gelistete Videos
+                können von jeder Person mit dem Link weitergegeben werden. Das Video wird hier
+                nicht automatisch geladen.
+              </p>
+              <button type="submit" disabled={isSubmitting}>
+                <Send size={15} /> {isSubmitting ? "Wird eingereicht …" : "Zur Prüfung absenden"}
+              </button>
+            </form>
+          ) : null}
+        </div>
       ) : null}
     </article>
   );
