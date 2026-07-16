@@ -1,4 +1,4 @@
--- Private YouTube-Nachweise bleiben bewusst ausserhalb des Plan-Snapshots.
+-- Private YouTube-Nachweise bleiben dauerhaft ausserhalb des Plan-Snapshots.
 -- Die Tabelle speichert keine rohe URL, sondern nur den festen Provider und
 -- die validierte Video-ID. Externe Inhalte werden von Postgres nie abgerufen.
 do $$
