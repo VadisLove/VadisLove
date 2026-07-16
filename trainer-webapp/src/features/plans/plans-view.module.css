@@ -759,6 +759,155 @@
   font-size: 0.62rem;
 }
 
+.evidenceList .evidenceCard {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px;
+}
+
+.evidenceCard > header {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.evidenceCard > header > span:first-child {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: #f0e9fb;
+  color: #6840a3;
+}
+
+.evidenceCard > header > div {
+  display: grid;
+}
+
+.evidenceStatus {
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f0e9fb;
+  color: #6840a3;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.evidenceStatus.approved {
+  background: #e7f8ed;
+  color: #0d7a38;
+}
+
+.evidenceStatus.changes_requested {
+  background: #fff3df;
+  color: #9c5900;
+}
+
+.evidenceList .evidenceMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.evidenceMeta span {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: white;
+  color: var(--color-muted);
+  font-size: 0.6rem;
+}
+
+.evidenceMeta strong {
+  color: var(--color-text);
+}
+
+.evidenceCard blockquote {
+  padding: 9px 11px;
+  border-left: 3px solid var(--color-blue);
+  background: white;
+  color: var(--color-text);
+  font-size: 0.66rem;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.evidenceList .evidenceActions {
+  display: flex;
+}
+
+.evidenceList .evidenceActions a {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+}
+
+.evidenceList .reviewPanel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #cddfec;
+  border-radius: var(--radius-md);
+  background: white;
+}
+
+.reviewPanel textarea {
+  resize: vertical;
+}
+
+.reviewPanel > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.reviewPanel button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.reviewPanel .requestChangesButton {
+  border-color: #d7a45b;
+  color: #8d5100;
+}
+
+.reviewPanel .approveEvidenceButton {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: white;
+}
+
+.evidenceList .trainerFeedback {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: #eef7ff;
+}
+
+.trainerFeedback strong {
+  color: var(--color-blue-dark);
+  font-size: 0.61rem;
+}
+
+.trainerFeedback p {
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
 .trickSection {
   border-bottom: 0;
 }
@@ -853,6 +1002,104 @@
   border-radius: var(--radius-md);
 }
 
+.exerciseCardList {
+  display: grid;
+  gap: 12px;
+}
+
+.exerciseCard {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: #fafbfd;
+}
+
+.exerciseCard > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: white;
+}
+
+.exerciseTitle {
+  display: grid;
+  min-width: 0;
+}
+
+.exerciseTitle strong {
+  font-size: 0.8rem;
+}
+
+.exerciseTitle small {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.6rem;
+}
+
+.exerciseDetails {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-border);
+}
+
+.exerciseDetails > div {
+  display: grid;
+  align-content: center;
+  min-height: 58px;
+  padding: 10px 12px;
+  background: #f6f9fb;
+}
+
+.exerciseDetails small,
+.trainerNote small {
+  color: var(--color-muted);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.exerciseDetails strong {
+  overflow-wrap: anywhere;
+  margin-top: 3px;
+  font-size: 0.66rem;
+  line-height: 1.35;
+}
+
+.trainerNote {
+  padding: 12px 14px;
+}
+
+.trainerNote p {
+  margin-top: 4px;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.inlineFeedback {
+  margin: 0 14px 12px;
+  padding: 10px 12px;
+  border-left: 3px solid #6840a3;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: #f5f0fb;
+}
+
+.inlineFeedback strong {
+  color: #6840a3;
+  font-size: 0.6rem;
+}
+
+.inlineFeedback p {
+  margin-top: 3px;
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
 .trickHeader,
 .trickRow {
   display: grid;
@@ -941,6 +1188,88 @@
   color: var(--color-blue-dark);
   font-size: 0.61rem;
   font-weight: 750;
+}
+
+.exerciseCard > .trickActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px 13px;
+}
+
+.trickActions .videoEvidenceButton {
+  border-color: #6840a3;
+  color: #6840a3;
+}
+
+.evidenceForm {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid #d9c9ed;
+  background: #f8f4fc;
+}
+
+.evidenceForm > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(110px, 0.6fr) minmax(150px, 0.7fr);
+  gap: 10px;
+}
+
+.evidenceForm label,
+.reviewPanel label {
+  display: grid;
+  gap: 5px;
+  color: var(--color-muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.evidenceForm input,
+.evidenceForm select,
+.evidenceForm textarea,
+.reviewPanel textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: white;
+  outline: none;
+}
+
+.evidenceForm input:focus,
+.evidenceForm select:focus,
+.evidenceForm textarea:focus,
+.reviewPanel textarea:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(20, 140, 242, 0.12);
+}
+
+.evidenceForm .evidenceComment {
+  grid-column: 1 / -1;
+}
+
+.evidenceForm > p {
+  color: #5e4a73;
+  font-size: 0.6rem;
+  line-height: 1.5;
+}
+
+.evidenceForm > button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  justify-self: end;
+  padding: 0 13px;
+  border-radius: var(--radius-sm);
+  background: #6840a3;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
 }
 
 .trickActions .confirmButton {
@@ -1094,7 +1423,100 @@
 
 .exerciseList {
   display: grid;
-  gap: 8px;
+  gap: 12px;
+}
+
+.exerciseEditorCard {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #fafbfd;
+}
+
+.exerciseEditorHeader {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 9px 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-navy);
+  color: white;
+}
+
+.exerciseEditorHeader strong {
+  font-size: 0.68rem;
+}
+
+.exerciseEditorHeader > div {
+  display: flex;
+  gap: 4px;
+}
+
+.exerciseEditorHeader button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.exerciseEditorHeader button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.exerciseEditorHeader button:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.exerciseEditorGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.exerciseEditorGrid label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.exerciseEditorGrid label > small {
+  font-size: 0.55rem;
+  font-weight: 500;
+}
+
+.exerciseEditorGrid input,
+.exerciseEditorGrid select,
+.exerciseEditorGrid textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: white;
+  outline: none;
+}
+
+.exerciseEditorGrid textarea {
+  resize: vertical;
+}
+
+.exerciseEditorGrid input:focus,
+.exerciseEditorGrid select:focus,
+.exerciseEditorGrid textarea:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(20, 140, 242, 0.1);
+}
+
+.exerciseEditorGrid .wideField {
+  grid-column: 1 / -1;
 }
 
 .exerciseInputRow {
@@ -1381,6 +1803,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .exerciseDetails {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .trickHeader {
     display: none;
   }
@@ -1458,8 +1884,33 @@
   .assignmentGrid,
   .goalGrid,
   .formGrid,
-  .selectionGrid {
+  .selectionGrid,
+  .exerciseEditorGrid,
+  .evidenceForm > div {
     grid-template-columns: 1fr;
+  }
+
+  .exerciseDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .exerciseCard > header,
+  .evidenceCard > header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .exerciseCard > header .trickStatus,
+  .evidenceCard > header .evidenceStatus {
+    grid-column: 1 / -1;
+  }
+
+  .evidenceForm .evidenceComment {
+    grid-column: auto;
+  }
+
+  .evidenceForm > button {
+    width: 100%;
+    justify-self: stretch;
   }
 
   .trickRow {

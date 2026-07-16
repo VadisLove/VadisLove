@@ -1,8 +1,10 @@
 import type {
   TrainingLeaderboardEntry,
   TrainingPlan,
+  TrainingVideoEvidence,
   TrickProgressStatus,
 } from "@/domain/models";
+import { normalizeTrainingPlan } from "@/domain/training-plan-normalization";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,6 +19,23 @@ interface TrickProgressRow {
   trick_id: string;
   athlete_id: string;
   status: TrickProgressStatus;
+}
+
+interface TrainingVideoEvidenceRow {
+  id: string;
+  snapshot_share_id: string;
+  trick_id: string;
+  athlete_id: string;
+  provider: "youtube";
+  video_id: string;
+  athlete_comment: string;
+  attempt_count: number;
+  self_rating: 1 | 2 | 3 | 4 | 5;
+  submitted_at: string;
+  review_status: "pending" | "approved" | "changes_requested";
+  trainer_feedback: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
 }
 
 function isTrainingPlan(value: unknown): value is TrainingPlan {
@@ -106,6 +125,7 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
 
   return shares.flatMap((row) => {
     if (!isTrainingPlan(row.plan_snapshot)) return [];
+    const normalizedPlan = normalizeTrainingPlan(row.plan_snapshot);
     const progress = progressByShare.get(row.id);
     const direction = row.recipient_user_id === currentUserId
       ? "empfangen"
@@ -115,20 +135,56 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
     );
 
     return [{
-      ...row.plan_snapshot,
+      ...normalizedPlan,
       id: `shared-${row.id}`,
-      sourcePlanId: row.plan_snapshot.id,
-      author: `${row.plan_snapshot.author} · ${direction}`,
+      sourcePlanId: normalizedPlan.id,
+      author: `${normalizedPlan.author} · ${direction}`,
       assignedAthletes: progressAthleteIds.length > 0
         ? progressAthleteIds
-        : row.plan_snapshot.assignedAthletes,
-      tricks: row.plan_snapshot.tricks.map((trick) => ({
+        : normalizedPlan.assignedAthletes,
+      tricks: normalizedPlan.tricks.map((trick) => ({
         ...trick,
         athleteId: progress?.get(trick.id)?.athlete_id || trick.athleteId,
         status: progress?.get(trick.id)?.status || trick.status,
       })),
     }];
   });
+}
+
+/** Laedt private Einreichungen getrennt von den unveraenderlichen Plan-Snapshots. */
+export async function getTrainingVideoEvidence(): Promise<TrainingVideoEvidence[]> {
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId) return [];
+
+  const { data, error } = await supabase
+    .from("training_video_evidence")
+    .select(
+      "id, snapshot_share_id, trick_id, athlete_id, provider, video_id, athlete_comment, attempt_count, self_rating, submitted_at, review_status, trainer_feedback, reviewed_by, reviewed_at",
+    )
+    .order("submitted_at", { ascending: false });
+
+  if (error) {
+    if (isMissingProgressSchema(error)) return [];
+    throw new Error(`Videonachweise konnten nicht geladen werden: ${error.message}`);
+  }
+
+  return ((data || []) as TrainingVideoEvidenceRow[]).map((evidence) => ({
+    id: evidence.id,
+    planId: `shared-${evidence.snapshot_share_id}`,
+    trickId: evidence.trick_id,
+    athleteId: evidence.athlete_id,
+    provider: evidence.provider,
+    videoId: evidence.video_id,
+    athleteComment: evidence.athlete_comment,
+    attemptCount: evidence.attempt_count,
+    selfRating: evidence.self_rating,
+    submittedAt: evidence.submitted_at,
+    reviewStatus: evidence.review_status,
+    trainerFeedback: evidence.trainer_feedback,
+    reviewedBy: evidence.reviewed_by || undefined,
+    reviewedAt: evidence.reviewed_at || undefined,
+  }));
 }
 
 /** Laedt die serverseitig berechneten XP fuer gemeinsame Gruppen und Zuordnungen. */

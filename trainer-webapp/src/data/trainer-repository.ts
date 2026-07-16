@@ -6,6 +6,7 @@ import type {
   Region,
   TrainingPlan,
 } from "@/domain/models";
+import { normalizeTrainingPlan } from "@/domain/training-plan-normalization";
 
 /**
  * Vertrag für die Daten, welche die Oberfläche benötigt.
@@ -36,7 +37,8 @@ class MockTrainerRepository implements TrainerRepository {
   }
 
   async getTrainingPlans() {
-    return trainingPlans;
+    // Auch lokale Altplaene laufen durch dieselbe Normalisierung wie Supabase-Snapshots.
+    return trainingPlans.map(normalizeTrainingPlan);
   }
 
   async getRegions() {

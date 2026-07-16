@@ -205,6 +205,11 @@ export type TrickProgressStatus =
   | "in_progress"
   | "awaiting_confirmation"
   | "confirmed";
+export type TrainingTargetType =
+  | "attempts"
+  | "repetitions"
+  | "duration"
+  | "free";
 
 export interface TrainingGoal {
   id: string;
@@ -218,6 +223,16 @@ export interface TrainingTrick {
   name: string;
   group: string;
   level: number;
+  /**
+   * Neue strukturierte Felder sind optional typisiert, damit bereits im
+   * Umlauf befindliche Plan-Snapshots weiterhin eingelesen werden koennen.
+   * Vor der Anzeige werden sie zentral auf vollstaendige Standardwerte normalisiert.
+   */
+  targetType?: TrainingTargetType;
+  targetValue?: string;
+  trainerNote?: string;
+  sortOrder?: number;
+  equipment?: string;
   athleteId: string;
   status: TrickProgressStatus;
 }
@@ -233,7 +248,14 @@ export interface TrainingVideoEvidence {
   athleteId: string;
   provider: "youtube";
   videoId: string;
+  athleteComment: string;
+  attemptCount: number;
+  selfRating: 1 | 2 | 3 | 4 | 5;
   submittedAt: string;
+  reviewStatus: "pending" | "approved" | "changes_requested";
+  trainerFeedback: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 export interface TrainingLeaderboardEntry {
