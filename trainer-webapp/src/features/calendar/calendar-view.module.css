@@ -1036,19 +1036,30 @@ button.legendItem:focus-visible {
 @media (max-width: 700px) {
   .toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /*
+     * `minmax(0, 1fr)` ist hier entscheidend: Lange Button-Texte dürfen die
+     * beiden Spalten nicht über die verfügbare iPhone-Breite hinausdrücken.
+     */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
   }
 
   .toolbar label,
-  .toolbar select {
+  .toolbar select,
+  .toolbar button {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
   }
 
   .resetButton,
   .createButton {
     justify-content: center;
     margin: 0;
+    padding-inline: 8px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
   }
 
   /*
@@ -1186,6 +1197,11 @@ button.legendItem:focus-visible {
   .toolbar {
     gap: 8px;
     padding: 10px;
+  }
+
+  .resetButton,
+  .createButton {
+    font-size: 0.69rem;
   }
 
   .toolbar select {

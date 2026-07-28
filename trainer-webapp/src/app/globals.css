@@ -30,7 +30,7 @@ html {
   width: 100%;
   min-width: 320px;
   max-width: 100%;
-  overflow-x: clip;
+  overflow-x: hidden;
   background: var(--color-background);
   -webkit-text-size-adjust: 100%;
 }
@@ -39,7 +39,7 @@ body {
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
-  overflow-x: clip;
+  overflow-x: hidden;
   overscroll-behavior-x: none;
   color: var(--color-text);
   background: var(--color-background);

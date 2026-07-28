@@ -14,7 +14,6 @@ import {
   Menu,
   MessagesSquare,
   Plus,
-  Search,
   Settings,
   Users,
   X,
@@ -149,11 +148,21 @@ export function AppShell({
           </button>
           <strong>{t("common.appName")}</strong>
           <div className={styles.mobileActions}>
-            <Search size={20} />
             <NotificationCenter
               initialItems={notificationPreview.items}
               initialUnreadCount={notificationPreview.unreadCount}
             />
+            {/* Der Logout bleibt mobil immer sichtbar, auch wenn der Drawer lang ist. */}
+            <form action={logout} className={styles.mobileLogoutForm}>
+              <button
+                type="submit"
+                className={styles.iconButton}
+                aria-label={t("navigation.logout")}
+                title={t("navigation.logout")}
+              >
+                <LogOut size={20} />
+              </button>
+            </form>
           </div>
         </header>
         <main className={styles.main}>{children}</main>

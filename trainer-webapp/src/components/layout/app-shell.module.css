@@ -2,7 +2,7 @@
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
-  overflow-x: clip;
+  overflow-x: hidden;
   background: var(--color-background);
 }
 
@@ -13,8 +13,12 @@
   display: flex;
   width: var(--sidebar-width);
   flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--color-navy);
   color: white;
+  -webkit-overflow-scrolling: touch;
 }
 
 .brand {
@@ -108,6 +112,7 @@
   min-width: 0;
   max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
   margin-left: var(--sidebar-width);
 }
 
@@ -115,7 +120,7 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  overflow-x: clip;
+  overflow-x: hidden;
   padding: 26px clamp(20px, 2.2vw, 38px) 42px;
 }
 
@@ -130,6 +135,7 @@
 @media (max-width: 920px) {
   .sidebar {
     width: min(310px, 86vw);
+    padding-bottom: env(safe-area-inset-bottom);
     transform: translateX(-102%);
     transition: transform 200ms ease;
   }
@@ -154,6 +160,7 @@
 
   .contentColumn {
     width: 100%;
+    max-width: 100vw;
     margin-left: 0;
   }
 
@@ -162,6 +169,8 @@
     top: 0;
     z-index: 20;
     display: flex;
+    width: 100%;
+    max-width: 100vw;
     height: 64px;
     align-items: center;
     justify-content: space-between;
@@ -180,10 +189,26 @@
 
   .mobileActions {
     display: flex;
-    gap: 15px;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .mobileLogoutForm {
+    display: grid;
   }
 
   .main {
+    width: 100%;
+    max-width: 100vw;
     padding: 20px 16px 34px;
+  }
+
+  /*
+   * Jede Feature-Seite darf mobil höchstens so breit wie der Inhaltsbereich
+   * werden. Breite Tabellen behalten ihren eigenen, gekapselten Scrollbereich.
+   */
+  .main > * {
+    min-width: 0;
+    max-width: 100%;
   }
 }
