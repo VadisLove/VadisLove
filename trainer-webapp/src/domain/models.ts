@@ -20,7 +20,14 @@ export type NotificationType =
   | "group_activity"
   | "event_created"
   | "training_plan_shared"
-  | "guardian_activity";
+  | "guardian_activity"
+  | "club_joined"
+  | "club_left"
+  | "federation_changed"
+  | "federation_invalidated"
+  | "account_deletion_scheduled"
+  | "account_restored"
+  | "account_finalized";
 export type OrganizationRole =
   | "federal_chair"
   | "specialist"

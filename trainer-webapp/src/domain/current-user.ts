@@ -11,5 +11,6 @@ export interface CurrentUser {
   id: string;
   displayName: string;
   initials: string;
+  avatarUrl: string | null;
   accountType: AccountType;
 }

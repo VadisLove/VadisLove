@@ -32,7 +32,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, account_type")
+    .select("display_name, account_type, avatar_path")
     .eq("id", userId)
     .maybeSingle();
 
@@ -42,11 +42,19 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const accountType = profile.account_type as AccountType;
   const displayName = profile.display_name.trim() || "Trainer-Hub Nutzer";
+  let avatarUrl: string | null = null;
+  if (profile.avatar_path) {
+    const { data } = await supabase.storage
+      .from("profile-photos")
+      .createSignedUrl(profile.avatar_path, 60 * 60);
+    avatarUrl = data?.signedUrl || null;
+  }
 
   return {
     id: userId,
     displayName,
     initials: createInitials(displayName) || "TH",
+    avatarUrl,
     accountType,
   };
 }

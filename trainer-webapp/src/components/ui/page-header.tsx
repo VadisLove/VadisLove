@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 import { useCurrentUser } from "@/components/auth/current-user-context";
 import { NotificationCenter } from "@/components/layout/notification-center";
@@ -46,7 +47,19 @@ export function PageHeader({
           initialUnreadCount={notificationPreview.unreadCount}
         />
         <div className={styles.profile}>
-          <span>{currentUser?.initials || "TH"}</span>
+          <span>
+            {currentUser?.avatarUrl ? (
+              <Image
+                src={currentUser.avatarUrl}
+                alt=""
+                fill
+                sizes="42px"
+                unoptimized
+              />
+            ) : (
+              currentUser?.initials || "TH"
+            )}
+          </span>
           <div>
             <strong>{currentUser?.displayName || t("common.appName")}</strong>
             <small>

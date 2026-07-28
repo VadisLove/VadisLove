@@ -21,7 +21,7 @@ export const en: DictionaryShape<typeof de> = {
   },
   navigation: {
     dashboard: "Dashboard", calendar: "Calendar", plans: "Training plans", evaluations: "Evaluation",
-    people: "People", inbox: "Inbox", organization: "Organisation", createEvent: "Create event",
+    people: "People", inbox: "Inbox", organization: "Organisation", profile: "Profile", createEvent: "Create event",
     settings: "Settings", logout: "Log out", main: "Main navigation",
     open: "Open navigation", close: "Close navigation", notifications: "Notifications",
   },

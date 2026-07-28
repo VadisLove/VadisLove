@@ -146,6 +146,9 @@
 
   .closeButton {
     display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
     place-items: center;
   }
 
@@ -183,8 +186,8 @@
   .iconButton {
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 
   .mobileActions {

@@ -15,6 +15,7 @@ import {
   MessagesSquare,
   Plus,
   Settings,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -36,6 +37,7 @@ const navigation = [
   { href: "/personen", labelKey: "navigation.people", icon: Users },
   { href: "/postfach", labelKey: "navigation.inbox", icon: MessagesSquare },
   { href: "/organisation", labelKey: "navigation.organization", icon: Building2 },
+  { href: "/profil", labelKey: "navigation.profile", icon: UserRound },
 ];
 
 /**
@@ -59,7 +61,10 @@ export function AppShell({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Öffentliche Seiten wie der Login benötigen weder Navigation noch App-Rahmen.
-  if (pathname.startsWith("/login")) {
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/konto-wiederherstellen")
+  ) {
     return children;
   }
 

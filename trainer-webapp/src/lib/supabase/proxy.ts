@@ -41,6 +41,9 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/auth/callback") ||
     request.nextUrl.pathname.startsWith("/einladung");
+  const isRecoveryRoute = request.nextUrl.pathname.startsWith(
+    "/konto-wiederherstellen",
+  );
 
   if (!user && !isPublicAuthRoute) {
     const loginUrl = request.nextUrl.clone();
@@ -50,6 +53,35 @@ export async function updateSession(request: NextRequest) {
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
     );
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (user) {
+    // Nur diese Tabelle bleibt fuer deaktivierte Nutzer lesbar. So kann der
+    // Proxy jeden anderen App-Bereich bis zur bewussten Wiederherstellung sperren.
+    const { data: deletion } = await supabase
+      .from("account_deletion_requests")
+      .select("status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const deletionIsScheduled = deletion?.status === "scheduled";
+
+    if (
+      deletionIsScheduled &&
+      !isRecoveryRoute &&
+      !request.nextUrl.pathname.startsWith("/auth/callback")
+    ) {
+      const recoveryUrl = request.nextUrl.clone();
+      recoveryUrl.pathname = "/konto-wiederherstellen";
+      recoveryUrl.search = "";
+      return NextResponse.redirect(recoveryUrl);
+    }
+
+    if (!deletionIsScheduled && isRecoveryRoute) {
+      const profileUrl = request.nextUrl.clone();
+      profileUrl.pathname = "/profil";
+      profileUrl.search = "";
+      return NextResponse.redirect(profileUrl);
+    }
   }
 
   if (user && request.nextUrl.pathname.startsWith("/login")) {

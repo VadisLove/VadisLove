@@ -1,6 +1,6 @@
 .languageSwitcher {
   display: flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   gap: 10px;
   color: inherit;
@@ -9,6 +9,7 @@
 }
 
 .languageSwitcher select {
+  min-height: 44px;
   margin-left: auto;
   border: 1px solid currentColor;
   border-radius: 6px;

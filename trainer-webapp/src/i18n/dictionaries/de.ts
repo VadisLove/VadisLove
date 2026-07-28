@@ -11,7 +11,7 @@ export const de = {
   },
   navigation: {
     dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne", evaluations: "Auswertung",
-    people: "Personen", inbox: "Postfach", organization: "Organisation", createEvent: "Event erstellen",
+    people: "Personen", inbox: "Postfach", organization: "Organisation", profile: "Profil", createEvent: "Event erstellen",
     settings: "Einstellungen", logout: "Abmelden", main: "Hauptnavigation",
     open: "Navigation öffnen", close: "Navigation schließen",
     notifications: "Benachrichtigungen",
