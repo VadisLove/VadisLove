@@ -421,6 +421,31 @@
   .saveBar > div { grid-column: 1 / -1; }
   .saveBar > p,
   .saveBar > span { display: none; }
+
+  /*
+   * Breite Datentabellen scrollen nur innerhalb ihrer eigenen Karte. Der
+   * Seiten-Viewport bleibt auf dem iPhone fest und folgt ausschließlich vertikal.
+   */
+  .contestTable,
+  .rankingTable {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .athleteIdentity,
+  .athleteIdentity > div,
+  .commandBar,
+  .periodFields {
+    min-width: 0;
+  }
+
+  .athleteIdentity select,
+  .compareActions select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,3 +1,16 @@
+.summary,
+.tabs,
+.requestSection,
+.formCard,
+.twoColumns,
+.formStack,
+.requestCard,
+.groupCard {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -118,7 +131,17 @@
 
 .requestText {
   display: grid;
+  min-width: 0;
   gap: 3px;
+}
+
+.requestText strong,
+.requestText span,
+.requestText small,
+.groupCard strong,
+.groupCard small,
+.groupCard em {
+  overflow-wrap: anywhere;
 }
 
 .requestText strong {
@@ -207,6 +230,7 @@
 .formCard select,
 .formCard textarea {
   width: 100%;
+  min-width: 0;
   min-height: 42px;
   padding: 9px 11px;
   border: 1px solid var(--color-border);
@@ -256,6 +280,7 @@
 
 .groupCard div {
   display: grid;
+  min-width: 0;
   gap: 3px;
 }
 
@@ -279,9 +304,41 @@
 
 @media (max-width: 650px) {
   .summary { grid-template-columns: 1fr; }
+
+  /*
+   * Die Register umbrechen auf dem Smartphone bewusst. So bleibt die ganze
+   * Seite ruhig, statt innerhalb der Navigation horizontal zu gleiten.
+   */
+  .tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .tabs button {
+    flex: 1 1 auto;
+  }
+
   .requestCard { grid-template-columns: auto minmax(0, 1fr); }
   .status { grid-column: 2; justify-self: start; }
   .cardActions { grid-column: 2; }
   .groupCard { grid-template-columns: auto minmax(0, 1fr); }
   .groupCard em { grid-column: 2; }
+}
+
+@media (max-width: 430px) {
+  .summary article,
+  .requestCard,
+  .groupCard,
+  .formCard {
+    padding: 14px;
+  }
+
+  .cardActions {
+    grid-column: 1 / -1;
+  }
+
+  .cardActions button {
+    flex: 1 1 130px;
+    justify-content: center;
+  }
 }

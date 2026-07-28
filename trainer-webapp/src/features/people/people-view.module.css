@@ -1,3 +1,12 @@
+.inviteBox,
+.filters,
+.peopleGrid,
+.peopleGrid article {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .inviteBox {
   margin-bottom: 16px;
   padding: 18px;
@@ -187,6 +196,8 @@
 }
 
 .peopleGrid h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 0.85rem;
 }
 
@@ -289,6 +300,19 @@
     grid-template-columns: 1fr;
   }
 
+  /*
+   * Rollen wechseln mobil in die zweite Zeile. Dadurch können lange Namen
+   * die Karte nicht über die Viewport-Breite hinausdrücken.
+   */
+  .peopleGrid article {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .role {
+    grid-column: 2;
+    justify-self: start;
+  }
+
   .inviteBox form {
     display: grid;
   }
@@ -299,5 +323,22 @@
 
   .inviteBox form button {
     min-height: 42px;
+  }
+}
+
+@media (max-width: 430px) {
+  .inviteBox,
+  .peopleGrid article {
+    padding: 14px;
+  }
+
+  .relationshipActions {
+    grid-column: 1 / -1;
+  }
+
+  .relationshipActions button,
+  .connected,
+  .answerRequest {
+    justify-content: center;
   }
 }

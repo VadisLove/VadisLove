@@ -1,3 +1,13 @@
+.toolbar,
+.colorLegend,
+.calendarLayout,
+.calendarPanel,
+.detailPanel {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -143,8 +153,13 @@ button.legendItem:focus-visible {
 }
 
 .calendarHeader h2 {
+  min-width: 0;
+  overflow: hidden;
   font-size: 1.15rem;
+  text-align: center;
   text-transform: capitalize;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .calendarHeader > span {
@@ -271,6 +286,22 @@ button.legendItem:focus-visible {
 .outsideDay {
   background: #fafbfc;
   color: #aeb8c2;
+}
+
+.todayDay > span {
+  width: 24px;
+  height: 24px;
+  margin-top: -3px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--color-blue);
+  color: white;
+  line-height: 24px;
+  text-align: center;
+}
+
+.mobileTodayButton {
+  display: none;
 }
 
 .eventBar {
@@ -1020,14 +1051,129 @@ button.legendItem:focus-visible {
     margin: 0;
   }
 
+  /*
+   * Mobile Monatsansicht nach dem Muster des iPhone-Kalenders: sieben feste,
+   * gleich breite Spalten, kompakte Wochen und Termine direkt im Monatsraster.
+   * Es gibt absichtlich keine breite Desktop-Fläche mehr zum Seitwärtsscrollen.
+   */
   .calendarPanel {
-    overflow-x: auto;
+    overflow: hidden;
   }
 
-  .calendarHeader,
-  .weekdays,
-  .monthGrid {
-    min-width: 720px;
+  .calendarHeader {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 58px;
+    padding: 0 10px;
+  }
+
+  .calendarHeader > span {
+    max-width: 62px;
+    overflow: hidden;
+    font-size: 0.64rem;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .calendarHeader h2 {
+    font-size: clamp(0.96rem, 4.4vw, 1.12rem);
+  }
+
+  .monthNavigation button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .weekdays {
+    min-height: 34px;
+  }
+
+  .weekdays strong {
+    font-size: 0.61rem;
+  }
+
+  .weekRow {
+    min-height: 102px;
+    grid-template-rows: 32px repeat(var(--event-rows), 21px) minmax(16px, 1fr);
+  }
+
+  .expandedWeekRow {
+    min-height: 280px;
+    grid-template-rows: 36px repeat(var(--event-rows), 24px) minmax(100px, 1fr);
+  }
+
+  .dayCell,
+  .outsideDay {
+    padding: 6px 4px;
+  }
+
+  .dayCell > span,
+  .outsideDay > span {
+    margin-bottom: 4px;
+    font-size: 0.76rem;
+    text-align: center;
+  }
+
+  .todayDay > span {
+    width: 25px;
+    height: 25px;
+    margin: -3px auto 4px;
+    line-height: 25px;
+  }
+
+  .eventBar {
+    height: 18px;
+    gap: 2px;
+    margin: 0 1px;
+    padding: 0 5px;
+    border-left-width: 2px;
+    touch-action: manipulation;
+  }
+
+  .eventBar strong,
+  .resizeHandle {
+    display: none;
+  }
+
+  .eventBar span {
+    font-size: 0.58rem;
+  }
+
+  .eventBarStarts {
+    margin-left: 2px;
+  }
+
+  .eventBarEnds {
+    margin-right: 2px;
+  }
+
+  .dayView {
+    min-height: 420px;
+    padding: 10px;
+  }
+
+  .dayEvent {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .detailPanel {
+    padding: 17px;
+  }
+
+  .mobileTodayButton {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    margin: 12px;
+    padding: 0 17px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: white;
+    color: var(--color-blue-dark);
+    font-size: 0.76rem;
+    font-weight: 780;
+    box-shadow: 0 7px 20px rgba(16, 34, 56, 0.08);
   }
 
   .formRow,
@@ -1038,6 +1184,25 @@ button.legendItem:focus-visible {
 
 @media (max-width: 470px) {
   .toolbar {
-    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .toolbar select {
+    padding-inline: 8px;
+  }
+
+  .colorLegend {
+    gap: 6px;
+  }
+
+  .legendItem {
+    min-height: 26px;
+    padding: 0 8px;
+    font-size: 0.64rem;
+  }
+
+  .calendarHeader > span {
+    display: none;
   }
 }

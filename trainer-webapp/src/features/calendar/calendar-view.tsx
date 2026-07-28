@@ -302,6 +302,8 @@ export function CalendarView({
   const weeks = useMemo(() => chunkIntoWeeks(days), [days]);
   const weekDays = useMemo(() => buildWeekDays(monthCursor), [monthCursor]);
   const dayDate = toIsoDate(monthCursor);
+  // Der aktuelle Tag bleibt in der kompakten Smartphone-Ansicht sofort erkennbar.
+  const todayDate = toIsoDate(new Date());
 
   const filteredEvents = useMemo(
     () =>
@@ -797,6 +799,7 @@ export function CalendarView({
               key={isoDate}
               className={[
                 inCurrentMonth ? styles.dayCell : styles.outsideDay,
+                isoDate === todayDate ? styles.todayDay : "",
                 isDateWithinRange(isoDate, rangeDraft)
                   ? styles.rangeSelection
                   : "",
@@ -1090,6 +1093,13 @@ export function CalendarView({
               )}
             </div>
           )}
+          <button
+            type="button"
+            className={styles.mobileTodayButton}
+            onClick={() => setMonthCursor(new Date())}
+          >
+            {t("common.today")}
+          </button>
         </section>
 
         <aside className={styles.detailPanel}>

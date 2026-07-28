@@ -27,12 +27,20 @@
 }
 
 html {
+  width: 100%;
   min-width: 320px;
+  max-width: 100%;
+  overflow-x: clip;
   background: var(--color-background);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
   color: var(--color-text);
   background: var(--color-background);
   font-family: var(--font-sans), Arial, sans-serif;
@@ -66,4 +74,17 @@ a {
 ::selection {
   background: var(--color-blue);
   color: white;
+}
+
+@media (max-width: 920px) {
+  /*
+   * iOS Safari zoomt Eingabefelder mit weniger als 16 px Schrift automatisch.
+   * Die Mindestgröße hält den Viewport nach der Eingabe stabil und verhindert
+   * das dadurch entstehende seitliche Verschieben der gesamten Anwendung.
+   */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
