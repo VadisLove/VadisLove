@@ -1,4 +1,4 @@
--- Neue Benachrichtigungstypen stehen in einer eigenen Migration, weil
+-- Neue Benachrichtigungstypen stehen bewusst in einer eigenen Migration, weil
 -- PostgreSQL Enum-Werte erst nach dem Commit sicher in Funktionen verwenden kann.
 alter type public.notification_type add value if not exists 'club_joined';
 alter type public.notification_type add value if not exists 'club_left';

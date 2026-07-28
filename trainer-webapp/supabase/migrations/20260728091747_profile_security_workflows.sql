@@ -1,4 +1,4 @@
--- Vollstaendiger Profilbereich mit sicheren Bildern, Mehrfachmitgliedschaften,
+-- Vollstaendiger Profilbereich mit geschuetzten Bildern, Mehrfachmitgliedschaften,
 -- genau einem aktiven Startverband und 30-taegiger Kontowiederherstellung.
 
 create type public.profile_visibility as enum (
