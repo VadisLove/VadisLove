@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSafeRedirectPath } from "@/lib/safe-redirect-path";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
@@ -85,9 +86,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && request.nextUrl.pathname.startsWith("/login")) {
-    const targetUrl = request.nextUrl.clone();
-    targetUrl.pathname = request.nextUrl.searchParams.get("next") || "/";
-    targetUrl.search = "";
+    const nextPath = getSafeRedirectPath(
+      request.nextUrl.searchParams.get("next"),
+    );
+    const targetUrl = new URL(nextPath, request.url);
     return NextResponse.redirect(targetUrl);
   }
 

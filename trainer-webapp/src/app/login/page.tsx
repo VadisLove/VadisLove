@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getTranslations } from "@/i18n/server";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { getRegistrationOrganizations } from "@/data/registration-organization-repository";
+import { getSafeRedirectPath } from "@/lib/safe-redirect-path";
 import { RegistrationOrganizationFields } from "./registration-organization-fields";
 import styles from "./page.module.css";
 
@@ -22,7 +23,13 @@ interface LoginPageProps {
  * Gemeinsame Auth-Seite für Anmeldung und Registrierung.
  */
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { message, next = "/", mode = "login", status = "error" } = await searchParams;
+  const {
+    message,
+    next: requestedNext,
+    mode = "login",
+    status = "error",
+  } = await searchParams;
+  const next = getSafeRedirectPath(requestedNext);
   const configured = isSupabaseConfigured();
   const isRegistering = mode === "register";
   const { t } = await getTranslations();

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { getSafeRedirectPath } from "@/lib/safe-redirect-path";
 import { createClient } from "@/lib/supabase/server";
 
 const accountTypes = new Set([
@@ -28,8 +29,7 @@ function loginUrl(
 export async function login(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
-  const requestedPath = String(formData.get("next") || "/");
-  const nextPath = requestedPath.startsWith("/") ? requestedPath : "/";
+  const nextPath = getSafeRedirectPath(formData.get("next"));
 
   if (!email || !password) {
     redirect(loginUrl("Bitte E-Mail und Passwort eingeben.", nextPath));
