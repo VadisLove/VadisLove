@@ -28,12 +28,10 @@ export interface CalendarEventRow {
     profiles?:
       | {
       display_name: string | null;
-      email: string | null;
       account_type: string | null;
         }
       | Array<{
           display_name: string | null;
-          email: string | null;
           account_type: string | null;
         }>
       | null;
@@ -65,7 +63,7 @@ const calendarEventSelect = `
     status,
     user_id,
     invited_email,
-    profiles:user_id(display_name, email, account_type)
+    profiles:user_id(display_name, account_type)
   )
 `;
 
@@ -150,7 +148,9 @@ export function mapCalendarEvent(
         name:
           profile?.display_name?.trim() ||
           participant.invited_email,
-        email: profile?.email || participant.invited_email,
+        // Die bereits autorisierte Teilnehmerzeile ist die kanonische Quelle
+        // fuer die Event-E-Mail; profiles.email bleibt direkt unlesbar.
+        email: participant.invited_email,
         accountType: profile?.account_type || "unspecified",
         status: participant.status,
       };
@@ -202,11 +202,9 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
     return [];
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("email")
-    .eq("id", currentUserId)
-    .maybeSingle();
+  const { data: currentUserEmail } = await supabase.rpc(
+    "get_current_profile_email",
+  );
 
   const { data, error } = await supabase
     .from("events")
@@ -218,7 +216,7 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
   }
 
   return ((data || []) as unknown as CalendarEventRow[]).map((row) =>
-    mapCalendarEvent(row, currentUserId, profile?.email || ""),
+    mapCalendarEvent(row, currentUserId, currentUserEmail || ""),
   );
 }
 
@@ -237,11 +235,9 @@ export async function getUpcomingCalendarEvents(): Promise<CalendarEvent[]> {
     return [];
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("email")
-    .eq("id", currentUserId)
-    .maybeSingle();
+  const { data: currentUserEmail } = await supabase.rpc(
+    "get_current_profile_email",
+  );
 
   const referenceTime = new Date();
   const referenceIso = referenceTime.toISOString();
@@ -277,7 +273,7 @@ export async function getUpcomingCalendarEvents(): Promise<CalendarEvent[]> {
   ).slice(0, dashboardEventLimit);
 
   return relevantRows.map((row) =>
-    mapCalendarEvent(row, currentUserId, profile?.email || ""),
+    mapCalendarEvent(row, currentUserId, currentUserEmail || ""),
   );
 }
 

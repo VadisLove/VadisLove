@@ -34,6 +34,21 @@ interface AffiliationRow {
   invalidation_reason: string | null;
 }
 
+interface OwnProfileRow {
+  id: string;
+  first_name: string;
+  last_name: string;
+  display_name: string;
+  email: string;
+  phone: string | null;
+  location: string | null;
+  bio: string | null;
+  disciplines: string[];
+  visibility: ProfileVisibility;
+  avatar_path: string | null;
+  account_type: AccountType;
+}
+
 function uniqueRoles(memberships: MembershipRow[]) {
   return Array.from(new Set(memberships.map((membership) => membership.role)));
 }
@@ -45,12 +60,10 @@ export async function getOwnProfileOverview(): Promise<ProfileOverview> {
   if (!userId) throw new Error("Bitte erneut anmelden.");
 
   const [profileResult, membershipsResult, affiliationsResult] = await Promise.all([
+    // Kontakt- und Detailfelder sind absichtlich nicht mehr direkt ueber die
+    // profiles-Tabelle lesbar. Die RPC bindet die Ausgabe fest an auth.uid().
     supabase
-      .from("profiles")
-      .select(
-        "id, first_name, last_name, display_name, email, phone, location, bio, disciplines, visibility, avatar_path, account_type",
-      )
-      .eq("id", userId)
+      .rpc("get_own_profile")
       .single(),
     supabase
       .from("organization_memberships")
@@ -118,7 +131,7 @@ export async function getOwnProfileOverview(): Promise<ProfileOverview> {
     }
   }
 
-  const profile = profileResult.data;
+  const profile = profileResult.data as OwnProfileRow;
   const clubMemberships = buildClubMemberships(memberships, organizations);
   const organizationsById = new Map(
     organizations.map((organization) => [organization.id, organization]),

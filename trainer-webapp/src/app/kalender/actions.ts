@@ -224,7 +224,7 @@ export async function saveCalendarEvent(
         status,
         user_id,
         invited_email,
-        profiles:user_id(display_name, email, account_type)
+        profiles:user_id(display_name, account_type)
       )
     `)
     .returns<CalendarEventRow[]>();
@@ -277,12 +277,10 @@ export async function respondToCalendarEvent(
     return { status: "error", message: "Bitte melde dich erneut an." };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("email")
-    .eq("id", currentUserId)
-    .maybeSingle();
-  const email = profile?.email?.trim();
+  const { data: currentUserEmail } = await supabase.rpc(
+    "get_current_profile_email",
+  );
+  const email = currentUserEmail?.trim();
 
   if (!email) {
     return {
@@ -332,7 +330,7 @@ export async function respondToCalendarEvent(
         status,
         user_id,
         invited_email,
-        profiles:user_id(display_name, email, account_type)
+        profiles:user_id(display_name, account_type)
       )
     `)
     .eq("id", eventId)
@@ -379,18 +377,25 @@ export async function inviteEventParticipant(
     return { status: "error", message: "Bitte melde dich erneut an." };
   }
 
-  // Die Profilabfrage respektiert RLS. Nicht sichtbare oder noch nicht
-  // registrierte Personen werden weiterhin sicher per E-Mail eingeladen.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", email)
-    .limit(1)
-    .maybeSingle();
+  // Die RPC gibt nur eine ID zurueck, wenn der Aufrufer diesen Termin verwalten
+  // darf und das Zielprofil nach den bestehenden Sichtbarkeitsregeln sichtbar
+  // ist. Nicht sichtbare oder unbekannte Personen bleiben E-Mail-Einladungen.
+  const { data: profileId, error: resolutionError } = await supabase.rpc(
+    "resolve_event_participant_profile",
+    { p_event_id: eventId, p_email: email },
+  );
+
+  if (resolutionError) {
+    return {
+      status: "error",
+      message:
+        "Die Person konnte nicht eingeladen werden. Nur der Event-Ersteller oder organisatorisch Verantwortliche dürfen Teilnehmende hinzufügen.",
+    };
+  }
 
   const { error } = await supabase.from("event_participants").insert({
     event_id: eventId,
-    user_id: profile?.id || null,
+    user_id: profileId || null,
     invited_email: email,
     invited_by: currentUserId,
     status: "open",
