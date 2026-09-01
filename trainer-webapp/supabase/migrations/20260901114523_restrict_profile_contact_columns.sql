@@ -168,15 +168,26 @@ grant execute on function public.resolve_event_participant_profile(uuid, text)
 -- RLS-Policies auf anderen Tabellen vergleichen nur noch mit der eigenen
 -- E-Mail ueber den gebundenen Helfer. Sie benoetigen kein allgemeines Leserecht
 -- auf der geschuetzten profiles.email-Spalte mehr.
-drop policy if exists "account_invitations_read_related"
-  on public.account_invitations;
-create policy "account_invitations_read_related"
-  on public.account_invitations for select
-  to authenticated
-  using (
-    invited_by = (select auth.uid())
-    or email = private.current_profile_email()
-  );
+-- Aeltere Produktionsstaende enthalten die optionale Einladungstabelle noch
+-- nicht. Sobald sie vorhanden ist, wird ihre Policy auf den gebundenen
+-- E-Mail-Helfer umgestellt; ihr Fehlen darf die restliche Haertung nicht
+-- blockieren.
+do $$
+begin
+  if to_regclass('public.account_invitations') is not null then
+    execute 'drop policy if exists "account_invitations_read_related" on public.account_invitations';
+    execute $policy$
+      create policy "account_invitations_read_related"
+        on public.account_invitations for select
+        to authenticated
+        using (
+          invited_by = (select auth.uid())
+          or email = private.current_profile_email()
+        )
+    $policy$;
+  end if;
+end;
+$$;
 
 drop policy if exists "participants_read_related"
   on public.event_participants;
