@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDays,
+  ChartNoAxesCombined,
   House,
   Plus,
   UserRound,
-  Users,
 } from "lucide-react";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./mobile-bottom-navigation.module.css";
@@ -15,7 +15,7 @@ import styles from "./mobile-bottom-navigation.module.css";
 const mobileDestinations = [
   { href: "/", labelKey: "navigation.dashboard", icon: House },
   { href: "/kalender", labelKey: "navigation.calendar", icon: CalendarDays },
-  { href: "/personen", labelKey: "navigation.people", icon: Users },
+  { href: "/auswertung", labelKey: "navigation.evaluations", icon: ChartNoAxesCombined },
   { href: "/profil", labelKey: "navigation.profile", icon: UserRound },
 ] as const;
 
