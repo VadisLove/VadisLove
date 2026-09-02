@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -32,6 +32,7 @@ interface CalendarViewProps {
   initialEvents: CalendarEvent[];
   organizationOptions: EventOrganizationOption[];
   initialSelectedEventId?: string;
+  initialCreateDialogRequest?: string;
 }
 
 interface CalendarContextMenu {
@@ -250,6 +251,7 @@ export function CalendarView({
   initialEvents,
   organizationOptions,
   initialSelectedEventId,
+  initialCreateDialogRequest,
 }: CalendarViewProps) {
   const initialSelectedEvent = initialEvents.find(
     (event) => event.id === initialSelectedEventId,
@@ -267,7 +269,7 @@ export function CalendarView({
   const [stateFilter, setStateFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState<EventType | "all">("all");
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(initialSelectedEvent);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(Boolean(initialCreateDialogRequest));
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState(
     organizationOptions[0]?.id || "",
@@ -294,6 +296,15 @@ export function CalendarView({
   const [resizeDraft, setResizeDraft] = useState<ResizeDraft | null>(null);
   const [feedback, setFeedback] = useState("");
   const [pending, startTransition] = useTransition();
+
+  // Öffnet den bestehenden Dialog auch bei wiederholter Nutzung der globalen Schnellaktion.
+  useEffect(() => {
+    if (initialCreateDialogRequest) {
+      openCreateDialog();
+    }
+  // `openCreateDialog` setzt ausschließlich lokalen Formularzustand und bleibt absichtlich außerhalb der Abhängigkeiten.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCreateDialogRequest]);
 
   const days = useMemo(
     () => buildMonthDays(monthCursor.getFullYear(), monthCursor.getMonth()),

@@ -1,0 +1,102 @@
+.navigation {
+  display: none;
+}
+
+@media (max-width: 920px) {
+  .navigation {
+    position: fixed;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: 12px;
+    z-index: 25;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 70px;
+    align-items: center;
+    gap: 3px;
+    padding: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    border-radius: 25px;
+    background: rgba(239, 245, 251, 0.88);
+    box-shadow:
+      0 18px 45px rgba(7, 24, 45, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(22px) saturate(165%);
+    -webkit-backdrop-filter: blur(22px) saturate(165%);
+  }
+
+  .destination {
+    display: grid;
+    min-width: 0;
+    min-height: 54px;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    border-radius: 18px;
+    color: var(--color-muted);
+    transition:
+      color 160ms ease,
+      background 160ms ease,
+      transform 160ms ease;
+  }
+
+  .destination span {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.61rem;
+    font-weight: 720;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .destination.active {
+    background: rgba(7, 24, 45, 0.1);
+    color: var(--color-navy);
+  }
+
+  .destination:active {
+    transform: scale(0.96);
+  }
+
+  .createAction {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    place-self: center;
+    place-items: center;
+    border: 4px solid rgba(239, 245, 251, 0.96);
+    border-radius: 19px;
+    background: var(--color-blue);
+    color: white;
+    box-shadow: 0 9px 22px rgba(20, 140, 242, 0.34);
+    transition:
+      background 160ms ease,
+      transform 160ms ease;
+  }
+
+  .createAction:active {
+    background: var(--color-blue-dark);
+    transform: scale(0.94);
+  }
+}
+
+@media (max-width: 370px) {
+  .navigation {
+    right: 8px;
+    left: 8px;
+    gap: 1px;
+    padding-inline: 5px;
+  }
+
+  .destination span {
+    font-size: 0.56rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .destination,
+  .createAction {
+    transition: none;
+  }
+}

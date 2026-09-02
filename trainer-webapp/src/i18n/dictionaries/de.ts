@@ -14,7 +14,7 @@ export const de = {
     people: "Personen", inbox: "Postfach", organization: "Organisation", profile: "Profil", createEvent: "Event erstellen",
     settings: "Einstellungen", logout: "Abmelden", main: "Hauptnavigation",
     open: "Navigation öffnen", close: "Navigation schließen",
-    notifications: "Benachrichtigungen",
+    notifications: "Benachrichtigungen", mobileQuickNavigation: "Mobile Schnellnavigation",
   },
   context: { current: "Trainerin · Bayern · Region Süd" },
   eventTypes: {

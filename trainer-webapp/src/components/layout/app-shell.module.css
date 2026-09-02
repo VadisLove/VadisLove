@@ -203,7 +203,8 @@
   .main {
     width: 100%;
     max-width: 100vw;
-    padding: 20px 16px 34px;
+    /* Die feste Tab-Bar darf am Seitenende keine Inhalte oder Aktionen verdecken. */
+    padding: 20px 16px calc(118px + env(safe-area-inset-bottom));
   }
 
   /*

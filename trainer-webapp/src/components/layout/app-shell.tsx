@@ -28,6 +28,7 @@ import { useI18n } from "@/i18n/i18n-provider";
 import { LanguageSwitcher } from "./language-switcher";
 import { NotificationCenter } from "./notification-center";
 import { NotificationProvider } from "./notification-context";
+import { MobileBottomNavigation } from "./mobile-bottom-navigation";
 
 const navigation = [
   { href: "/", labelKey: "navigation.dashboard", icon: LayoutDashboard },
@@ -171,6 +172,7 @@ export function AppShell({
           </div>
         </header>
         <main className={styles.main}>{children}</main>
+        <MobileBottomNavigation />
       </div>
       </div>
       </NotificationProvider>

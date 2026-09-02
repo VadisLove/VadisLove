@@ -24,6 +24,7 @@ export const en: DictionaryShape<typeof de> = {
     people: "People", inbox: "Inbox", organization: "Organisation", profile: "Profile", createEvent: "Create event",
     settings: "Settings", logout: "Log out", main: "Main navigation",
     open: "Open navigation", close: "Close navigation", notifications: "Notifications",
+    mobileQuickNavigation: "Mobile quick navigation",
   },
   context: { current: "Coach · Bavaria · Southern region" },
   eventTypes: {
