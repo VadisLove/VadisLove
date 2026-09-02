@@ -204,7 +204,16 @@ function currentAthleteAsPerson(currentUser: NonNullable<Awaited<ReturnType<type
 
 /** Laedt alle per RLS erlaubten Rohdaten fuer Einzelansicht und Vergleich. */
 export async function getEvaluationDashboardData(): Promise<EvaluationDashboardData> {
-  const currentUser = await getCurrentUser();
+  /*
+   * Die drei umfangreichen Datenquellen benötigen das aufbereitete Profil nicht.
+   * Sie starten deshalb gemeinsam mit der Nutzerabfrage statt erst danach.
+   */
+  const [currentUser, people, events, plans] = await Promise.all([
+    getCurrentUser(),
+    getPeopleDirectory(),
+    getCalendarEvents(),
+    getSharedTrainingPlanSnapshots(),
+  ]);
   if (!currentUser) {
     return {
       currentUserId: "",
@@ -220,10 +229,7 @@ export async function getEvaluationDashboardData(): Promise<EvaluationDashboardD
   }
 
   const supabase = await createClient();
-  const [people, events, plans, evaluationResult, skillsResult, weightsResult, goalsResult] = await Promise.all([
-    getPeopleDirectory(),
-    getCalendarEvents(),
-    getSharedTrainingPlanSnapshots(),
+  const [evaluationResult, skillsResult, weightsResult, goalsResult] = await Promise.all([
     supabase
       .from("athlete_evaluations")
       .select("id, trainer_id, athlete_id, period_start, period_end, title, conversation_on, squad, dalid_status, personal_notes, measures, athlete_evaluation_skill_ratings(skill_key, rating, note), athlete_evaluation_contest_overrides(event_id, excluded, category, placement, note)")

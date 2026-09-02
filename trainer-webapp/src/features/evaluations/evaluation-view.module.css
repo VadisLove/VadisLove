@@ -399,7 +399,11 @@
 }
 
 @media (max-width: 760px) {
-  .page { padding-bottom: 132px; }
+  /*
+   * Auf Mobilgeräten stehen Speichern-Leiste und globale Tab-Bar übereinander.
+   * Der zusätzliche Freiraum hält auch die letzten Formularfelder erreichbar.
+   */
+  .page { padding-bottom: 198px; }
   .commandBar,
   .compareHeader { align-items: stretch; flex-direction: column; }
   .modeSwitch button { flex: 1; }
@@ -417,10 +421,20 @@
   .weightRail { grid-template-columns: repeat(2, 1fr); }
   .weightRail span:nth-child(2) { border-right: 0; }
   .weightRail span:nth-child(-n+2) { border-bottom: 1px solid var(--color-border); }
-  .saveBar { right: 12px; bottom: 10px; left: 12px; grid-template-columns: 1fr 1fr; }
-  .saveBar > div { grid-column: 1 / -1; }
+  .saveBar {
+    right: 12px;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    left: 12px;
+    z-index: 24;
+    grid-template-columns: minmax(0, 1fr) 42px auto;
+  }
+  .saveBar > div { min-width: 0; }
+  .saveBar > div span { min-width: 0; }
+  .saveBar > div strong,
+  .saveBar > div small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .saveBar > p,
   .saveBar > span { display: none; }
+  .exportButton { width: 42px; padding: 0; font-size: 0; }
 
   /*
    * Breite Datentabellen scrollen nur innerhalb ihrer eigenen Karte. Der
@@ -452,4 +466,11 @@
   .listeningButton { animation: none; }
   .modeSwitch button,
   .ratingScale button { transition: none; }
+}
+
+@media (max-width: 370px) {
+  /* Auf sehr schmalen Geräten haben die ausführbaren Aktionen Vorrang vor Metadaten. */
+  .saveBar { grid-template-columns: 42px minmax(0, 1fr); }
+  .saveBar > div { display: none; }
+  .saveButton { min-width: 0; padding-inline: 10px; }
 }

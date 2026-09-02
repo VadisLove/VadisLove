@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { AccountType, CurrentUser } from "@/domain/current-user";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -18,7 +19,7 @@ function createInitials(displayName: string) {
  * Berechtigungen werden weiterhin ausschließlich über Mitgliedschaften und
  * RLS geregelt. Der Kontotyp dient hier nur der verständlichen Darstellung.
  */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   if (!isSupabaseConfigured()) {
     return null;
   }
@@ -57,4 +58,4 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     avatarUrl,
     accountType,
   };
-}
+});
