@@ -135,6 +135,13 @@ export const en: DictionaryShape<typeof de> = {
     clubAssociation: "This club is automatically affiliated with {association}.",
     organizationApproval: "The responsible organisation reviews the request after registration.",
     roleNotice: "Your selection describes your profile. Permissions for clubs and associations are confirmed separately.",
+    ageTitle: "Age and approval", ageDescription: "Self-registration is available from the age of {age}.",
+    birthDate: "Date of birth", birthDatePrivacy: "The date of birth is used only to check age and is not stored permanently.",
+    minimumAgeError: "For people under {age}, a parent or guardian must create the account.",
+    guardianRequired: "Until the age of {age}, the account is activated only after approval by a parent or guardian.",
+    guardianEmail: "Parent or guardian email", guardianEmailHelp: "We send a one-time approval link, valid for 14 days, to this address.",
+    legalPrefix: "I accept the", legalMiddle: "and have read the", legalSuffix: ".",
+    terms: "Terms of use", privacy: "Privacy policy", imprint: "Legal notice",
   },
   organization: {
     title: "Organisation", description: "Associations, regions, clubs and their roles.",

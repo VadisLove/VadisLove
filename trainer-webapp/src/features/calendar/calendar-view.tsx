@@ -28,6 +28,8 @@ import { getIntlLocale } from "@/i18n/config";
 import { useI18n } from "@/i18n/i18n-provider";
 import { getInitialCalendarCursor } from "@/lib/calendar-date-time";
 import styles from "./calendar-view.module.css";
+import { CarpoolPanel } from "@/features/carpools/carpool-panel";
+import { CarpoolEntry } from "@/features/carpools/carpool-entry";
 
 interface CalendarViewProps {
   initialEvents: CalendarEvent[];
@@ -1382,6 +1384,11 @@ export function CalendarView({
                   <p>{t("calendar.noParticipantsVisible")}</p>
                 )}
               </div>
+              {/* Der eigene Deep-Link ist auch aus Fahrtbenachrichtigungen erreichbar. */}
+              {(selectedEvent.type === "training" || selectedEvent.type === "contest") && <>
+                <CarpoolEntry eventId={selectedEvent.id} />
+                <CarpoolPanel key={selectedEvent.id} eventId={selectedEvent.id} />
+              </>}
               {selectedEvent.canManage ? (
                 <div className={styles.ownerActions}>
                   <button type="button" onClick={openEditDialog}>

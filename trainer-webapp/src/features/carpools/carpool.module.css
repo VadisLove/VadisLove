@@ -1,0 +1,208 @@
+/* Der Bereich übernimmt App-Farben und hält Aktionen auch im schmalen Terminpanel bedienbar. */
+.panel {
+  margin-block: 1rem;
+  min-width: 0;
+  color: var(--color-text, #182631);
+}
+.panel h2,
+.panel h3,
+.panel h4,
+.panel h5 {
+  margin: 0.65rem 0;
+}
+.panel h2 {
+  font-size: 1.25rem;
+}
+.panel h3 {
+  font-size: 1.05rem;
+  margin-top: 1.5rem;
+}
+.panel h4 {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.panel h5 {
+  font-size: 0.95rem;
+}
+.panel p {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: space-between;
+}
+.header h2 {
+  margin-right: auto;
+}
+.entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-border, #aabec8);
+  border-radius: 10px;
+  font-weight: 650;
+  color: inherit;
+  text-decoration: none;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-block: 0.8rem;
+}
+.panel button {
+  min-height: 44px;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #426b7f;
+  border-radius: 8px;
+  color: #fff;
+  background: #164e66;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  white-space: normal;
+}
+.panel button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.panel button.danger {
+  background: transparent;
+  color: var(--color-text, #263841);
+  border-color: #ac6c6c;
+}
+.panel :is(button, input, textarea, select, summary):focus-visible,
+.entry:focus-visible {
+  outline: 3px solid #1497dc;
+  outline-offset: 3px;
+}
+.ride {
+  padding: 1rem;
+  border: 1px solid var(--color-border, #c4d1d8);
+  border-left: 4px solid #2786a6;
+  border-radius: 10px;
+  margin-block: 1rem;
+  background: var(--color-surface, #fff);
+}
+.direction {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  color: #123b4c;
+  background: #dceff4;
+  font-weight: 700;
+}
+.capacity {
+  font-weight: 700;
+}
+.notice {
+  padding: 0.75rem;
+  background: #fff1cc;
+  color: #5c3c00;
+  border-radius: 7px;
+}
+.note {
+  white-space: pre-wrap;
+}
+.request {
+  border-top: 1px solid var(--color-border, #c4d1d8);
+  padding-block: 0.65rem;
+}
+.form {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border, #b9c9d1);
+  border-radius: 10px;
+}
+.panel fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.panel legend {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+.panel label {
+  display: grid;
+  gap: 0.4rem;
+  margin-block: 0.7rem;
+  font-size: 0.9rem;
+}
+.panel input,
+.panel textarea,
+.panel select {
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #8a9fab;
+  padding: 0.6rem;
+  border-radius: 6px;
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface, #fff);
+}
+.panel textarea {
+  resize: vertical;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0 0.8rem;
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.panel .check {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  min-height: 44px;
+}
+.check input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex-shrink: 0;
+}
+.comments {
+  margin-top: 1rem;
+  border-top: 1px solid var(--color-border, #c4d1d8);
+  padding-top: 0.5rem;
+}
+.comments summary {
+  min-height: 44px;
+  padding: 0.65rem 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+.comments p {
+  white-space: pre-wrap;
+}
+.empty {
+  padding: 1rem;
+  border: 1px dashed var(--color-border, #aabec8);
+  border-radius: 8px;
+}
+.feedback:empty {
+  display: none;
+}
+.feedback {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface, #fff);
+  padding: 0.6rem;
+  border-radius: 6px;
+}

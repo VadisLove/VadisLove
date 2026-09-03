@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getSafeRedirectPath } from "@/lib/safe-redirect-path";
 import { createClient } from "@/lib/supabase/server";
+import { evaluateRegistrationAge, localIsoDate } from "@/domain/registration-age";
+import { issueGuardianApprovalEmail } from "@/lib/guardian-approval-email";
+import { legalDocumentVersions } from "@/lib/legal-documents";
 
 const accountTypes = new Set([
   "athlete",
@@ -52,8 +55,9 @@ export async function login(formData: FormData) {
 }
 
 /**
- * Erstellt ein neues Auth-Konto und übergibt ausschließlich beschreibende
- * Profildaten. Berechtigungen werden nicht aus diesen Metadaten abgeleitet.
+ * Erstellt ein Auth-Konto. Einmalige Registrierungsangaben werden im Trigger
+ * geprüft und in geschützte Tabellen übernommen; spätere Metadatenänderungen
+ * verändern weder Altersstatus noch Freigabe oder fachliche Berechtigungen.
  */
 export async function register(formData: FormData) {
   const displayName = String(formData.get("displayName") || "").trim();
@@ -62,15 +66,35 @@ export async function register(formData: FormData) {
   const passwordConfirmation = String(formData.get("passwordConfirmation") || "");
   const accountType = String(formData.get("accountType") || "");
   const organizationId = String(formData.get("organizationId") || "");
+  const birthDate = String(formData.get("birthDate") || "");
+  const guardianEmail = String(formData.get("guardianEmail") || "").trim().toLowerCase();
+  const legalAccepted = String(formData.get("legalAccepted") || "") === "true";
+  const ageResult = evaluateRegistrationAge(birthDate, localIsoDate());
+  const guardianEmailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail);
 
   if (
     !displayName ||
     !email ||
     !password ||
     !accountTypes.has(accountType) ||
-    !organizationId
+    !organizationId ||
+    !ageResult ||
+    !legalAccepted
   ) {
     redirect(loginUrl("Bitte alle Felder vollständig ausfüllen.", "/", "register"));
+  }
+
+  if (
+    ageResult.requiresGuardianApproval &&
+    (!guardianEmailIsValid || guardianEmail === email.toLowerCase())
+  ) {
+    redirect(
+      loginUrl(
+        "Für Minderjährige wird eine andere E-Mail-Adresse der erziehungsberechtigten Person benötigt.",
+        "/",
+        "register",
+      ),
+    );
   }
 
   if (password.length < 8) {
@@ -105,9 +129,8 @@ export async function register(formData: FormData) {
 
   const requestHeaders = await headers();
   const origin = requestHeaders.get("origin") || "http://localhost:3000";
-
   const {
-    data: { session },
+    data: { session, user },
     error,
   } = await supabase.auth.signUp({
     email,
@@ -118,6 +141,11 @@ export async function register(formData: FormData) {
         display_name: displayName,
         account_type: accountType,
         registration_organization_id: organizationId,
+        birth_date: birthDate,
+        guardian_email: ageResult.requiresGuardianApproval ? guardianEmail : "",
+        legal_terms_accepted: true,
+        terms_version: legalDocumentVersions.terms,
+        privacy_version: legalDocumentVersions.privacy,
       },
     },
   });
@@ -132,13 +160,30 @@ export async function register(formData: FormData) {
     );
   }
 
+  let guardianEmailSent = true;
+  if (ageResult.requiresGuardianApproval && user && user.identities?.length) {
+    const emailResult = await issueGuardianApprovalEmail({
+      minorUserId: user.id,
+      requestOrigin: origin,
+    });
+    guardianEmailSent = emailResult.sent;
+  }
+
   if (session) {
-    redirect("/");
+    redirect(
+      ageResult.requiresGuardianApproval
+        ? `/freigabe-ausstehend?mail=${guardianEmailSent ? "sent" : "failed"}`
+        : "/",
+    );
   }
 
   redirect(
     loginUrl(
-      "Konto erstellt. Bitte bestätige jetzt deine E-Mail-Adresse.",
+      ageResult.requiresGuardianApproval
+        ? guardianEmailSent
+          ? "Konto erstellt. Bitte bestätige deine E-Mail-Adresse. Die Elternfreigabe wurde separat versendet."
+          : "Konto erstellt. Bitte bestätige deine E-Mail-Adresse. Die Elternfreigabe-Mail konnte noch nicht versendet werden und kann danach erneut angefordert werden."
+        : "Konto erstellt. Bitte bestätige jetzt deine E-Mail-Adresse.",
       "/",
       "login",
       "success",

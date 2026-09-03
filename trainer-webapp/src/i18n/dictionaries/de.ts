@@ -126,6 +126,13 @@ export const de = {
     clubAssociation: "Dieser Verein ist automatisch {association} zugeordnet.",
     organizationApproval: "Der Beitritt wird nach der Registrierung von der zuständigen Organisation geprüft.",
     roleNotice: "Deine Auswahl beschreibt dein Profil. Rechte für Vereine und Verbände werden separat bestätigt.",
+    ageTitle: "Alter und Freigabe", ageDescription: "Die Selbstregistrierung ist ab {age} Jahren möglich.",
+    birthDate: "Geburtsdatum", birthDatePrivacy: "Das Geburtsdatum wird nur zur Altersprüfung verwendet und nicht dauerhaft gespeichert.",
+    minimumAgeError: "Für Personen unter {age} Jahren muss eine erziehungsberechtigte Person das Konto anlegen.",
+    guardianRequired: "Bis zum {age}. Geburtstag wird das Konto erst nach Freigabe durch eine erziehungsberechtigte Person aktiviert.",
+    guardianEmail: "E-Mail der erziehungsberechtigten Person", guardianEmailHelp: "An diese Adresse senden wir einen einmaligen, 14 Tage gültigen Freigabelink.",
+    legalPrefix: "Ich akzeptiere die", legalMiddle: "und habe die", legalSuffix: "zur Kenntnis genommen.",
+    terms: "Nutzungsbedingungen", privacy: "Datenschutzerklärung", imprint: "Impressum",
   },
   organization: {
     title: "Organisation", description: "Verbände, Regionen, Vereine und zugehörige Rollen.",

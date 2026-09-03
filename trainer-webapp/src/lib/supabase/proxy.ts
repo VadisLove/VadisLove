@@ -41,7 +41,11 @@ export async function updateSession(request: NextRequest) {
   const isPublicAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/auth/callback") ||
-    request.nextUrl.pathname.startsWith("/einladung");
+    request.nextUrl.pathname.startsWith("/einladung") ||
+    request.nextUrl.pathname.startsWith("/elternfreigabe") ||
+    request.nextUrl.pathname.startsWith("/datenschutz") ||
+    request.nextUrl.pathname.startsWith("/nutzungsbedingungen") ||
+    request.nextUrl.pathname.startsWith("/impressum");
   const isRecoveryRoute = request.nextUrl.pathname.startsWith(
     "/konto-wiederherstellen",
   );
@@ -66,6 +70,17 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
     const deletionIsScheduled = deletion?.status === "scheduled";
 
+    const { data: guardianApproval } = await supabase
+      .from("guardian_approval_requests")
+      .select("status, guardian_required_until")
+      .eq("minor_user_id", user.id)
+      .maybeSingle();
+    const guardianApprovalRequired = Boolean(
+      guardianApproval &&
+      guardianApproval.guardian_required_until > new Date().toISOString().slice(0, 10) &&
+      guardianApproval.status !== "approved",
+    );
+
     if (
       deletionIsScheduled &&
       !isRecoveryRoute &&
@@ -82,6 +97,20 @@ export async function updateSession(request: NextRequest) {
       profileUrl.pathname = "/profil";
       profileUrl.search = "";
       return NextResponse.redirect(profileUrl);
+    }
+
+    if (
+      guardianApprovalRequired &&
+      !request.nextUrl.pathname.startsWith("/freigabe-ausstehend") &&
+      !request.nextUrl.pathname.startsWith("/elternfreigabe") &&
+      !request.nextUrl.pathname.startsWith("/datenschutz") &&
+      !request.nextUrl.pathname.startsWith("/nutzungsbedingungen") &&
+      !request.nextUrl.pathname.startsWith("/impressum")
+    ) {
+      const approvalUrl = request.nextUrl.clone();
+      approvalUrl.pathname = "/freigabe-ausstehend";
+      approvalUrl.search = "";
+      return NextResponse.redirect(approvalUrl);
     }
   }
 

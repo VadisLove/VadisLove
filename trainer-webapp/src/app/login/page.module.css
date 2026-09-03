@@ -107,12 +107,94 @@
 .form input[type="text"],
 .form input[type="email"],
 .form input[type="password"],
+.form input[type="date"],
 .form select {
   width: 100%;
   padding: 12px 13px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: white;
+}
+
+.ageSection {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, #f8fbff, #f2f7fb);
+}
+
+.ageSection > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.ageSection strong {
+  color: var(--color-navy);
+  font-size: 0.9rem;
+}
+
+.ageSection small,
+.guardianFields small {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.ageSection .fieldError {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.guardianFields {
+  display: grid;
+  gap: 11px;
+  padding-top: 13px;
+  border-top: 1px solid var(--color-border);
+}
+
+.guardianFields p {
+  color: var(--color-blue-dark);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.legalAgreement {
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  align-items: start;
+  gap: 10px !important;
+  font-weight: 500 !important;
+  line-height: 1.5;
+}
+
+.legalAgreement input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--color-blue);
+}
+
+.legalAgreement a,
+.legalFooter a {
+  color: var(--color-blue-dark);
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legalFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.78rem;
 }
 
 .form input:focus,

@@ -64,7 +64,12 @@ export function AppShell({
   // Öffentliche Seiten wie der Login benötigen weder Navigation noch App-Rahmen.
   if (
     pathname.startsWith("/login") ||
-    pathname.startsWith("/konto-wiederherstellen")
+    pathname.startsWith("/konto-wiederherstellen") ||
+    pathname.startsWith("/freigabe-ausstehend") ||
+    pathname.startsWith("/elternfreigabe") ||
+    pathname.startsWith("/datenschutz") ||
+    pathname.startsWith("/nutzungsbedingungen") ||
+    pathname.startsWith("/impressum")
   ) {
     return children;
   }
@@ -130,6 +135,11 @@ export function AppShell({
               {t("navigation.logout")}
             </button>
           </form>
+          <nav className={styles.legalLinks} aria-label="Rechtliche Informationen">
+            <Link href="/impressum">Impressum</Link>
+            <Link href="/datenschutz">Datenschutz</Link>
+            <Link href="/nutzungsbedingungen">Nutzung</Link>
+          </nav>
         </div>
       </aside>
 

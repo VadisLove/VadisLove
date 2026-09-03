@@ -1,0 +1,31 @@
+-- Lokale Verträge der bestehenden Anwendung; die echte Freigabe-Migration folgt im Test.
+create role anon;
+create role authenticated;
+create role service_role bypassrls;
+create schema auth;
+create schema private;
+create schema extensions;
+grant usage on schema public,auth,private,extensions to anon,authenticated,service_role;
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+-- PGlite stellt pgcrypto nicht bereit. Nur dessen Kryptografie-Vertrag wird hier ersetzt.
+create function extensions.digest(value text,algorithm text) returns bytea language sql immutable as $$select sha256(convert_to(value,'UTF8'))$$;
+create function extensions.gen_random_bytes(size integer) returns bytea language sql volatile as $$select decode(replace(gen_random_uuid()::text||gen_random_uuid()::text,'-',''),'hex')$$;
+create type public.account_type as enum('athlete','trainer','medical','guardian','organization_staff','unspecified');
+create type public.organization_level as enum('federal','state','club');
+create type public.member_role as enum('athlete','club_trainer','medical','guardian','specialist');
+create type public.request_status as enum('pending','approved','rejected','withdrawn');
+create type public.relationship_type as enum('guardian');
+create type public.notification_type as enum('guardian_activity');
+create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb);
+create table public.profiles(id uuid primary key references auth.users,display_name text,first_name text,email text,account_type public.account_type);
+create table public.account_deletion_requests(user_id uuid,status text);
+create table public.notification_preferences(user_id uuid primary key);
+create table public.organizations(id uuid primary key,level public.organization_level);
+create table public.membership_requests(id uuid default gen_random_uuid(),organization_id uuid,user_id uuid,requested_role public.member_role,note text);
+create table public.relationships(user_one_id uuid,user_two_id uuid,relationship_type public.relationship_type,athlete_user_id uuid,guardian_user_id uuid,active boolean default true,unique(user_one_id,user_two_id,relationship_type));
+create table public.notifications(user_id uuid,actor_user_id uuid,type public.notification_type,title text,message text,link text);
+create function private.account_is_active(target_user_id uuid) returns boolean language sql stable as $$select target_user_id is not null$$;
+create function private.current_account_is_active() returns boolean language sql stable security definer set search_path='' as $$select private.account_is_active(auth.uid())$$;
+grant select on public.profiles,public.notifications to authenticated;
+alter table public.profiles enable row level security;
+create policy profiles_own on public.profiles for select to authenticated using(id=auth.uid());

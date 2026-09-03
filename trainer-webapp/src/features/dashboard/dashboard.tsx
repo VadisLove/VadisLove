@@ -25,6 +25,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useCurrentUser } from "@/components/auth/current-user-context";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./dashboard.module.css";
+import { CarpoolEntry } from "@/features/carpools/carpool-entry";
 
 interface DashboardProps {
   events: CalendarEvent[];
@@ -141,6 +142,7 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
           <div className={styles.nextEventDetails}>
             <h2>{selectedEvent.title}</h2>
             <p><MapPin size={17} /> {selectedEvent.location}</p>
+            {(selectedEvent.type === "training" || selectedEvent.type === "contest") && <CarpoolEntry eventId={selectedEvent.id} />}
             <div>
               <span>{t(`eventTypes.${selectedEvent.type}`)}</span>
               {selectedEvent.region ? <span>{selectedEvent.region}</span> : null}

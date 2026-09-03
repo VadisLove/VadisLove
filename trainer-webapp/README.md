@@ -25,6 +25,23 @@ Danach läuft die Anwendung unter `http://localhost:3000`.
 Der Secret Key oder alte `service_role`-Schlüssel gehört niemals in eine
 `NEXT_PUBLIC_`-Variable und wird für den aktuellen Login nicht benötigt.
 
+## Elternfreigabe und E-Mail
+
+Registrierende Personen ab 13 und unter 18 Jahren erhalten erst nach der
+Bestätigung durch eine erziehungsberechtigte Person Zugriff auf Fachdaten. Für
+den Versand des einmaligen Freigabelinks werden `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`,
+`RESEND_FROM_EMAIL` und die öffentliche `NEXT_PUBLIC_APP_URL` benötigt. Fehlt
+die Konfiguration, bleibt das Konto sicher gesperrt und der Versand kann über
+die Warteseite erneut angestoßen werden.
+
+Token werden ausschließlich dem Versandserver ausgegeben. Das minderjährige
+Konto kann einen erneuten Versand anfordern, erhält aber niemals den Freigabelink.
+
+## Fahrgemeinschaften
+
+Fahrtangebote, Gesuche, Buchungen und Elterninformationen sind direkt am Termin
+verfügbar. Einrichtung, Migrationen und Versandwarteschlange: [Release-Dokumentation](docs/carpools-release.md).
+
 ### Bestehende Datenbank aktualisieren
 
 Wenn das Grundschema bereits eingerichtet ist, müssen spätere Korrekturen aus
@@ -95,7 +112,7 @@ supabase/
 
 ## Noch nicht produktiv angebunden
 
-- E-Mail-Versand
+- E-Mail-Einladungen außerhalb der Elternfreigabe
 - Dateiupload für Trainingspläne
 - Push-Benachrichtigungen
 

@@ -1,0 +1,172 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(20, 140, 242, 0.2), transparent 34%),
+    linear-gradient(145deg, #f7fafc, #eef4f8);
+}
+
+.card {
+  width: min(100%, 620px);
+  padding: clamp(24px, 5vw, 38px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: white;
+  box-shadow: 0 24px 70px rgba(16, 34, 56, 0.12);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand span {
+  color: var(--color-blue-dark);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.brand h1 {
+  color: var(--color-navy);
+  font-family: var(--font-display), sans-serif;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 13px;
+  margin: 26px 0;
+  color: var(--color-blue-dark);
+}
+
+.intro h2,
+.result h2 {
+  color: var(--color-navy);
+  font-size: 1.2rem;
+}
+
+.intro p,
+.result p {
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.formArea {
+  display: grid;
+  gap: 18px;
+}
+
+.formArea > label {
+  display: grid;
+  gap: 8px;
+  color: var(--color-navy);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.formArea input[type="text"] {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.approveForm {
+  display: grid;
+  gap: 15px;
+}
+
+.checkLabel {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  color: #4c5e72;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.checkLabel input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--color-blue);
+}
+
+.checkLabel a {
+  color: var(--color-blue-dark);
+  font-weight: 750;
+  text-decoration: underline;
+}
+
+.approveButton,
+.rejectButton {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: var(--radius-md);
+  font-weight: 780;
+}
+
+.approveButton {
+  color: white;
+  background: var(--color-blue);
+}
+
+.rejectButton {
+  color: var(--color-danger);
+  background: #fff0f1;
+}
+
+.approveButton:disabled,
+.rejectButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.result {
+  display: grid;
+  justify-items: center;
+  padding: 42px 12px 34px;
+  color: var(--color-success);
+  text-align: center;
+}
+
+.result.rejected {
+  color: var(--color-danger);
+}
+
+.error {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  background: #fff0f1;
+  font-size: 0.84rem;
+}
+
+.card footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}

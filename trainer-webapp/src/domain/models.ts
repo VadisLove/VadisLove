@@ -12,6 +12,7 @@ export type RequestStatus = "pending" | "approved" | "rejected" | "withdrawn";
 export type RelationshipType = "friend" | "trainer_athlete" | "guardian";
 export type GroupMemberRole = "owner" | "admin" | "member";
 export type NotificationType =
+  | "carpool_activity"
   | "relationship_request"
   | "relationship_response"
   | "membership_request"

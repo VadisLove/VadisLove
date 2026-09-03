@@ -107,6 +107,21 @@
   width: 100%;
 }
 
+.legalLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 11px;
+  padding: 4px 14px 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.66rem;
+  font-weight: 650;
+}
+
+.legalLinks a:hover {
+  color: white;
+  text-decoration: underline;
+}
+
 .contentColumn {
   width: auto;
   min-width: 0;

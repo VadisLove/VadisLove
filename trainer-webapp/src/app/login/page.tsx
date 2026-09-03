@@ -8,6 +8,7 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { getRegistrationOrganizations } from "@/data/registration-organization-repository";
 import { getSafeRedirectPath } from "@/lib/safe-redirect-path";
 import { RegistrationOrganizationFields } from "./registration-organization-fields";
+import { AgeAndGuardianFields } from "./age-and-guardian-fields";
 import styles from "./page.module.css";
 
 interface LoginPageProps {
@@ -116,6 +117,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               organizations={registrationOrganizations}
             />
 
+            <AgeAndGuardianFields />
+
             <div className={styles.passwordGrid}>
               <label>
                 {t("auth.password")}
@@ -142,6 +145,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p className={styles.roleNotice}>
               {t("auth.roleNotice")}
             </p>
+
+            <label className={styles.legalAgreement}>
+              <input type="checkbox" name="legalAccepted" value="true" required />
+              <span>
+                {t("auth.legalPrefix")} {" "}
+                <Link href="/nutzungsbedingungen" target="_blank">
+                  {t("auth.terms")}
+                </Link>{" "}
+                {t("auth.legalMiddle")} {" "}
+                <Link href="/datenschutz" target="_blank">
+                  {t("auth.privacy")}
+                </Link>{" "}
+                {t("auth.legalSuffix")}
+              </span>
+            </label>
 
             <button type="submit" disabled={!configured}>
               <UserPlus size={18} />
@@ -180,6 +198,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </button>
           </form>
         )}
+
+        <footer className={styles.legalFooter}>
+          <Link href="/impressum">{t("auth.imprint")}</Link>
+          <Link href="/datenschutz">{t("auth.privacy")}</Link>
+          <Link href="/nutzungsbedingungen">{t("auth.terms")}</Link>
+        </footer>
       </section>
     </main>
   );
