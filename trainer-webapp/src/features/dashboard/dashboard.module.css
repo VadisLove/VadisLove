@@ -1,6 +1,6 @@
 .nextEvent {
   display: grid;
-  grid-template-columns: 140px minmax(250px, 1fr) 150px minmax(190px, 240px);
+  grid-template-columns: 140px minmax(250px, 1fr) minmax(190px, 240px);
   min-height: 180px;
   align-items: center;
   gap: 28px;
@@ -71,27 +71,6 @@
 
 .nextEventDetails div span:first-child {
   background: var(--color-blue);
-}
-
-.capacity {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0 10px;
-  padding-left: 24px;
-  border-left: 1px solid rgba(255, 255, 255, 0.19);
-}
-
-.capacity svg {
-  grid-row: 1 / 3;
-  align-self: center;
-}
-
-.capacity strong {
-  font-size: 1.2rem;
-}
-
-.capacity small {
-  color: #62d98c;
 }
 
 .primaryButton {
@@ -682,7 +661,7 @@
 
 @media (max-width: 1260px) {
   .nextEvent {
-    grid-template-columns: 120px minmax(220px, 1fr) 130px;
+    grid-template-columns: 120px minmax(220px, 1fr);
   }
 
   .emptyNextEvent {
@@ -690,7 +669,7 @@
   }
 
   .nextEvent .primaryButton {
-    grid-column: 2 / 4;
+    grid-column: 2;
   }
 
   .emptyNextEvent .primaryButton {
@@ -723,14 +702,23 @@
 @media (max-width: 760px) {
   .nextEvent {
     grid-template-columns: 1fr;
-    gap: 18px;
-    padding: 22px;
+    min-height: 0;
+    gap: 13px;
+    margin-bottom: 14px;
+    padding: 18px;
   }
 
-  .nextEventDetails,
-  .capacity {
+  .nextEventDetails {
     padding: 0;
     border-left: 0;
+  }
+
+  .nextEvent > div:first-child strong {
+    font-size: 2.35rem;
+  }
+
+  .nextEventDetails div {
+    margin-top: 10px;
   }
 
   .nextEvent .primaryButton {
@@ -740,6 +728,19 @@
   .dashboardGrid,
   .lowerGrid {
     grid-template-columns: 1fr;
+  }
+
+  /* Die häufig benötigte Teilnahmeübersicht steht mobil vor dem Zeitplan. */
+  .attendancePanel {
+    order: -1;
+  }
+
+  .agendaItem h3 {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .plansPanel {

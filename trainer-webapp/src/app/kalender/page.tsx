@@ -7,6 +7,7 @@ import { CalendarView } from "@/features/calendar/calendar-view";
 interface CalendarPageProps {
   searchParams: Promise<{
     event?: string | string[];
+    focus?: string | string[];
     neu?: string | string[];
   }>;
 }
@@ -19,6 +20,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const createDialogRequest = typeof params.neu === "string"
     ? params.neu
     : undefined;
+  const initialDetailFocus = params.focus === "attendance";
   const [events, organizationOptions] = await Promise.all([
     getCalendarEvents(),
     getEventOrganizationOptions(),
@@ -30,6 +32,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       organizationOptions={organizationOptions}
       initialSelectedEventId={selectedEventId}
       initialCreateDialogRequest={createDialogRequest}
+      initialDetailFocus={initialDetailFocus}
     />
   );
 }

@@ -106,4 +106,19 @@
     font-size: 0.88rem;
     line-height: 1.45;
   }
+
+  /* Nur arbeitsorientierte Einstiegsseiten dürfen den mobilen Kopf verdichten. */
+  .compactOnMobile {
+    margin-bottom: 12px;
+  }
+
+  .compactOnMobile h1 {
+    font-size: clamp(1.55rem, 7.5vw, 2rem);
+  }
+
+  .compactOnMobile p {
+    margin-top: 5px;
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
 }

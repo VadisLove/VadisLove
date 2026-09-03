@@ -12,6 +12,7 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   showContext?: boolean;
+  compactOnMobile?: boolean;
 }
 
 /**
@@ -24,13 +25,16 @@ export function PageHeader({
   title,
   description,
   showContext = false,
+  compactOnMobile = false,
 }: PageHeaderProps) {
   const currentUser = useCurrentUser();
   const notificationPreview = useNotificationPreview();
   const { t } = useI18n();
 
   return (
-    <header className={styles.header}>
+    <header
+      className={`${styles.header} ${compactOnMobile ? styles.compactOnMobile : ""}`}
+    >
       <div>
         <h1>{title}</h1>
         {description ? <p>{description}</p> : null}

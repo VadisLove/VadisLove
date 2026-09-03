@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   ChevronLeft,
   ChevronRight,
   FilterX,
+  ListFilter,
   MapPin,
   Pencil,
   Plus,
@@ -33,6 +34,7 @@ interface CalendarViewProps {
   organizationOptions: EventOrganizationOption[];
   initialSelectedEventId?: string;
   initialCreateDialogRequest?: string;
+  initialDetailFocus?: boolean;
 }
 
 interface CalendarContextMenu {
@@ -41,7 +43,7 @@ interface CalendarContextMenu {
   y: number;
 }
 
-type CalendarViewMode = "month" | "week" | "day";
+type CalendarViewMode = "agenda" | "month" | "week" | "day";
 type CalendarColorMode = "type" | "organization";
 
 interface DateRange {
@@ -64,6 +66,17 @@ interface EventDraft {
 }
 
 const eventTypes: EventType[] = ["training", "contest", "medical", "meeting"];
+const calendarViewPreferenceKey = "trainer-hub:calendar-view:v1";
+const calendarViewModes = new Set<CalendarViewMode>([
+  "agenda",
+  "month",
+  "week",
+  "day",
+]);
+
+function isCalendarViewMode(value: string | null): value is CalendarViewMode {
+  return Boolean(value && calendarViewModes.has(value as CalendarViewMode));
+}
 const typePalette: Record<EventType, { color: string; background: string; text: string }> = {
   training: { color: "#2563eb", background: "#dbeafe", text: "#075fae" },
   contest: { color: "#7c3aed", background: "#f4effb", text: "#5d3191" },
@@ -252,6 +265,7 @@ export function CalendarView({
   organizationOptions,
   initialSelectedEventId,
   initialCreateDialogRequest,
+  initialDetailFocus = false,
 }: CalendarViewProps) {
   const initialSelectedEvent = initialEvents.find(
     (event) => event.id === initialSelectedEventId,
@@ -295,7 +309,67 @@ export function CalendarView({
   const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
   const [resizeDraft, setResizeDraft] = useState<ResizeDraft | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(
+    Boolean(initialDetailFocus && explicitlySelectedEvent),
+  );
+  const detailCloseButtonRef = useRef<HTMLButtonElement>(null);
   const [pending, startTransition] = useTransition();
+
+  /**
+   * Eine explizite Nutzerwahl hat Vorrang. Ohne gespeicherte Wahl startet der
+   * Kalender nur auf Smartphones in der handlungsnäheren Agenda.
+   */
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 700px)");
+    const updateViewport = () => setIsMobileViewport(mobileQuery.matches);
+    const storedView = window.localStorage.getItem(calendarViewPreferenceKey);
+
+    const preferenceFrame = window.requestAnimationFrame(() => {
+      updateViewport();
+      if (isCalendarViewMode(storedView)) {
+        setViewMode(storedView);
+      } else if (mobileQuery.matches) {
+        setViewMode("agenda");
+      }
+    });
+
+    mobileQuery.addEventListener("change", updateViewport);
+    return () => {
+      window.cancelAnimationFrame(preferenceFrame);
+      mobileQuery.removeEventListener("change", updateViewport);
+    };
+  }, []);
+
+  /**
+   * Das mobile Detail verhält sich wie ein echter Dialog: Hintergrund bleibt
+   * stehen, Escape schließt und der Fokus kehrt zum auslösenden Element zurück.
+   */
+  useEffect(() => {
+    if (!mobileDetailOpen || !isMobileViewport) {
+      return;
+    }
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousBodyOverflow = document.body.style.overflow;
+    const focusTimer = window.setTimeout(() => detailCloseButtonRef.current?.focus(), 0);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileDetailOpen(false);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousBodyOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+      previouslyFocused?.focus();
+    };
+  }, [isMobileViewport, mobileDetailOpen]);
 
   // Öffnet den bestehenden Dialog auch bei wiederholter Nutzung der globalen Schnellaktion.
   useEffect(() => {
@@ -367,7 +441,7 @@ export function CalendarView({
     year: "numeric",
   });
   const calendarTitle =
-    viewMode === "month"
+    viewMode === "month" || viewMode === "agenda"
       ? monthLabel
       : viewMode === "week"
         ? weekLabel
@@ -375,6 +449,11 @@ export function CalendarView({
   const visibleRange =
     viewMode === "month"
       ? { startDate: toIsoDate(days[0]), endDate: toIsoDate(days[days.length - 1]) }
+      : viewMode === "agenda"
+        ? {
+            startDate: toIsoDate(new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1)),
+            endDate: toIsoDate(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0)),
+          }
       : viewMode === "week"
         ? { startDate: toIsoDate(weekDays[0]), endDate: toIsoDate(weekDays[6]) }
         : { startDate: dayDate, endDate: dayDate };
@@ -419,7 +498,7 @@ export function CalendarView({
 
   function changePeriod(offset: number) {
     setMonthCursor((current) => {
-      if (viewMode === "month") {
+      if (viewMode === "month" || viewMode === "agenda") {
         return new Date(current.getFullYear(), current.getMonth() + offset, 1);
       }
 
@@ -427,6 +506,22 @@ export function CalendarView({
       next.setDate(current.getDate() + offset * (viewMode === "week" ? 7 : 1));
       return next;
     });
+  }
+
+  /** Speichert ausschließlich bekannte Ansichten und ignoriert manipulierte Werte. */
+  function handleViewModeChange(nextView: CalendarViewMode) {
+    if (!calendarViewModes.has(nextView)) {
+      return;
+    }
+
+    setViewMode(nextView);
+    window.localStorage.setItem(calendarViewPreferenceKey, nextView);
+  }
+
+  /** Jede Terminauswahl öffnet auf kleinen Viewports sofort die Detailfläche. */
+  function handleSelectEvent(calendarEvent: CalendarEvent) {
+    setSelectedEvent(calendarEvent);
+    setMobileDetailOpen(true);
   }
 
   function openCreateDialog(date = toIsoDate(new Date()), endDate = date) {
@@ -744,7 +839,7 @@ export function CalendarView({
           gridColumn: `${segment.startColumn} / ${segment.endColumn + 1}`,
           gridRow: segment.row + 2,
         }}
-        onClick={() => setSelectedEvent(segment.event)}
+        onClick={() => handleSelectEvent(segment.event)}
         onMouseDown={(event) => event.stopPropagation()}
         onDragStart={(event) => {
           if (!segment.event.canManage) {
@@ -890,7 +985,7 @@ export function CalendarView({
               ...getEventColorClasses(calendarEvent),
             ].filter(Boolean).join(" ")}
             style={getEventColorStyle(calendarEvent)}
-            onClick={() => setSelectedEvent(calendarEvent)}
+            onClick={() => handleSelectEvent(calendarEvent)}
             onMouseDown={(event) => event.stopPropagation()}
             onDragStart={(event) => {
               if (!calendarEvent.canManage) {
@@ -916,6 +1011,68 @@ export function CalendarView({
     );
   }
 
+  function renderAgendaView() {
+    const groupedEvents = new Map<string, CalendarEvent[]>();
+    const sortedEvents = [...visibleEvents].sort((left, right) =>
+      `${left.date}T${left.startTime}`.localeCompare(`${right.date}T${right.startTime}`),
+    );
+
+    sortedEvents.forEach((calendarEvent) => {
+      // Mehrtägige Termine, die vor dem Monat beginnen, erscheinen am ersten sichtbaren Tag.
+      const groupDate = calendarEvent.date < visibleRange.startDate
+        ? visibleRange.startDate
+        : calendarEvent.date;
+      const group = groupedEvents.get(groupDate) || [];
+      group.push(calendarEvent);
+      groupedEvents.set(groupDate, group);
+    });
+
+    if (groupedEvents.size === 0) {
+      return <p className={styles.emptyAgenda}>{t("calendar.noEventsForPeriod")}</p>;
+    }
+
+    return (
+      <div className={styles.agendaView}>
+        {Array.from(groupedEvents.entries()).map(([isoDate, calendarEvents]) => (
+          <section key={isoDate} className={styles.agendaGroup}>
+            <h3>
+              {fromIsoDate(isoDate).toLocaleDateString(getIntlLocale(locale), {
+                weekday: "long",
+                day: "2-digit",
+                month: "long",
+              })}
+            </h3>
+            <div>
+              {calendarEvents.map((calendarEvent) => (
+                <button
+                  key={calendarEvent.id}
+                  type="button"
+                  className={`${styles.agendaEvent} ${getEventColorClasses(calendarEvent).join(" ")}`}
+                  style={
+                    colorMode === "type"
+                      ? getTypeColorStyle(calendarEvent.type)
+                      : getEventColorStyle(calendarEvent)
+                  }
+                  onClick={() => handleSelectEvent(calendarEvent)}
+                >
+                  <span className={styles.agendaTime}>
+                    <strong>{calendarEvent.startTime}</strong>
+                    <small>{calendarEvent.endTime}</small>
+                  </span>
+                  <span className={styles.agendaCopy}>
+                    <strong>{calendarEvent.title}</strong>
+                    <small><MapPin size={13} aria-hidden="true" /> {calendarEvent.location}</small>
+                  </span>
+                  <ChevronRight size={18} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
   function handleDeleteEvent() {
     if (
       !selectedEvent?.canManage ||
@@ -936,6 +1093,7 @@ export function CalendarView({
         current.filter((event) => event.id !== selectedEvent.id),
       );
       setSelectedEvent(null);
+      setMobileDetailOpen(false);
     });
   }
 
@@ -975,62 +1133,74 @@ export function CalendarView({
       />
 
       <section className={styles.toolbar}>
-        <label>
-          {t("calendar.state")}
-          <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
-            <option value="all">{t("calendar.allStates")}</option>
-            {availableStates.map((state) => (
-              <option key={state} value={state}>{state}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t("calendar.eventType")}
-          <select
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value as EventType | "all")}
-          >
-            <option value="all">{t("calendar.allTypes")}</option>
-            {eventTypes.map((value) => (
-              <option key={value} value={value}>{t(`eventTypes.${value}`)}</option>
-            ))}
-          </select>
-        </label>
-        <label>
+        <label className={styles.viewField}>
           {t("calendar.view")}
           <select
             value={viewMode}
-            onChange={(event) =>
-              setViewMode(event.target.value as CalendarViewMode)
-            }
+            onChange={(event) => handleViewModeChange(event.target.value as CalendarViewMode)}
           >
+            <option value="agenda">{t("calendar.agendaView")}</option>
             <option value="month">{t("calendar.monthView")}</option>
             <option value="week">{t("calendar.weekView")}</option>
             <option value="day">{t("calendar.dayView")}</option>
           </select>
         </label>
-        <label>
-          {t("calendar.colorMode")}
-          <select
-            value={colorMode}
-            onChange={(event) =>
-              setColorMode(event.target.value as CalendarColorMode)
-            }
-          >
-            <option value="type">{t("calendar.colorByType")}</option>
-            <option value="organization">{t("calendar.colorByOrganization")}</option>
-          </select>
-        </label>
         <button
           type="button"
-          className={styles.resetButton}
-          onClick={() => {
-            setStateFilter("all");
-            setTypeFilter("all");
-          }}
+          className={styles.mobileFilterToggle}
+          aria-expanded={mobileFiltersOpen}
+          aria-controls="calendar-advanced-filters"
+          onClick={() => setMobileFiltersOpen((current) => !current)}
         >
-          <FilterX size={17} /> {t("calendar.resetFilters")}
+          <ListFilter size={17} aria-hidden="true" />
+          {t("calendar.filters")}
         </button>
+        <div
+          id="calendar-advanced-filters"
+          className={`${styles.advancedFilters} ${mobileFiltersOpen ? styles.advancedFiltersOpen : ""}`}
+        >
+          <label>
+            {t("calendar.state")}
+            <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
+              <option value="all">{t("calendar.allStates")}</option>
+              {availableStates.map((state) => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t("calendar.eventType")}
+            <select
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value as EventType | "all")}
+            >
+              <option value="all">{t("calendar.allTypes")}</option>
+              {eventTypes.map((value) => (
+                <option key={value} value={value}>{t(`eventTypes.${value}`)}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t("calendar.colorMode")}
+            <select
+              value={colorMode}
+              onChange={(event) => setColorMode(event.target.value as CalendarColorMode)}
+            >
+              <option value="type">{t("calendar.colorByType")}</option>
+              <option value="organization">{t("calendar.colorByOrganization")}</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className={styles.resetButton}
+            onClick={() => {
+              setStateFilter("all");
+              setTypeFilter("all");
+            }}
+          >
+            <FilterX size={17} aria-hidden="true" /> {t("calendar.resetFilters")}
+          </button>
+        </div>
         <button
           type="button"
           className={styles.createButton}
@@ -1090,14 +1260,12 @@ export function CalendarView({
             <span>{t("calendar.filteredCount", { count: visibleEvents.length })}</span>
           </div>
 
-          {viewMode === "day" ? null : (
+          {viewMode === "month" || viewMode === "week" ? (
             <div className={styles.weekdays}>
               {dictionary.calendar.weekdays.map((day) => <strong key={day}>{day}</strong>)}
             </div>
-          )}
-          {viewMode === "day" ? (
-            renderDayView()
-          ) : (
+          ) : null}
+          {viewMode === "agenda" ? renderAgendaView() : viewMode === "day" ? renderDayView() : (
             <div className={styles.monthGrid}>
               {(viewMode === "month" ? weeks : [weekDays]).map((week) =>
                 renderWeekRow(week, viewMode === "week"),
@@ -1113,8 +1281,34 @@ export function CalendarView({
           </button>
         </section>
 
-        <aside className={styles.detailPanel}>
-          <h2>{t("calendar.details")}</h2>
+        {mobileDetailOpen ? (
+          <button
+            type="button"
+            className={styles.detailBackdrop}
+            aria-label={t("calendar.closeDetails")}
+            onClick={() => setMobileDetailOpen(false)}
+          />
+        ) : null}
+        <aside
+          className={`${styles.detailPanel} ${mobileDetailOpen ? styles.detailPanelOpen : ""}`}
+          role={isMobileViewport && mobileDetailOpen ? "dialog" : undefined}
+          aria-modal={isMobileViewport && mobileDetailOpen ? "true" : undefined}
+          aria-labelledby="calendar-detail-title"
+          aria-hidden={isMobileViewport && !mobileDetailOpen ? true : undefined}
+          inert={isMobileViewport && !mobileDetailOpen ? true : undefined}
+        >
+          <div className={styles.detailHeader}>
+            <h2 id="calendar-detail-title">{t("calendar.details")}</h2>
+            <button
+              ref={detailCloseButtonRef}
+              type="button"
+              className={styles.detailCloseButton}
+              aria-label={t("calendar.closeDetails")}
+              onClick={() => setMobileDetailOpen(false)}
+            >
+              <X size={21} aria-hidden="true" />
+            </button>
+          </div>
           {selectedEvent ? (
             <>
               <span className={`${styles.typeBadge} ${styles[selectedEvent.type]}`}>
@@ -1188,7 +1382,6 @@ export function CalendarView({
                   <p>{t("calendar.noParticipantsVisible")}</p>
                 )}
               </div>
-              <button type="button" className={styles.detailAction}>{t("calendar.manageParticipants")}</button>
               {selectedEvent.canManage ? (
                 <div className={styles.ownerActions}>
                   <button type="button" onClick={openEditDialog}>
@@ -1259,6 +1452,7 @@ export function CalendarView({
               key={editingEvent?.id || `new-event-${createDate}-${createEndDate}`}
               onSubmit={handleSaveEvent}
             >
+              <div className={styles.dialogFormBody}>
               {editingEvent ? (
                 <input type="hidden" name="id" value={editingEvent.id} />
               ) : null}
@@ -1396,6 +1590,7 @@ export function CalendarView({
               </div>
               <label>{t("calendar.descriptionField")}<textarea name="description" rows={3} defaultValue={editingEvent?.description || ""} /></label>
               {feedback ? <p className={styles.formFeedback}>{feedback}</p> : null}
+              </div>
               <div className={styles.dialogActions}>
                 <button
                   type="button"

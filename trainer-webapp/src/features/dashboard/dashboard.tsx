@@ -122,6 +122,7 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
         title={t("dashboard.greeting", { name: currentUser?.displayName || t("common.appName") })}
         description={t("dashboard.description")}
         showContext
+        compactOnMobile
       />
 
       {selectedEvent ? (
@@ -145,16 +146,11 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
               {selectedEvent.region ? <span>{selectedEvent.region}</span> : null}
             </div>
           </div>
-          <div className={styles.capacity}>
-            <CalendarDays size={23} />
-            <strong>{formatShortDate(selectedEvent.date, locale)}</strong>
-            <small>{selectedEvent.startTime} – {selectedEvent.endTime}</small>
-          </div>
           <Link
-            href={`/kalender?event=${encodeURIComponent(selectedEvent.id)}`}
+            href={`/kalender?event=${encodeURIComponent(selectedEvent.id)}&focus=attendance`}
             className={styles.primaryButton}
           >
-            {t("dashboard.openCalendar")}
+            {t("dashboard.viewParticipants")}
             <ArrowRight size={18} />
           </Link>
         </section>
@@ -213,29 +209,11 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
           </div>
         </section>
 
-        <section className={styles.panel}>
+        <section className={`${styles.panel} ${styles.attendancePanel}`}>
           <div className={styles.panelHeader}>
             <h2><Users size={19} /> {t("dashboard.participation")}</h2>
             {selectedEvent ? <span title={selectedEvent.title}>{selectedEvent.title}</span> : null}
           </div>
-          <form className={styles.inviteForm} onSubmit={handleInvite}>
-            <label>
-              <Mail size={16} />
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder={t("dashboard.invitePlaceholder")}
-                aria-label={t("dashboard.inviteAria")}
-                disabled={!selectedEvent || invitePending}
-                required
-              />
-            </label>
-            <button type="submit" disabled={!selectedEvent || invitePending}>
-              {invitePending ? t("dashboard.inviting") : t("dashboard.invite")}
-            </button>
-          </form>
-          {feedback ? <p className={styles.feedback}>{feedback}</p> : null}
           <div className={styles.tabs}>
             {(["all", "confirmed", "open", "declined"] as const).map((status) => {
               const count = status === "all"
@@ -277,6 +255,24 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
               </div>
             ) : null}
           </div>
+          <form className={styles.inviteForm} onSubmit={handleInvite}>
+            <label>
+              <Mail size={16} />
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder={t("dashboard.invitePlaceholder")}
+                aria-label={t("dashboard.inviteAria")}
+                disabled={!selectedEvent || invitePending}
+                required
+              />
+            </label>
+            <button type="submit" disabled={!selectedEvent || invitePending}>
+              {invitePending ? t("dashboard.inviting") : t("dashboard.invite")}
+            </button>
+          </form>
+          {feedback ? <p className={styles.feedback}>{feedback}</p> : null}
         </section>
 
         <section className={`${styles.panel} ${styles.plansPanel}`}>
