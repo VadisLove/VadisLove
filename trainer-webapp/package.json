@@ -2,6 +2,9 @@
   "name": "trainer-webapp",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,6 +12,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit --incremental false",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:release:build": "node scripts/check-release-build.mjs",
+    "test:release:native": "node scripts/check-release-native.mjs",
     "test:profile": "node --experimental-strip-types --test tests/profile-*.test.mjs",
     "test:calendar": "node --experimental-strip-types --test tests/calendar-date-time.test.mjs",
     "test:youtube": "node --experimental-strip-types --test tests/youtube-video.test.mjs"

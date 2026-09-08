@@ -1,5 +1,20 @@
 # Fahrgemeinschaften: Betrieb und Release
 
+## Aktueller Stand am 08.09.2026
+
+Der Node-24-Preflight wurde in einem frischen lokalen Worktree erneuert:
+104 automatisierte Tests sowie 27 zusätzliche native PostgreSQL-Prüfungen,
+Typprüfung, ESLint, Produktionsbuild und HTTP-/Browser-Artefaktprüfungen bestehen.
+**Release 1 ist weiterhin nicht produktiv aktiviert.** Konfiguration,
+Mailzustellung und Betreiberangaben sind noch offen.
+
+Maßgeblicher Nachweis und fachliche Prüfliste:
+[Release-1-Preflight vom 08.09.2026](release-1-preflight-2026-09-08.md).
+Die nachfolgenden Ergebnisse vom 03.09.2026 bleiben historische Nachweise.
+Arbeitsname: **Trainer Hub**. Öffentliche Adresse ausschließlich
+`https://trainer-webapp-ruby.vercel.app`; kein neues Vercel-Projekt und keine
+zusätzliche dauerhaft verwendete Vorschauadresse.
+
 ## Aufbau
 
 - `src/features/carpools/`: wiederverwendbarer Bereich für Kalender, eigene
@@ -34,13 +49,13 @@ Keine echten Werte im Repository speichern. Der Endpunkt
 `GET /api/carpools/mail` akzeptiert nur `Authorization: Bearer <CARPOOL_CRON_SECRET>`.
 Er ist gezielt vom Login-Proxy ausgenommen und prüft sein eigenes Geheimnis.
 
-Die zweite Migration verwendet die im verknüpften Supabase-Projekt bereits
+Die dritte Release-Migration (Scheduler) verwendet die im verknüpften Supabase-Projekt bereits
 installierten Erweiterungen `pg_cron`, `pg_net` und Vault. In einer anderen
 Umgebung müssen diese vor der Scheduler-Migration aktiviert sein.
 
 Vault-Einträge vor der Aktivierung konfigurieren:
 
-- `carpool_worker_url`: `https://<Produktionsdomain>/api/carpools/mail`
+- `carpool_worker_url`: `https://trainer-webapp-ruby.vercel.app/api/carpools/mail`
 - `carpool_cron_secret`: derselbe Wert wie `CARPOOL_CRON_SECRET` in Vercel
 
 Ein Cron-Lauf pro Minute ruft den Worker auf. Ohne Vault-Einträge bleibt der
@@ -65,10 +80,13 @@ liegen hinter dem geschützten Link.
 Im Ordner `trainer-webapp`:
 
 ```sh
+nvm use
+npm ci
 npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run test:release:build
 ```
 
 Die Datenbanktests nutzen eine isolierte PostgreSQL-Instanz über PGlite mit

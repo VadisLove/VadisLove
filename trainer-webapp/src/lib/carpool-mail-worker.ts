@@ -1,3 +1,5 @@
+// Ein versehentlicher Client-Import muss bereits beim Build scheitern.
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import {
