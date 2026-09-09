@@ -162,23 +162,62 @@ Es wurde kein neues Projekt verknüpft oder erzeugt.
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | In Vercel Production vorhanden |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | In Vercel Production vorhanden |
-| `NEXT_PUBLIC_APP_URL` | Fehlt; freigegebener Wert ist `https://trainer-webapp-ruby.vercel.app` |
-| `RESEND_API_KEY` | Fehlt in Vercel; lokal kein Versand-Key verfügbar |
-| `RESEND_FROM_EMAIL` | Fehlt; kein verifizierter Absender nachgewiesen |
-| `SUPABASE_SERVICE_ROLE_KEY` | Fehlt; der verfügbare Connector liefert nur öffentliche Schlüssel |
-| `CARPOOL_CRON_SECRET` | Fehlt; vor Freigabe neu generieren und sicher konfigurieren |
-| Vault `carpool_worker_url` | Fehlt; Sollwert `https://trainer-webapp-ruby.vercel.app/api/carpools/mail` |
-| Vault `carpool_cron_secret` | Fehlt; muss identisch zum Vercel-Wert sein |
-| Vault-Schreibmöglichkeit | `vault.create_secret(text,text,text,uuid)` vorhanden und für die verbundene Rolle ausführbar; noch keine Gleichheit realer Werte prüfbar |
-| Supabase-Erweiterungen | `supabase_vault 0.3.1`, `pg_cron 1.6.4`, `pg_net 0.20.3` vorhanden |
+| `NEXT_PUBLIC_APP_URL` | In Vercel Production vorhanden und exakt `https://trainer-webapp-ruby.vercel.app` |
+| `RESEND_API_KEY` | In Vercel Production als nicht auslesbares Secret vorhanden; am 09.09.2026 mit dem erfolgreich geprüften Resend-Key aktualisiert |
+| `RESEND_FROM_EMAIL` | In Vercel Production vorhanden; `onboarding@resend.dev` ist für den bestätigten Testempfänger zulässig, aber kein allgemeiner Produktionsabsender |
+| `SUPABASE_SERVICE_ROLE_KEY` | In Vercel Production als nicht auslesbares Secret vorhanden; Quellprüfung bestätigt ausschließlich serverseitige Verwendung hinter `server-only` |
+| `CARPOOL_CRON_SECRET` | In Vercel Production als nicht auslesbares Secret vorhanden; am 09.09.2026 aus dem sicher verglichenen Vault-Referenzwert aktualisiert |
+| Vault `carpool_worker_url` | Ein Eintrag vorhanden; entschlüsselter Vergleich bestätigt exakt `https://trainer-webapp-ruby.vercel.app/api/carpools/mail` |
+| Vault `carpool_cron_secret` | Ein Eintrag vorhanden; SHA-256-Vergleich gegen den sicher bereitgestellten Referenzwert erfolgreich, anschließend derselbe Wert ohne Ausgabe nach Vercel übertragen |
+| Vault-Schreibmöglichkeit | Vault-Abfrage und entschlüsselte Vergleiche für die verbundene Rolle erfolgreich; keine geheimen Werte ausgegeben oder gespeichert |
+| Supabase-Erweiterungen | Vault, `pg_cron` und `pg_net` am 09.09.2026 weiterhin verfügbar |
 | Testempfänger | Nutzer hat am 08.09.2026 ausdrücklich einen Empfänger für je eine Elternfreigabe- und Fahrten-Testmail freigegeben; Adresse bleibt im privaten Auftrag |
-| Tatsächliche Mailzustellung | **Nicht ausgeführt**, weil Key und verifizierter Absender fehlen; keine echte E-Mail gesendet |
+| Tatsächliche Mailzustellung | Zwei ausdrücklich markierte synthetische Testmails am 09.09.2026 gesendet; beide von Resend angenommen, mit Status `delivered` gemeldet und vom Nutzer im Spamordner mit korrekten Verweisen bestätigt |
 | Rechtstexte | Betreiber-/Anschrift-/Kontaktplatzhalter vorhanden; keine Angaben erfunden, Testempfänger nicht als Betreiber/Kontakt übernommen |
 | Fachmigrationen | Alle drei neuen Migrationen fehlen noch in der Produktionshistorie; unverändert gelassen |
 
-Die funktionierende Vault-API belegt, dass derselbe Cron-Wert technisch abgelegt
-werden kann. Ohne reale Konfiguration und Versandtest ist damit weder
-Wertgleichheit noch funktionierender Mailbetrieb behauptet.
+Geprüfte Vercel-Production-Namen am 09.09.2026: `NEXT_PUBLIC_APP_URL`,
+`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` und
+`CARPOOL_CRON_SECRET`. Zusätzlich vorhanden bleiben die beiden öffentlichen
+Supabase-Variablen. Kein als geheim eingestufter Name beginnt mit
+`NEXT_PUBLIC_`; Quell- und Konfigurationsprüfung ergaben keine Übergabe der
+Server-Schlüssel an Clientcode. Vercels Secret-Werte sind absichtlich nicht
+auslesbar. Für den Cron-Nachweis wurde deshalb der sicher bereitgestellte
+Vault-Referenzwert kryptografisch verglichen und anschließend ohne Klartextausgabe
+als Vercel-Production-Secret gesetzt.
+
+### Resend-Versandnachweis vom 09.09.2026
+
+Vor dem Versand wurde bestätigt, dass der Testempfänger der E-Mail-Adresse des
+Resend-Kontos entspricht. Damit ist `onboarding@resend.dev` für diesen
+eingeschränkten Test zulässig. Ein zunächst falsch im lokalen Schlüsselbund
+hinterlegter Wert führte zu zwei abgewiesenen HTTP-401-Anfragen; Resend erzeugte
+dabei keine Nachrichten. Nach Korrektur wurde der gültige Schlüssel ohne Ausgabe
+nach Vercel übertragen und genau zwei synthetische Nachrichten erzeugt:
+
+| Testnachricht | Resend-Nachrichten-ID | Providerzeitpunkt | Statusprüfung |
+| --- | --- | --- | --- |
+| `[TEST] Trainer Hub – synthetische Elternfreigabe` | `a3b0f423-611a-4eff-a264-402893ba3ca5` | 09.09.2026, 08:25:05 UTC / 10:25:05 Berlin | `delivered`, zuletzt geprüft um 08:27:34 UTC |
+| `[TEST] Trainer Hub – synthetische Fahrgemeinschaft` | `340caabd-81a7-4870-9e87-4d22d02aeb74` | 09.09.2026, 08:25:06 UTC / 10:25:06 Berlin | `delivered`, zuletzt geprüft um 08:27:34 UTC |
+
+Beide Nachrichten verwenden ausschließlich kontrollierte Testnamen und
+tokenlose Testlinks. Es wurde keine Registrierung erzeugt, keine Fahrt angelegt
+und kein produktiver Datensatz verwendet. Der Nutzer bestätigte am 09.09.2026
+um 08:32 UTC / 10:32 Berlin den Empfang beider Nachrichten im Spamordner sowie
+die korrekten Verweise. Die technische Empfangsprüfung ist damit abgeschlossen;
+die Spam-Einstufung bleibt ein Befund für die spätere Produktionsfreigabe.
+
+Bekannte Grenzen: Resends Status `delivered` belegt die Annahme durch den
+Empfangsserver; der Nutzer hat die sichtbare Zustellung in diesem Prüfkontext
+zusätzlich bestätigt. Beide Nachrichten landeten jedoch im Spamordner, sodass
+dieser Test keine reguläre Posteingangszustellung oder allgemeine Zustellbarkeit
+belegt.
+Der Direktversand prüft Resend-Zugang, Absender und Empfänger, aber noch nicht
+den produktiven Mailworker, die Datenbankwarteschlange, den Scheduler oder
+`pg_net`. `onboarding@resend.dev` ist außerhalb des bestätigten Kontoinhabers
+kein freigegebener Produktionsabsender. Migrationen, Deployment und Push wurden
+nicht ausgeführt; die fehlenden Betreiber-, Anschrift- und Kontaktdaten blockieren
+die Rechtstexte weiterhin.
 
 ### Was auf der einzigen maßgeblichen Adresse sichtbar ist
 
