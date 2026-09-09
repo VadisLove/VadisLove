@@ -76,7 +76,7 @@ bestätigte Planungsgrundlage übernommen; spätere Produktpakete wurden nicht g
 | Technisch lokal geprüft | Saubere Lockfile-Installation, Typprüfung, ESLint, 104/104 Tests, Produktionsbuild, HTTP-Prüfungen und `git diff --check` erfolgreich. |
 | Auf isolierter Datenbank geprüft | 16/16 native Fahrgemeinschaftstests; 5/5 Migrations-/Scheduler-/Integrationsprüfungen auf der Schemakopie; danach 6/6 Registrierungstests auf derselben Kopie. |
 | Gehostetes Staging geprüft | **Nicht bestätigt.** Keine neue gehostete App/Preview und keine neue Supabase-Instanz angelegt. |
-| Auf bestehender Produktions-URL bestätigt | Deployment `dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS` ist `READY`; der Alias zeigt darauf. Öffentliche Seiten antworten mit HTTP 200, geschützte Seiten mit 307 zum Login und der Mailworker ohne Nachweis mit 401. Der Supabase-Cron erreicht den Worker mit HTTP 200. |
+| Auf bestehender Produktions-URL bestätigt | Deployment `dpl_3oo6DEn1KbhiAsCi2Kmq2qjq9ige` ist `READY`; der Alias zeigt darauf. Öffentliche Seiten antworten mit HTTP 200, geschützte Seiten mit 307 zum Login und der Mailworker ohne Nachweis mit 401. Der Supabase-Cron erreicht den Worker mit HTTP 200. |
 | Noch durch den Nutzer bereitzustellen | Betreiber/Rechtsform, vollständige Anschrift, Kontakt und anwendbare Rechtstextangaben; anschließend fachliche Praxisabnahme mit Testkonten. |
 | Kontrollierter Produktionsbetrieb | Technisch aktiviert für den vom Nutzer bestätigten kleinen Testpersonenkreis. Rechtstexte, allgemeiner Produktionsabsender, reguläre Posteingangszustellung und vollständige fachliche Praxisabnahme bleiben offen. |
 
@@ -231,8 +231,9 @@ Rollout und Read-only-Prüfung am 09.09.2026 um **08:48–08:52 UTC /
 - `/kalender`, `/fahrgemeinschaften`, `/einstellungen`: HTTP 307 zum Login.
 - `/elternfreigabe`, `/impressum`, `/datenschutz` und `/nutzungsbedingungen`:
   HTTP 200; `/api/carpools/mail` ohne Cron-Nachweis: HTTP 401.
-- Vercel löst `trainer-webapp-ruby.vercel.app` zu
-  **`dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`**, Status **READY**, Target
+- Vercel löst `trainer-webapp-ruby.vercel.app` nach der Bezeichnungsänderung
+  „Treffpunkt“ → „Zielort“ zu **`dpl_3oo6DEn1KbhiAsCi2Kmq2qjq9ige`**,
+  Status **READY**, Target
   **production** auf.
 - Der frische Sicherungstag
   **`production/stable-before-release-1-2026-09-09`** zeigt lokal und auf
@@ -340,12 +341,12 @@ Version/Deployment und Ergebnis separat festhalten; derzeit **alles noch offen**
 ## Rollback und Abschlussgrenze
 
 Aktueller Quell-Rollback: frischer Tag
-**`production/stable-before-release-1-2026-09-09`** →
-`561821018585d491767f2c344685e93b648920e3`.
+**`production/stable-before-destination-label-2026-09-09`** →
+`d737654db1bc900ccf45f3986cef53ba4675370c`.
 Direktes Vercel-Rollbackziel für den vorherigen Stand:
-**`dpl_DW277V4vpV6FW3HrgayG4beoEZM2`**.
+**`dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`**.
 Der Tag wurde lokal und auf `origin` bestätigt. Das aktuelle produktive Deployment
-ist `dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`; vor einem späteren Deployment ist dieser
+ist `dpl_3oo6DEn1KbhiAsCi2Kmq2qjq9ige`; vor einem späteren Deployment ist dieser
 dann stabile Stand erneut zu sichern.
 
 Ein Code-Rollback entfernt keine bereits erzeugten Registrierungs-/Fahrtdaten.

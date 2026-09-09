@@ -6,7 +6,7 @@ Der Node-24-Preflight wurde im Release-Worktree erneut ausgeführt:
 104 automatisierte Tests sowie 27 zusätzliche native PostgreSQL-Prüfungen,
 Typprüfung, ESLint, Produktionsbuild und HTTP-/Browser-Artefaktprüfungen bestehen.
 **Release 1 ist im bestehenden Produktionsprojekt für den kontrollierten
-Testpersonenkreis aktiviert.** Deployment `dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`
+Testpersonenkreis aktiviert.** Deployment `dpl_3oo6DEn1KbhiAsCi2Kmq2qjq9ige`
 ist `READY`; `https://trainer-webapp-ruby.vercel.app` zeigt darauf.
 
 Maßgeblicher Nachweis und fachliche Prüfliste:
@@ -27,8 +27,8 @@ Nachrichten landeten im Spamordner. Es wurde keine echte Registrierung und keine
 Fahrt erzeugt. Betreiber-, Anschrift- und Kontaktdaten, vollständige Rechtstexte,
 ein allgemeiner verifizierter Absender sowie die fachliche Praxisabnahme bleiben
 offen. Rollbackpunkte sind der Git-Tag
-`production/stable-before-release-1-2026-09-09` und das vorherige Vercel-Deployment
-`dpl_DW277V4vpV6FW3HrgayG4beoEZM2`.
+`production/stable-before-destination-label-2026-09-09` und das vorherige
+Vercel-Deployment `dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`.
 
 ## Aufbau
 
