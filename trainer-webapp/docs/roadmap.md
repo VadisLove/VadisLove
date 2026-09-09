@@ -1,6 +1,6 @@
 # Trainer Hub: Roadmap
 
-Stand: 8. September 2026. Fahrgemeinschaften bleiben der erste Release. Die am
+Stand: 9. September 2026. Fahrgemeinschaften bleiben der erste Release. Die am
 8. September bestätigten Entscheidungen aus dem Roadmap-Review sind eingearbeitet.
 Die folgenden Pakete sind nach Abhängigkeiten und Produktnutzen priorisiert,
 besitzen aber noch keine verbindlichen Kalendertermine. Vor jeder Umsetzung
@@ -29,24 +29,24 @@ konkretisiert.
 ## Aktueller Arbeitsschritt A: verlässliche Basis und Release 1
 
 Ziel ist, Elternfreigabe und Fahrgemeinschaften kontrolliert produktiv zu
-aktivieren. Der fachliche Umfang, ein isoliert geprüfter Release-Stand und ein
-Rollback-Ausgangspunkt sind dokumentiert. Der produktive Start ist noch nicht
-erfolgt und wird erst nach den folgenden Voraussetzungen ausgeführt.
+betreiben. Der fachliche Umfang, der geprüfte Release-Stand und die Rollbackpunkte
+sind dokumentiert. Der technische Produktionsstart für den kleinen bestätigten
+Testpersonenkreis ist am 09.09.2026 erfolgt.
 
 | Voraussetzung | Stand | Nächste Aktion |
 | --- | --- | --- |
 | Umfang und Rollen für Release 1 | Entschieden | Bei der Abnahme gegen die Festlegungen am Ende dieses Dokuments prüfen. |
 | Betreiber- und Kontaktdaten für Rechtstexte | Offen | Betreiber, Rechtsform, vollständige Anschrift und Kontakt festlegen; Texte vor Veröffentlichung prüfen lassen. |
-| Produktadresse und Mail-Absender | Adresse bestätigt, Absender offen | Arbeitsname „Trainer Hub“ und `https://trainer-webapp-ruby.vercel.app` beibehalten; verifizierten Resend-Absender bereitstellen. |
-| Produktionsgeheimnisse | Offen | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` und ein neues `CARPOOL_CRON_SECRET` in Vercel einrichten; denselben Cron-Wert in Supabase Vault hinterlegen. |
-| Echter Versandtest | Empfänger freigegeben, Zustellung offen | Testempfänger im Auftrag vom 08.09.2026 freigegeben; Elternfreigabe und Fahrtenmail nach Einrichtung des Mailwegs prüfen. |
-| Aktueller Release-Nachweis | Lokal und auf isolierter Datenbank erneuert | Node-24-Prüfungen und Grenzen im [aktuellen Preflight-Bericht](release-1-preflight-2026-09-08.md); vor produktiver Aktivierung erneut am endgültigen Artefakt prüfen. |
-| Produktive Datenbank und Anwendung | Nicht aktiviert | Erst nach erfolgreichem Mailtest die drei Migrationen in dokumentierter Reihenfolge anwenden, Release deployen und Kernabläufe sowie Domains prüfen. |
+| Produktadresse und Mail-Absender | Adresse bestätigt; Testabsender eingeschränkt | `https://trainer-webapp-ruby.vercel.app` beibehalten; allgemeinen verifizierten Resend-Absender vor breiter Freigabe bereitstellen. |
+| Produktionsgeheimnisse | Erledigt und geprüft | Werte weiter ausschließlich in Vercel/Vault verwalten und bei Rotation sicher synchronisieren. |
+| Echter Versandtest | Bestätigt, mit Spam-Befund | Zwei Testmails `delivered`, Empfang und Links bestätigt; Zustellbarkeit mit allgemeinem Produktionsabsender erneut prüfen. |
+| Aktueller Release-Nachweis | Lokal, isoliert und technisch produktiv bestätigt | Ergebnisse und Grenzen im [aktuellen Preflight-Bericht](release-1-preflight-2026-09-08.md); fachliche Praxisabnahme nachführen. |
+| Produktive Datenbank und Anwendung | Für kontrollierten Testpersonenkreis aktiviert | Release stabil beobachten, fachliche Kernabläufe mit Testkonten abnehmen und Befunde dokumentieren. |
 
-Der aktuelle technische Schritt ist deshalb ein Preflight der
-Konfiguration und des isolierten Release-Artefakts. Produktive Migrationen sind
-nicht der Startpunkt, weil die Minderjährigenregistrierung ohne funktionierenden
-Mailweg gesperrte Konten erzeugen könnte. Details und Rollback:
+Der technische Produktionsschritt ist abgeschlossen. Die nächsten Arbeiten in
+diesem Roadmap-Schritt sind die fachliche Praxisabnahme, die Beobachtung des
+kontrollierten Betriebs, ein allgemeiner verifizierter Mailabsender sowie die
+Vervollständigung der Rechtstexte. Details und Rollback:
 [Fahrgemeinschaften – Release](carpools-release.md).
 
 Bestätigte Entscheidung vom 08.09.2026: Es bleibt bei genau einer maßgeblichen

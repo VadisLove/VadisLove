@@ -1,4 +1,4 @@
-# Release 1: Preflight und Abnahme am 08.09.2026
+# Release 1: Preflight und Produktionsnachweis am 08.–09.09.2026
 
 ## Umfang und Qualitätsauftrag vor der Umsetzung
 
@@ -32,12 +32,13 @@ gehostetes Staging und bestätigter Produktionsbetrieb werden getrennt bewertet.
 
 ## Ergebnis und geprüfter Stand
 
-Prüfdatum: **08.09.2026**, Node **24.20.0**, npm **11.19.0**,
+Prüfdatum: **08.–09.09.2026**, Node **24.20.0**, npm **11.19.0**,
 Next.js **16.2.12**, natives PostgreSQL **17.6**.
 Release-Basis: `0f318ffd401f58dfe9b9a65fa7699ada447df9e4`.
-Die Ergänzungen dieses Preflights werden ausschließlich lokal auf
-`codex/fahrgemeinschaften-release` gesichert; **kein Push, kein Deployment**.
-Der zugehörige Commit ist über diesen Bericht in der Git-Historie identifizierbar.
+Der geprüfte Release-Stand `d737654db1bc900ccf45f3986cef53ba4675370c`
+wurde auf `codex/fahrgemeinschaften-release` gesichert und am 09.09.2026 in das
+bestehende Produktionsprojekt ausgerollt. Dieser Bericht dokumentiert die danach
+erneut ausgeführten technischen Prüfungen und die weiterhin offenen Grenzen.
 
 Worktree:
 `/Users/vladislavhirschfeld/Documents/Trainer App.worktrees/release-1-2026-09-08`.
@@ -75,9 +76,9 @@ bestätigte Planungsgrundlage übernommen; spätere Produktpakete wurden nicht g
 | Technisch lokal geprüft | Saubere Lockfile-Installation, Typprüfung, ESLint, 104/104 Tests, Produktionsbuild, HTTP-Prüfungen und `git diff --check` erfolgreich. |
 | Auf isolierter Datenbank geprüft | 16/16 native Fahrgemeinschaftstests; 5/5 Migrations-/Scheduler-/Integrationsprüfungen auf der Schemakopie; danach 6/6 Registrierungstests auf derselben Kopie. |
 | Gehostetes Staging geprüft | **Nicht bestätigt.** Keine neue gehostete App/Preview und keine neue Supabase-Instanz angelegt. |
-| Auf bestehender Produktions-URL bestätigt | Bestehende Login-/Registrierungsseite HTTP 200; geschützte Seiten leiten mit 307 zum Login; Alias zeigt auf das bisherige READY-Deployment. Keine neue Registrierung abgeschickt und keine Fahrt angelegt. |
-| Noch durch den Nutzer bereitzustellen | Betreiber/Rechtsform, Anschrift, Kontakt und anwendbare Rechtstextangaben; verifizierter Resend-Absender, Resend-Key und Supabase-Service-Role-Key über sichere Dienstkonfiguration. |
-| Für Produktion blockiert | Fehlende Mail-/Serverkonfiguration, nicht nachgewiesene reale Zustellung, unvollständige Rechtstexte sowie noch offene fachliche und gehostete Abnahme. |
+| Auf bestehender Produktions-URL bestätigt | Deployment `dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS` ist `READY`; der Alias zeigt darauf. Öffentliche Seiten antworten mit HTTP 200, geschützte Seiten mit 307 zum Login und der Mailworker ohne Nachweis mit 401. Der Supabase-Cron erreicht den Worker mit HTTP 200. |
+| Noch durch den Nutzer bereitzustellen | Betreiber/Rechtsform, vollständige Anschrift, Kontakt und anwendbare Rechtstextangaben; anschließend fachliche Praxisabnahme mit Testkonten. |
+| Kontrollierter Produktionsbetrieb | Technisch aktiviert für den vom Nutzer bestätigten kleinen Testpersonenkreis. Rechtstexte, allgemeiner Produktionsabsender, reguläre Posteingangszustellung und vollständige fachliche Praxisabnahme bleiben offen. |
 
 ### Pflichtprüfungen
 
@@ -120,7 +121,8 @@ nur hierfür dokumentierte Testfunktionen. Supabase Vault, `pg_net` und `pg_cron
 werden lokal durch ausdrücklich markierte Verträge ersetzt. Der echte Scheduler-
 Funktionskörper wird ausgeführt und URL/Header/Timeout geprüft; es gibt dabei
 keinen Netzwerkversand. Reale Vault-Verschlüsselung, Cron-Zeitsteuerung und
-`pg_net`-HTTP-Zustellung sind deshalb **noch nicht abgenommen**.
+`pg_net`-HTTP-Zustellung wurden am 09.09.2026 zusätzlich in Produktion geprüft;
+die lokalen Verträge bleiben weiterhin unabhängig reproduzierbar.
 
 Die Browser-Artefaktprüfung ist ein aktueller Nachweis für diesen Build und
 ersetzt keine erneute Prüfung nach Änderungen. Eine neue visuelle Browserabnahme
@@ -142,7 +144,8 @@ sind davon unabhängig erfolgreich. Der visuelle Nachweis vom 03.09. ist histori
 - Die neue Vollschema-Fixture versuchte zuerst eine Athletenmitgliedschaft auf
   Bundesebene. Die bestehende Rollenprüfung wies sie korrekt ab. Die Fixture
   bildet jetzt Bund → Land → Verein ab; das Datenmodell blieb unverändert.
-- `npm ci`/`npm audit` melden **7 Pakete mit hoher Einstufung**:
+- Der abschließende Lauf von `npm ci` meldet **8 Befunde: 1 moderat, 6 hoch,
+  1 kritisch**. Der frühere Audit-Export nannte sieben hoch eingestufte Pakete:
   brace-expansion, browserslist, js-yaml, nanoid, next (transitiv), postcss und sharp.
   Jeder betroffene installierte Versionsstand ist bereits bytegleich im Lockfile
   der stabilen Basis `5618210` vorhanden. Das sind keine neuen Release-1-Fehler.
@@ -174,7 +177,7 @@ Es wurde kein neues Projekt verknüpft oder erzeugt.
 | Testempfänger | Nutzer hat am 08.09.2026 ausdrücklich einen Empfänger für je eine Elternfreigabe- und Fahrten-Testmail freigegeben; Adresse bleibt im privaten Auftrag |
 | Tatsächliche Mailzustellung | Zwei ausdrücklich markierte synthetische Testmails am 09.09.2026 gesendet; beide von Resend angenommen, mit Status `delivered` gemeldet und vom Nutzer im Spamordner mit korrekten Verweisen bestätigt |
 | Rechtstexte | Betreiber-/Anschrift-/Kontaktplatzhalter vorhanden; keine Angaben erfunden, Testempfänger nicht als Betreiber/Kontakt übernommen |
-| Fachmigrationen | Alle drei neuen Migrationen fehlen noch in der Produktionshistorie; unverändert gelassen |
+| Fachmigrationen | Am 09.09.2026 einzeln in der freigegebenen Reihenfolge angewandt und anschließend über Migrationshistorie und Katalogabfragen bestätigt |
 
 Geprüfte Vercel-Production-Namen am 09.09.2026: `NEXT_PUBLIC_APP_URL`,
 `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` und
@@ -212,26 +215,52 @@ Empfangsserver; der Nutzer hat die sichtbare Zustellung in diesem Prüfkontext
 zusätzlich bestätigt. Beide Nachrichten landeten jedoch im Spamordner, sodass
 dieser Test keine reguläre Posteingangszustellung oder allgemeine Zustellbarkeit
 belegt.
-Der Direktversand prüft Resend-Zugang, Absender und Empfänger, aber noch nicht
-den produktiven Mailworker, die Datenbankwarteschlange, den Scheduler oder
-`pg_net`. `onboarding@resend.dev` ist außerhalb des bestätigten Kontoinhabers
-kein freigegebener Produktionsabsender. Migrationen, Deployment und Push wurden
-nicht ausgeführt; die fehlenden Betreiber-, Anschrift- und Kontaktdaten blockieren
-die Rechtstexte weiterhin.
+Der Direktversand prüft Resend-Zugang, Absender und Empfänger. Mailworker,
+Scheduler und `pg_net` wurden danach technisch über einen authentifizierten
+Produktionsaufruf mit HTTP 200 bestätigt; mangels wartender Fachnachricht wurde
+dabei keine weitere E-Mail erzeugt. `onboarding@resend.dev` ist außerhalb des
+bestätigten Kontoinhabers kein allgemeiner Produktionsabsender. Die fehlenden
+Betreiber-, Anschrift- und Kontaktdaten blockieren die Rechtstexte weiterhin.
 
-### Was auf der einzigen maßgeblichen Adresse sichtbar ist
+### Produktiver Rollout und sichtbarer Stand am 09.09.2026
 
-Read-only-Prüfung am 08.09.2026 um **18:29 UTC / 20:29 Berlin**:
+Rollout und Read-only-Prüfung am 09.09.2026 um **08:48–08:52 UTC /
+10:48–10:52 Berlin**:
 
 - `/login` und `/login?mode=register`: HTTP 200.
 - `/kalender`, `/fahrgemeinschaften`, `/einstellungen`: HTTP 307 zum Login.
-- `/elternfreigabe`, `/impressum`, `/api/carpools/mail`: ebenfalls Login-Redirect
-  im bisherigen Produktionsstand. Dies bestätigt **keine** aktive Release-1-Funktion.
-- Vercel löst `trainer-webapp-ruby.vercel.app` weiterhin zu
-  **`dpl_DW277V4vpV6FW3HrgayG4beoEZM2`**, Status **READY**, Target **production** auf.
+- `/elternfreigabe`, `/impressum`, `/datenschutz` und `/nutzungsbedingungen`:
+  HTTP 200; `/api/carpools/mail` ohne Cron-Nachweis: HTTP 401.
+- Vercel löst `trainer-webapp-ruby.vercel.app` zu
+  **`dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`**, Status **READY**, Target
+  **production** auf.
+- Der frische Sicherungstag
+  **`production/stable-before-release-1-2026-09-09`** zeigt lokal und auf
+  `origin` auf den vorherigen Produktionsquellstand `5618210`.
+- Die Migrationen wurden einzeln und ohne pauschales `db push` angewandt:
+  `20260901113922_add_guardian_registration_approval.sql`,
+  `20260903080920_carpool_release.sql`, danach
+  `20260903082255_carpool_mail_schedule.sql`. Supabase protokolliert sie als
+  `20260909084726_add_guardian_registration_approval`,
+  `20260909084745_carpool_release` und
+  `20260909084804_carpool_mail_schedule`.
+- Tabellen, RPCs und RLS wurden nach jeder Fachmigration geprüft. Genau ein
+  aktiver Job `carpool-mail-every-minute` läuft jede Minute. Die ersten drei
+  geprüften `pg_net`-Antworten um 08:49, 08:50 und 08:51 UTC hatten HTTP 200,
+  keinen Timeout und keinen Transportfehler.
 
-Es wurden keine realen Registrierungen abgeschickt, keine Fahrten angelegt,
-keine Produktivmigrationen angewandt und kein Deployment ausgelöst.
+Es wurden keine realen Registrierungen abgeschickt und keine Fahrt angelegt.
+Der technische Produktionsnachweis verwendet keine Minderjährigen-, Nutzer-
+oder Fahrtdaten.
+
+Die Supabase-Sicherheitsprüfung meldet für die beiden privaten Tabellen RLS ohne
+Policy; das ist beabsichtigt, weil Browserrollen sämtliche Rechte entzogen sind
+und ausschließlich `service_role` die Mailwarteschlange verarbeitet. Die beiden
+tokengebundenen Elternfreigabe-RPCs werden absichtlich anonym angeboten und geben
+nur den kontrollierten Minimalumfang aus. Weitere Security-Definer- und
+Passwortschutz-Hinweise sowie Performance-Hinweise werden als gesonderte
+Härtungsarbeit bewertet. Der Produktionsstart fügt keine nicht dokumentierte
+Policy-Ausnahme hinzu.
 
 ## Wiederholbare technische Prüfung
 
@@ -268,32 +297,24 @@ keine bereits vorhandene lokale oder produktive Datenbank.
 
 ## Produktionsfreigabe und fachliche Praxisabnahme
 
-Vor der Veröffentlichung noch erforderlich, in dieser Reihenfolge:
+Stand der Freigabeschritte am 09.09.2026:
 
-1. Betreiberangaben und Rechtstexte vervollständigen und fachlich/rechtlich prüfen.
-2. Resend-Key, verifizierten Absender, Service-Role-Key, festgelegte App-URL und
-   neuen Cron-Wert sicher in **diesem** Vercel-Projekt konfigurieren; denselben
-   Cron-Wert und die Worker-URL in Vault hinterlegen, Gleichheit ohne Ausgabe prüfen.
-3. An den im Auftrag freigegebenen Empfänger je eine echte Elternfreigabe- und
-   Fahrten-Testmail senden; Provider-Zustellung und Empfang/Links bestätigen.
-   Keine produktive Minderjährigenmigration, solange dieser Nachweis fehlt.
-4. Vorhandene Abhängigkeitsbefunde gesondert bewerten; offene Release-Blocker
-   schließen. Auf dem endgültigen Quell-/Buildstand alle Pflichtprüfungen erneut
-   ausführen. Eine Prüfung mit gehostetem Auth/PostgREST ist noch vorzubereiten,
-   ohne eine zusätzliche dauerhaft verwendete App-Adresse einzuführen.
-5. Den dann aktuellen stabilen Produktionsstand frisch mit eindeutigem Tag
-   sichern; nur freigegebene Release-Dateien committen/pushen. Vor einem Push
-   beachten, dass die Git-Verknüpfung automatisch Preview-Deployments auslösen
-   kann; keine zusätzliche dauerhaft verwendete Vorschauadresse etablieren.
-6. Migrationen einzeln in dieser Reihenfolge anwenden:
-   `20260901113922_add_guardian_registration_approval.sql`,
-   `20260903080920_carpool_release.sql`,
-   `20260903082255_carpool_mail_schedule.sql`.
-   **Kein pauschales `db push` aller historischen Dateien:** lokale historische
-   Versionsnamen weichen zum Teil von der gehosteten Migrationshistorie ab.
-7. Direkt auf das bestehende Produktionsprojekt deployen, `READY` und Alias
-   `trainer-webapp-ruby.vercel.app` zum neuen Deployment bestätigen; bei kritischem
-   Fehler auf den gesicherten Stand zurückrollen.
+1. **Offen:** Betreiberangaben und Rechtstexte vervollständigen und
+   fachlich/rechtlich prüfen.
+2. **Erledigt:** Mail-, Service- und Cron-Konfiguration in Vercel sowie URL und
+   Cron-Wert im Supabase Vault ohne Ausgabe geheimer Werte geprüft.
+3. **Erledigt:** Genau zwei synthetische Testmails gesendet; Providerstatus und
+   Empfang samt Links bestätigt. Die Spam-Einstufung bleibt dokumentiert.
+4. **Technisch erledigt:** Auf dem endgültigen Release-Stand Lockfile-Installation,
+   Typprüfung, Lint, 104 Tests, Build, Release-Buildprüfung und 27 native
+   PostgreSQL-Prüfungen bestanden. Abhängigkeitsbefunde und die fachliche
+   Praxisabnahme bleiben offen.
+5. **Erledigt:** Vorherigen Produktionsquellstand mit
+   `production/stable-before-release-1-2026-09-09` gesichert und Tag gepusht.
+6. **Erledigt:** Die drei freigegebenen Migrationen einzeln in der dokumentierten
+   Reihenfolge angewandt; kein pauschales `db push` ausgeführt.
+7. **Erledigt:** Direkt in das bestehende Vercel-Produktionsprojekt deployt;
+   `READY` und Alias `trainer-webapp-ruby.vercel.app` bestätigt.
 
 Der Nutzer übernimmt danach die fachliche Praxisabnahme. Für jede Zeile Datum,
 Version/Deployment und Ergebnis separat festhalten; derzeit **alles noch offen**:
@@ -318,15 +339,14 @@ Version/Deployment und Ergebnis separat festhalten; derzeit **alles noch offen**
 
 ## Rollback und Abschlussgrenze
 
-Aktueller Quell-Rollback: Tag
-**`production/stable-before-carpools-2026-09-03`** →
+Aktueller Quell-Rollback: frischer Tag
+**`production/stable-before-release-1-2026-09-09`** →
 `561821018585d491767f2c344685e93b648920e3`.
-Aktuelles direktes Vercel-Rollbackziel:
+Direktes Vercel-Rollbackziel für den vorherigen Stand:
 **`dpl_DW277V4vpV6FW3HrgayG4beoEZM2`**.
-Der Tag wurde lokal und auf `origin` gefunden. Sein ursprünglicher Bericht
-belegt den bytegenauen Vergleich von 215 versionierten Dateien mit dem Deployment;
-die aktuelle Alias-Prüfung bestätigt, dass dieses Deployment weiterhin produktiv ist.
-Vor einem späteren Deployment ist der dann aktuelle Stand erneut zu sichern.
+Der Tag wurde lokal und auf `origin` bestätigt. Das aktuelle produktive Deployment
+ist `dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`; vor einem späteren Deployment ist dieser
+dann stabile Stand erneut zu sichern.
 
 Ein Code-Rollback entfernt keine bereits erzeugten Registrierungs-/Fahrtdaten.
 Neue Tabellen und Spalten nicht destruktiv zurückbauen. Falls die bereits
@@ -335,5 +355,6 @@ Vercel-Rollback nicht aus: geänderte Trigger und die Rückwärtskompatibilität
 Registrierung müssen vor produktiver Aktivierung einen geprüften Rückfallplan
 besitzen. Dieser gehostete Rückfallnachweis ist noch offen.
 
-Technische lokale Abnahme: **bestanden für den oben beschriebenen Kontext**.
-Fachliche Nutzerabnahme, echter Mailweg und Produktionsfreigabe: **offen/blockiert**.
+Technische lokale und produktive Abnahme: **bestanden für den oben beschriebenen
+kontrollierten Kontext**. Echter Mailweg: **bestätigt, mit Spam-Befund**.
+Fachliche Nutzerabnahme und vollständige Rechtstexte: **offen**.

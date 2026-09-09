@@ -1,12 +1,13 @@
 # Fahrgemeinschaften: Betrieb und Release
 
-## Aktueller Stand am 08.09.2026
+## Aktueller Stand am 09.09.2026
 
-Der Node-24-Preflight wurde in einem frischen lokalen Worktree erneuert:
+Der Node-24-Preflight wurde im Release-Worktree erneut ausgeführt:
 104 automatisierte Tests sowie 27 zusätzliche native PostgreSQL-Prüfungen,
 Typprüfung, ESLint, Produktionsbuild und HTTP-/Browser-Artefaktprüfungen bestehen.
-**Release 1 ist weiterhin nicht produktiv aktiviert.** Konfiguration,
-Mailzustellung und Betreiberangaben sind noch offen.
+**Release 1 ist im bestehenden Produktionsprojekt für den kontrollierten
+Testpersonenkreis aktiviert.** Deployment `dpl_ebWN1FYCjqjEHqXV19nr1QmjSmvS`
+ist `READY`; `https://trainer-webapp-ruby.vercel.app` zeigt darauf.
 
 Maßgeblicher Nachweis und fachliche Prüfliste:
 [Release-1-Preflight vom 08.09.2026](release-1-preflight-2026-09-08.md).
@@ -14,6 +15,20 @@ Die nachfolgenden Ergebnisse vom 03.09.2026 bleiben historische Nachweise.
 Arbeitsname: **Trainer Hub**. Öffentliche Adresse ausschließlich
 `https://trainer-webapp-ruby.vercel.app`; kein neues Vercel-Projekt und keine
 zusätzliche dauerhaft verwendete Vorschauadresse.
+
+Die drei Release-Migrationen wurden am 09.09.2026 einzeln in der dokumentierten
+Reihenfolge angewandt. Vault, `pg_cron`, `pg_net`, RLS, Release-RPCs und genau
+ein aktiver Minuten-Scheduler wurden anschließend geprüft. Drei aufeinanderfolgende
+Worker-Aufrufe antworteten mit HTTP 200 ohne Timeout oder Transportfehler.
+
+Die beiden synthetischen Testmails wurden von Resend angenommen und als
+`delivered` gemeldet. Der Nutzer bestätigte Empfang und korrekte Verweise; beide
+Nachrichten landeten im Spamordner. Es wurde keine echte Registrierung und keine
+Fahrt erzeugt. Betreiber-, Anschrift- und Kontaktdaten, vollständige Rechtstexte,
+ein allgemeiner verifizierter Absender sowie die fachliche Praxisabnahme bleiben
+offen. Rollbackpunkte sind der Git-Tag
+`production/stable-before-release-1-2026-09-09` und das vorherige Vercel-Deployment
+`dpl_DW277V4vpV6FW3HrgayG4beoEZM2`.
 
 ## Aufbau
 
