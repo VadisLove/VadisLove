@@ -87,7 +87,7 @@ zurücksetzen. Fehlerantworten des Workers enthalten keine Empfänger oder Keys.
 
 Buchungen und In-App-Hinweise bleiben bei Versandproblemen erhalten. Vor dem
 Versand werden Kontostatus, aktuelle Elternverknüpfung und E-Mail-Einstellung
-nochmals geprüft. Nachrichtentexte enthalten keine Treffpunktadressen; Details
+nochmals geprüft. Nachrichtentexte enthalten keine Zielortadressen; Details
 liegen hinter dem geschützten Link.
 
 ## Reproduzierbare Prüfungen

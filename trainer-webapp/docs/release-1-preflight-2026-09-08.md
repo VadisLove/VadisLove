@@ -333,7 +333,7 @@ Version/Deployment und Ergebnis separat festhalten; derzeit **alles noch offen**
 - [ ] Fahrerwechsel, Fahrtdatenänderung, Terminverschiebung und Absage sind
   verständlich; erforderliche Bestätigungen erscheinen und Plätze werden freigegeben.
 - [ ] Fahrtenmails, In-App-Hinweise und Benachrichtigungseinstellungen passen;
-  keine Treffpunktadresse in E-Mails und geschützte Links führen zur richtigen Fahrt.
+  keine Zielortadresse in E-Mails und geschützte Links führen zur richtigen Fahrt.
 - [ ] Mobilansicht, deutsche/englische Texte und Tastaturbedienung sind in der
   tatsächlichen Nutzung nachvollziehbar.
 

@@ -49,6 +49,10 @@ kontrollierten Betriebs, ein allgemeiner verifizierter Mailabsender sowie die
 Vervollständigung der Rechtstexte. Details und Rollback:
 [Fahrgemeinschaften – Release](carpools-release.md).
 
+Bestätigte Bezeichnung vom 09.09.2026: Fahrten zeigen im Formular „Zielort“
+beziehungsweise „Destination“. Das bestehende interne Datenbankfeld bleibt zur
+Abwärtskompatibilität unverändert; Datenmodell und Berechtigungen ändern sich nicht.
+
 Bestätigte Entscheidung vom 08.09.2026: Es bleibt bei genau einer maßgeblichen
 öffentlichen Adresse `https://trainer-webapp-ruby.vercel.app`. Keine neue Marke,
 kein neues Vercel-Projekt und keine dauerhaft verwendete Vorschauadresse.
