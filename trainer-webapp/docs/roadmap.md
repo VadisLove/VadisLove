@@ -112,6 +112,46 @@ Google-/Apple-Provider-Abnahme. Diese abgegrenzten Punkte sperren die
 E-Mail/Passwort-Produktionsbasis nicht und werden nicht als produktiv geprüft
 dargestellt.
 
+### Übergabe und Restarbeiten aus Schritt 2
+
+| Bereich | Stand am 21.09.2026 | Nächste Aktion |
+| --- | --- | --- |
+| E-Mail/Passwort, Altersgrenze und optionale Organisation | Produktiv, technisch geprüft | Mobile Praxisabnahme ausschließlich mit synthetischen Konten durchführen. |
+| Minderjährigen- und Elternfreigabe | Datenbankseitig produktiv gesperrt; keine Bestandsfälle vorhanden | Den vollständigen Ablauf erst in isolierter Testumgebung praktisch abnehmen. |
+| Google-/Apple-Anmeldung | Bewusst deaktiviert | Provider-, Betreiber- und Rechtstextvoraussetzungen abschließen, dann separat implementieren und abnehmen. |
+| Bereinigung unvollständiger Konten | Route und privilegierte Datenbankfunktion produktiv vorhanden, Scheduler deaktiviert | Secret setzen, Scheduler einrichten und mit synthetischen Konten prüfen. |
+| Supabase-Migrationshistorie | Produktions-SQL ist angewandt, CLI-Historie noch nicht abgeglichen | Vor dem nächsten `supabase db push` die Migration als angewandt in der CLI-Historie markieren. |
+| Manuelles Identity-Linking | Nicht umgesetzt | Als eigenes, späteres Sicherheitspaket behandeln. |
+
+Diese Restarbeiten bleiben bei Schritt 2. Sie blockieren nicht den Start von
+Schritt 3, weil dessen Passwort- und Recovery-Abläufe die bestehenden
+Onboarding-, Elternfreigabe- und RLS-Sperren ausdrücklich weiterverwenden.
+
+## Arbeitsschritt 3: Passwort sicher ändern und wiederherstellen – bereit zur Umsetzung
+
+**Ziel:** Personen mit bestätigter E-Mail können ein Passwort sicher setzen,
+ändern und wiederherstellen, ohne E-Mail-Adressen preiszugeben oder bestehende
+Kontosperren zu umgehen.
+
+**Betroffene Rollen:** angemeldete Personen mit bestätigter E-Mail;
+OAuth-only-Konten erhalten nur eine Erklärung. Administratoren und Trainer
+ändern niemals Passwörter anderer Personen.
+
+**Fachlicher Umfang:** Profil-Ablauf zum Setzen/Ändern mit erneuter
+Authentisierung oder Einmalcode, öffentliche rate-limitierte
+„Passwort vergessen“-Seite, Recovery-Link auf einer eigenen Zielseite,
+neutrale Erfolgsmeldungen und verständliche Fehler-/Ablauftexte.
+
+**Abnahmekriterien:** Kein Formular verrät, ob eine E-Mail oder ein Passwort
+existiert; Recovery-Links funktionieren nur einmal und nur auf der eigenen
+Reset-Seite; abgelaufene Links können neu angefordert werden; alle
+Onboarding-, Elternfreigabe- und RLS-Sperren gelten unverändert; Passwörter,
+Token und sensible Diagnosedaten erscheinen nie in Client, Logs oder Git.
+
+**Ausgeschlossen:** Google-/Apple-Aktivierung, Provider-Linking,
+Produktionsgeheimnisse für den Schritt-2-Cleanup, Passwortänderungen durch
+Organisationen oder Trainer sowie neue Rollen- und Organisationsrechte.
+
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
 Termine oder persönlichen Trainingspläne. Vereins- und Teamdaten bleiben bis
