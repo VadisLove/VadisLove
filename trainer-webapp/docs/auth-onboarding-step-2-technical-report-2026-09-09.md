@@ -47,11 +47,12 @@ gebunden.
 Dieser Nachtrag ändert nur Planung. Die unten dokumentierten Tests vom
 09.09.2026 belegen nicht die neu beschriebenen Funktionen.
 
-Stand: 09.09.2026. Arbeitsbranch: `codex/step-2-auth-onboarding`, aus
-`origin/codex/fahrgemeinschaften-release` erzeugt. Dieser Bericht beschreibt
-nur lokale Analyse, Tests und Vorbereitung. Es wurden weder eine
-Produktionsmigration noch ein Deployment, Push, Providerprojekt, Geheimnis oder
-echtes Nutzerkonto erzeugt.
+Stand: 21.09.2026. Arbeitsbranch: `codex/step-2-auth-onboarding`, aus
+`origin/codex/fahrgemeinschaften-release` erzeugt. Die technische
+E-Mail/Passwort-Basis wurde nach lokaler und isolierter Datenbankprüfung auf das
+bestehende Supabase- und Vercel-Produktionssystem ausgerollt. Google und Apple,
+ein Cleanup-Scheduler, ein neues Produktionsgeheimnis und echte Nutzerkonten
+wurden nicht aktiviert oder erzeugt.
 
 ## Einordnung und Qualitätsauftrag
 
@@ -328,11 +329,11 @@ OAuth-Anbieter erhalten keine Organisations-, Minderjährigen- oder
 Dokumentdaten. Konten-E-Mail-Adressen dürfen über Fehlermeldungen, RPCs oder
 Providerkonflikte nicht bestätigbar werden.
 
-Ausgeschlossen: öffentliche Aktivierung von Google/Apple, Migration auf
-Produktion, Deployment, Push, neue Projekte, Passwortwechsel (Roadmap-Schritt
-3), Kontozusammenführung, Selbstbedienungs-Verknüpfung mehrerer Provider,
-vollständige Organisationsadministration, native Apps und die Erfindung von
-Rechtstextdaten.
+Ausgeschlossen: öffentliche Aktivierung von Google/Apple, Aktivierung des
+Cleanup-Schedulers und seines Produktionsgeheimnisses, neue Projekte,
+Passwortwechsel (Roadmap-Schritt 3), Kontozusammenführung,
+Selbstbedienungs-Verknüpfung mehrerer Provider, vollständige
+Organisationsadministration, native Apps und die Erfindung von Rechtstextdaten.
 
 ## Lokale Änderungen und Prüfstatus
 
@@ -367,7 +368,7 @@ Rechtstextdaten.
   Metadaten-freien RLS-Vertrag.
 
 Prüfdatum: 21.09.2026, im isolierten Worktree. `npm test` bestand mit
-**116/116** Tests; `npm run typecheck`, `npm run lint`, `npm run build` und
+**117/117** Tests; `npm run typecheck`, `npm run lint`, `npm run build` und
 `git diff --check` bestanden ebenfalls. Die neue Migration wurde gemeinsam
 mit dem bestehenden Elternfreigabe-Schema in einer frischen isolierten
 PGlite-Datenbank angewandt. Geprüft wurden unter anderem unter 13, unmittelbar
@@ -379,14 +380,34 @@ verfügbare lokale Node-Version war 26.7.0, obwohl das Projekt
 Node 24.x verlangt; `nvm` und eine lokale Node-24-Installation waren auf diesem
 Host nicht verfügbar. Die Ergebnisse sind deshalb ein zusätzlicher lokaler
 Nachweis, kein Ersatz für die spätere, unter Node 24 auszuführende
-Releaseprüfung. Die statische Duplikat-Prüfung bestätigt den lokalen
+Releaseprüfung. Der Vercel-Produktionsbuild bestand anschließend ebenfalls.
+Die statische Duplikat-Prüfung bestätigt den lokalen
 Fehler-/Token-Vertrag; den tatsächlichen Google-/Apple-Identitätslink kann sie
 ohne bewusst nicht aktivierten Provider nicht ersetzen.
 
-Vor einer Produktionsfreigabe sind die verbleibenden Entscheidungen, finale
-Rechtstexte, Providerkonfiguration, RLS-/RPC-Migration mit lokaler und
-isolierter Datenbankprüfung, mobile Praxisabnahme, kontrollierte
-synthetische Provider-Tests, getrennte Staging-Abnahme sowie die übliche
-Release-Freigabe erforderlich. Release 1 bleibt unabhängig davon fachlich
-offen; sein kontrollierter technischer Produktionsbetrieb wird durch diese
-Arbeit nicht verändert.
+## Produktionsnachweis vom 21.09.2026
+
+- Quellcommit: `dff850f feat(auth): secure step 2 onboarding foundation`,
+  gepusht auf `origin/codex/step-2-auth-onboarding`.
+- Rollback-Punkt: Tag
+  `production/stable-before-step-2-auth-onboarding-2026-09-21` auf dem zuvor
+  produktiven Stand.
+- Supabase: Migration auf Projekt `lglmlktrngmrimvhwxab` angewandt. Eine
+  separate Nur-Lese-Prüfung bestätigte Tabelle, aktive RLS, Auth- und
+  Profiltrigger, die 16-Jahres-Grenze sowie die Cleanup-Funktion. `anon` und
+  `authenticated` besitzen kein Execute-Recht; `service_role` besitzt es. Der
+  erneut ausgeführte Security Advisor meldete 0 Fehler. Die Anwendung erfolgte
+  wegen fehlender CLI-Anmeldung über den SQL Editor; der Abgleich der
+  Supabase-CLI-Migrationshistorie ist vor dem nächsten `supabase db push`
+  erforderlich.
+- Vercel: Deployment `dpl_HcRQrWxcddrJtTcuhhbSUTm7KZsM`, Ziel `production`,
+  Status `Ready`. Der Alias `https://trainer-webapp-ruby.vercel.app` wurde per
+  `vercel inspect` auf genau dieses Deployment bestätigt.
+- Nicht aktiviert: Google/Apple, Cleanup-Scheduler und
+  `ONBOARDING_CLEANUP_SECRET`. Die bereitgestellte Cleanup-Route bleibt daher
+  ohne gültiges Geheimnis gesperrt und führt keine automatische Löschung aus.
+
+Vor der fachlichen Freigabe der noch offenen Teile sind finale Rechtstexte,
+Providerkonfiguration, mobile Praxisabnahme, kontrollierte synthetische
+Provider-Tests und die getrennte Abnahme dieser Funktionen erforderlich.
+Release 1 bleibt unabhängig davon fachlich offen.

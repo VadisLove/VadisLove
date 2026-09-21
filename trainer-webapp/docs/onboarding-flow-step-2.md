@@ -1,8 +1,12 @@
 # Onboarding-Ablauf für Roadmap-Schritt 2
 
-Planungsstand: 21. September 2026. Dieser Ablauf ist die fachliche Grundlage
-für die spätere Datenbankmigration, Oberfläche und Tests. Er aktiviert keine
-Provider, erzeugt keine Konten und ändert keine Produktionsdaten.
+Planungs- und Implementierungsstand: 21. September 2026. Die technische
+E-Mail/Passwort-Basis, das minimale Zustandsmodell, die RLS-Sperre und die
+optionale Organisationsauswahl sind produktiv ausgerollt. Dieser Ablauf bleibt
+zugleich die fachliche Grundlage für die noch nicht aktivierten Google-/Apple-
+Provider, Einladungs- und erweiterten Onboarding-Oberflächen. Die Beschreibung
+allein erzeugt keine Konten; echte Praxisprüfungen verwenden ausschließlich
+synthetische Daten.
 
 ## Ziel und Zugriffsstufen
 

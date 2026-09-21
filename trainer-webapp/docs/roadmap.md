@@ -79,14 +79,17 @@ Lokale Worktrees und Vercels interne Rollback-Historie bleiben zulässig.
 | 15 | Chat und Push | Transaktionsmails für Elternfreigabe, Fahrten, Fristen, Erinnerungen und wichtige Änderungen werden bereits mit den zugehörigen frühen Paketen umgesetzt. Trainer–Athlet-, Trainer–Eltern- und Gruppennachrichten sowie Push bleiben ein späteres, getrennt bewertetes Paket mit Moderationskonzept. |
 | 16 | Native Apps | iOS- und später Android-App erst nach stabilen Web-Kernabläufen, finalem Produktnamen und geklärter Domain umsetzen. Kamera, Push, Offline-Training und native Anmeldung bilden dann den Hauptnutzen gegenüber einer bloßen Web-App-Hülle. |
 
-## Arbeitsschritt 2: Anmeldung und Profilerstellung – lokale Umsetzung
+## Arbeitsschritt 2: Anmeldung und Profilerstellung – technische Produktionsbasis
 
-Implementierungsstand: 21.09.2026. Die lokale Analyse, Sicherheits-Testvorbereitung
-und die noch nicht produktiv angewandte Migration laufen
-auf dem isolierten Branch `codex/step-2-auth-onboarding`, aus
-`origin/codex/fahrgemeinschaften-release`. Es wurde nichts in Produktion
-angewandt oder aktiviert. Der vollständige technische Vorschlag, die
-Entscheidungen und der Prüfnachweis stehen im
+Implementierungsstand: 21.09.2026. Die freigegebene technische Basis läuft auf
+`https://trainer-webapp-ruby.vercel.app`. Die Migration
+`20260921102535_step_2_auth_onboarding.sql` wurde auf dem Supabase-Produktionsprojekt
+angewandt und geprüft; das Vercel-Deployment
+`dpl_HcRQrWxcddrJtTcuhhbSUTm7KZsM` ist `Ready` und der Produktionsalias zeigt
+darauf. Quellstand ist Commit `dff850f` auf
+`codex/step-2-auth-onboarding`; der vorherige Produktionsstand ist mit
+`production/stable-before-step-2-auth-onboarding-2026-09-21` gesichert. Der
+vollständige technische Vorschlag, die Entscheidungen und der Prüfnachweis stehen im
 [Technischen Bericht für Schritt 2](auth-onboarding-step-2-technical-report-2026-09-09.md).
 Der vollständige fachliche Ablauf und die abgeleiteten Zustände stehen in
 [Onboarding-Ablauf für Schritt 2](onboarding-flow-step-2.md).
@@ -102,11 +105,12 @@ Organisationsauswahl und erweitern Schritt 2 um den Einladungseinstieg.
 Die verbleibenden Entscheidungen stehen ausdrücklich getrennt darunter.
 
 Noch ausstehend sind ein verständlicher manueller Linking-Dialog mit erneuter
-Authentisierung (unterschiedliche Adressen), die separat freizugebende
-Produktionskonfiguration des lokal implementierten Bereinigungsworkers sowie
-die echte Provider-Abnahme.
-Diese abgegrenzten Punkte sperren die lokale Umsetzung nicht und werden nicht
-als produktiv geprüft dargestellt.
+Authentisierung (unterschiedliche Adressen), die Aktivierung und Terminierung
+des produktiv bereitgestellten Bereinigungsworkers samt
+`ONBOARDING_CLEANUP_SECRET`, die mobile fachliche Praxisabnahme sowie die echte
+Google-/Apple-Provider-Abnahme. Diese abgegrenzten Punkte sperren die
+E-Mail/Passwort-Produktionsbasis nicht und werden nicht als produktiv geprüft
+dargestellt.
 
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen

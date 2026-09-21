@@ -5,10 +5,16 @@ lokal bestandenen technischen Prüfungen. Ausschließlich synthetische Konten
 und Testadressen verwenden; keine produktiven Minderjährigen- oder
 Vereinsdaten eingeben.
 
+Technischer Produktionsstand: Migration und Vercel-Deployment sind angewandt
+und automatisiert geprüft. Die nachfolgende mobile Praxisabnahme ist weiterhin
+offen; insbesondere Google/Apple und die automatische 30-Tage-Bereinigung sind
+nicht aktiviert.
+
 ## Vorbereitung
 
-- [ ] Staging oder lokales, isoliertes Supabase-Projekt mit angewandter
-  Migration `20260921102535_step_2_auth_onboarding.sql` steht bereit.
+- [x] Produktionsprojekt und isolierte PGlite-Prüfung haben die Migration
+  `20260921102535_step_2_auth_onboarding.sql` erfolgreich angewandt; für
+  destruktive Praxistests weiterhin eine isolierte Umgebung verwenden.
 - [ ] E-Mail-Bestätigung, erlaubte Callback-Adresse und Testabsender sind
   konfiguriert; Google und Apple nur mit freigegebenen Test-Clients aktivieren.
 - [ ] Zwei Mobilbrowser (oder getrennte Browserprofile) für Kind und
