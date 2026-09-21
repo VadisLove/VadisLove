@@ -77,7 +77,6 @@ export async function register(formData: FormData) {
     !email ||
     !password ||
     !accountTypes.has(accountType) ||
-    !organizationId ||
     !ageResult ||
     !legalAccepted
   ) {
@@ -106,25 +105,19 @@ export async function register(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: registrationOrganizations, error: organizationsError } =
-    await supabase.rpc("get_registration_organizations");
-  const selectedOrganization = registrationOrganizations?.find(
-    (organization: { id: string }) => organization.id === organizationId,
-  );
-  const expectedLevel = accountType === "organization_staff" ? "state" : "club";
-
-  // Die Auswahl wird vor dem Sign-up und erneut im Datenbank-Trigger geprüft.
-  // Dadurch kann ein manipuliertes Formular keine unpassende Rolle erzeugen.
-  if (organizationsError || selectedOrganization?.level !== expectedLevel) {
-    redirect(
-      loginUrl(
-        accountType === "organization_staff"
-          ? "Bitte einen gültigen Landesverband auswählen."
-          : "Bitte einen gültigen Verein auswählen.",
-        "/",
-        "register",
-      ),
+  if (organizationId) {
+    const { data: registrationOrganizations, error: organizationsError } =
+      await supabase.rpc("get_registration_organizations");
+    const selectedOrganization = registrationOrganizations?.find(
+      (organization: { id: string }) => organization.id === organizationId,
     );
+    const expectedLevel = accountType === "organization_staff" ? "state" : "club";
+
+    // Eine freiwillige Auswahl erzeugt nur eine Anfrage. Sie darf weder eine
+    // unpassende Rolle noch Zugang zu Organisationsdaten erzeugen.
+    if (organizationsError || selectedOrganization?.level !== expectedLevel) {
+      redirect(loginUrl("Bitte eine gültige Organisation auswählen.", "/", "register"));
+    }
   }
 
   const requestHeaders = await headers();

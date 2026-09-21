@@ -21,12 +21,13 @@ before(async () => {
     db = new PGlite();
     await db.exec(await readFile(new URL("./fixtures/guardian-base.sql", import.meta.url), "utf8"));
     await db.exec(await readFile(new URL("../supabase/migrations/20260901113922_add_guardian_registration_approval.sql", import.meta.url), "utf8"));
+    await db.exec(await readFile(new URL("../supabase/migrations/20260921102535_step_2_auth_onboarding.sql", import.meta.url), "utf8"));
     await db.exec("create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user()");
   }
 });
 after(async () => { await db?.close(); });
 
-async function register(overrides = {}) {
+async function register(overrides = {}, email = null) {
   const id = randomUUID();
   const metadata = {
     display_name: "Release fixture",
@@ -37,7 +38,7 @@ async function register(overrides = {}) {
     privacy_version: version,
     ...overrides,
   };
-  await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)", [id, `${id}@example.invalid`, metadata]);
+  await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)", [id, email || `${id}@example.invalid`, metadata]);
   return id;
 }
 async function role(name, id, callback) {
@@ -63,9 +64,9 @@ async function approve(token, terms = version, name = "Test Guardian") {
   return role("anon", null, () => db.query("select public.respond_guardian_approval($1,'approved',$2,$3,$4) as status", [token, name, terms, version]));
 }
 
-test("Registrierung lehnt fehlendes Alter, Unter-13-Jährige und fehlende Dokumentversionen ab", async () => {
+test("Registrierung lehnt fehlendes oder unplausibles Alter und fehlende Dokumentversionen ab", async () => {
   for (const metadata of [{birth_date: null}, {birth_date: ""}, {birth_date: "2099-01-01"}, {terms_version: null}, {privacy_version: null}]) {
-    await assert.rejects(register(metadata), /birth date|age 13|legal documents/i);
+    await assert.rejects(register(metadata), /birth date|plausible|legal documents/i);
   }
 });
 test("Erwachsene erhalten ein aktives Konto; Geburtsdaten werden aus Auth-Metadaten entfernt", async () => {
@@ -89,7 +90,87 @@ test("Server versendet an die gespeicherte Elternadresse; Freigabe aktiviert das
   assert.equal((await approve(token.approval_token)).rows[0].status, "approved");
   assert.equal((await approve(token.approval_token)).rows[0].status, "approved");
   assert.equal((await db.query("select private.account_is_active($1) as active", [id])).rows[0].active, true);
+  assert.equal((await db.query("select status from public.onboarding_accounts where user_id=$1", [id])).rows[0].status, "personal_active");
   assert.equal((await db.query("select count(*)::int as count from public.notifications where user_id=$1 and type='guardian_activity'", [id])).rows[0].count, 1);
+});
+
+test("Unter 13 und unmittelbar vor dem 16. Geburtstag bleiben bis zur Freigabe gesperrt", async () => {
+  for (const yearsAgo of [12, 15]) {
+    const id = await register({
+      birth_date: `${new Date().getFullYear() - yearsAgo}-12-31`,
+      guardian_email: `guardian-${randomUUID()}@example.invalid`,
+    });
+    const { rows } = await db.query(
+      "select private.account_is_active($1) as active,status from public.onboarding_accounts where user_id=$1",
+      [id],
+    );
+    assert.equal(rows[0].active, false);
+    assert.equal(rows[0].status, "awaiting_guardian_approval");
+  }
+});
+
+test("Ab dem 16. Geburtstag ist das persönliche Konto aktiv", async () => {
+  const today = new Date();
+  const birthDate = `${today.getFullYear() - 16}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const id = await register({ birth_date: birthDate, guardian_email: null });
+  assert.equal((await db.query("select private.account_is_active($1) as active", [id])).rows[0].active, true);
+});
+
+test("Ein später registriertes Elternkonto erhält Rechte nur über die bestätigte Beziehung", async () => {
+  const guardianEmail = `guardian-${randomUUID()}@example.invalid`;
+  const minorId = await register({
+    birth_date: `${new Date().getFullYear() - 12}-01-01`,
+    guardian_email: guardianEmail,
+  });
+  const token = await issue(minorId);
+  await approve(token.approval_token);
+
+  const guardianId = await register(
+    { account_type: "guardian", birth_date: "1985-01-01", guardian_email: null },
+    guardianEmail,
+  );
+  const { rows } = await db.query(
+    "select athlete_user_id,guardian_user_id from public.relationships where athlete_user_id=$1 and guardian_user_id=$2",
+    [minorId, guardianId],
+  );
+  assert.equal(rows.length, 1);
+});
+
+test("Bereinigungs-Claim gewinnt atomar gegen eine spätere Elternfreigabe", async () => {
+  const id = await pending();
+  const token = await issue(id);
+  await db.query(
+    "update public.onboarding_accounts set cleanup_due_at=now()-interval '1 second' where user_id=$1",
+    [id],
+  );
+  const claimed = await role("service_role", null, () =>
+    db.query("select * from public.claim_due_onboarding_cleanup(25)"),
+  );
+  assert.deepEqual(claimed.rows.map((row) => row.user_id), [id]);
+
+  await approve(token.approval_token);
+  const { rows } = await db.query(
+    "select status,private.account_is_active($1) as active from public.onboarding_accounts where user_id=$1",
+    [id],
+  );
+  assert.equal(rows[0].status, "deletion_due");
+  assert.equal(rows[0].active, false);
+});
+
+test("Browserrollen dürfen die Bereinigung nicht beanspruchen", async () => {
+  const id = await pending();
+  await assert.rejects(
+    role("authenticated", id, () =>
+      db.query("select * from public.claim_due_onboarding_cleanup(25)"),
+    ),
+    /permission denied/i,
+  );
+  await assert.rejects(
+    role("anon", null, () =>
+      db.query("select * from public.claim_due_onboarding_cleanup(25)"),
+    ),
+    /permission denied/i,
+  );
 });
 test("Direkte Freigabe mit fehlendem Namen oder fehlender Dokumentannahme bleibt gesperrt", async () => {
   const id = await pending(); const token = await issue(id);

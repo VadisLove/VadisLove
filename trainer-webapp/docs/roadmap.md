@@ -64,7 +64,7 @@ Lokale Worktrees und Vercels interne Rollback-Historie bleiben zulässig.
 | ---: | --- | --- |
 | 1 | Fahrgemeinschaften abschließen und stabilisieren | Hin-/Rückfahrt, Fahrerbestätigung, Elterninformationen und sichere Änderungsabläufe zuverlässig produktiv betreiben. |
 | 2 | Einfache Anmeldung und Profilerstellung | Anmeldung mit Google und Apple zusätzlich zu E-Mail/Passwort. Eine neue Auth-Identität erhält bis zum abgeschlossenen Profil, der Organisationsauswahl, der Dokumentannahme und gegebenenfalls der Elternfreigabe nur einen gesperrten Onboarding-Zustand. Provider-Konfiguration und öffentliche Freischaltung erfolgen, sobald Produktname und Domain feststehen. |
-| 3 | Passwort sicher ändern | Angemeldete Nutzer können in den Einstellungen ein neues Passwort eingeben, bestätigen und dauerhaft speichern. Passwortregeln, erneute Authentifizierung bei Bedarf, verständliche Fehlermeldungen und eine eindeutige Erfolgsmeldung schützen den Ablauf. Konten, die ausschließlich Google oder Apple verwenden, erhalten eine passende Erklärung statt eines unklaren Passwortformulars. |
+| 3 | Passwort sicher ändern und wiederherstellen | Angemeldete Nutzer mit bestätigter E-Mail können im Profilbereich ein Passwort festlegen oder ändern und bei Bedarf erneut authentisieren. Eine öffentliche „Passwort vergessen“-Seite versendet nur an bestätigte Auth-E-Mails Recovery-Links, verrät aber nie, ob ein Konto existiert. Abgelaufene Links sind erneut anforderbar; der Recovery-Ablauf umgeht weder Onboarding-, Elternfreigabe- noch RLS-Sperren. Konten, die ausschließlich Google oder Apple verwenden, erhalten eine passende Erklärung statt eines unklaren Passwortformulars. |
 | 4 | Verbindliche Kalenderkommunikation | Rückmeldefristen, gezielte Erinnerungen, bestätigungspflichtige wichtige Terminänderungen und persönliches Kalender-Abo reduzieren offene Rückfragen. |
 | 5 | Familienübersicht und Teilnahmeorganisation | Dauerhafte Kinderprofile zunächst ohne eigenen Login. Eltern können eigene Kinder anlegen; ausdrücklich berechtigte Vereinsrollen können minimale Kinderprofile für ihren Verein erfassen. Geprüfte Beziehungen steuern den Zugriff. Mehrere Kinder und offene Aufgaben bilden den ersten Teil; Abwesenheiten und Trainingswarteliste folgen als getrennte Abläufe. |
 | 6 | Persistente Trainingsgrundlage und Trainingsmodus | Eigene Pläne und Versionen dauerhaft speichern. Danach tatsächliche Anwesenheit getrennt von Zusagen, Übungen, Timer, Notizen sowie Versuche und Landungen je Trick in einer eindeutig referenzierten Session erfassen. Erfolgsquoten entstehen aus realen Sessions statt nur aus Planstatus. |
@@ -78,6 +78,119 @@ Lokale Worktrees und Vercels interne Rollback-Historie bleiben zulässig.
 | 14 | Verbands-Cockpit | Vergleichbare Bewertungsstandards, datenschutzgerechte aggregierte Statistiken, Kader- und Talententwicklung sowie Freigaben entlang der bestehenden Bundes-/Landes-/Vereinsstruktur. |
 | 15 | Chat und Push | Transaktionsmails für Elternfreigabe, Fahrten, Fristen, Erinnerungen und wichtige Änderungen werden bereits mit den zugehörigen frühen Paketen umgesetzt. Trainer–Athlet-, Trainer–Eltern- und Gruppennachrichten sowie Push bleiben ein späteres, getrennt bewertetes Paket mit Moderationskonzept. |
 | 16 | Native Apps | iOS- und später Android-App erst nach stabilen Web-Kernabläufen, finalem Produktnamen und geklärter Domain umsetzen. Kamera, Push, Offline-Training und native Anmeldung bilden dann den Hauptnutzen gegenüber einer bloßen Web-App-Hülle. |
+
+## Arbeitsschritt 2: Anmeldung und Profilerstellung – lokale Umsetzung
+
+Implementierungsstand: 21.09.2026. Die lokale Analyse, Sicherheits-Testvorbereitung
+und die noch nicht produktiv angewandte Migration laufen
+auf dem isolierten Branch `codex/step-2-auth-onboarding`, aus
+`origin/codex/fahrgemeinschaften-release`. Es wurde nichts in Produktion
+angewandt oder aktiviert. Der vollständige technische Vorschlag, die
+Entscheidungen und der Prüfnachweis stehen im
+[Technischen Bericht für Schritt 2](auth-onboarding-step-2-technical-report-2026-09-09.md).
+Der vollständige fachliche Ablauf und die abgeleiteten Zustände stehen in
+[Onboarding-Ablauf für Schritt 2](onboarding-flow-step-2.md).
+
+Ziel: Eine neue Auth-Identität bleibt bis zu vollständigem Profil,
+Organisationsauswahl, Dokumentannahme und gegebenenfalls Elternfreigabe
+serverseitig sowie per RLS gesperrt. Der bestehende E-Mail/Passwort-Ablauf
+deckt bereits Teile davon ab; Google und Apple bleiben bis zu den offenen
+Identitäts- und Betreiberentscheidungen deaktiviert.
+
+Die nachfolgenden Festlegungen vom 21.09.2026 konkretisieren die
+Organisationsauswahl und erweitern Schritt 2 um den Einladungseinstieg.
+Die verbleibenden Entscheidungen stehen ausdrücklich getrennt darunter.
+
+Noch ausstehend sind ein verständlicher manueller Linking-Dialog mit erneuter
+Authentisierung (unterschiedliche Adressen), die separat freizugebende
+Produktionskonfiguration des lokal implementierten Bereinigungsworkers sowie
+die echte Provider-Abnahme.
+Diese abgegrenzten Punkte sperren die lokale Umsetzung nicht und werden nicht
+als produktiv geprüft dargestellt.
+
+Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
+Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
+Termine oder persönlichen Trainingspläne. Vereins- und Teamdaten bleiben bis
+zur Rollenfreigabe per RLS unsichtbar. Das automatische Supabase-Linking ist
+bei gleicher verifizierter E-Mail erlaubt und erzeugt kein zweites Profil.
+Unvollständige Konten werden nach 30 Tagen einschließlich ihrer Auth-Identität
+vollständig gelöscht. Bei Apple Private Relay fordert das
+Profil eine verifizierte alternative Kontaktadresse an; eine Login-Änderung
+erfolgt ausschließlich nach lokaler Identitätsprüfung und dokumentierter
+Autorisierung durch zuständige Organisationsverantwortliche (`club_board`
+oder `specialist`); Trainer können die persönliche Identitätsprüfung
+bestätigen, aber nicht selbst den Login-Wechsel freigeben.
+Liefert ein Provider keine E-Mail, ergänzt die Person im Onboarding eine
+reguläre Adresse und bestätigt sie per Link. Danach darf sie optional ein
+Passwort festlegen; ein Passwort ist keine allgemeine OAuth-Onboardingpflicht.
+Bis zur E-Mail-Bestätigung bleibt sie gesperrt.
+
+Bestätigt am 21.09.2026: In Deutschland darf eine Person das Onboarding ab
+dem vollendeten 16. Lebensjahr selbstständig abschließen. Unter 16 ist die
+bestätigte Freigabe eines Sorgeberechtigten erforderlich; das gilt auch für
+unter 13-Jährige. Die Bedienführung für jüngere Kinder wird besonders klar
+gestaltet, ohne eine abweichende Zugriffs- oder Freigabelogik einzuführen.
+
+### Bestätigte Ergänzungen: Organisationen, Einladungen und Rollen
+
+- Athleten, Trainer, medizinisches Personal und Eltern dürfen ohne Verein oder
+  Verband fortfahren. Für diese Kontotypen ist die Organisationsauswahl keine
+  Pflicht zum Onboarding-Abschluss. Eltern benötigen keine eigene
+  Vereinsmitgliedschaft; Elternrechte folgen der geprüften Beziehung zum Kind.
+- Vereins- und Verbandsverwaltungen dürfen ihre Organisation anlegen. Bei
+  eigenständiger Anlage ohne berechtigte Einladung ist vor der Aufnahme von
+  Mitgliedern und der Nutzung von Organisationsfunktionen eine Freigabe nötig.
+- Der Betreiber lädt zunächst Verbandsvorstände über persönliche E-Mail-
+  Einladungslinks ein. Bestätigte Verbände wie der BRIV laden Vereine ein;
+  bestätigte Vereine laden ihre Mitglieder ein und vergeben Rollen innerhalb
+  ihrer Struktur. Es werden keine Passwörter oder gemeinsamen Logins versendet.
+- Die Einladung legt Organisation und Rolle fest. Einstieg ist der Link aus
+  der E-Mail, kein zusätzlicher Button auf der allgemeinen Anmeldeseite.
+  Nach Anmeldung/Registrierung, erforderlichem Onboarding und bewusster
+  Annahme wird die Rolle ohne zusätzliche Absegnung übernommen.
+- Einladungen sind an die eingeladene E-Mail gebunden. Öffnen oder Weiterleiten
+  allein gewährt keine Rechte. Bei abweichender Login-Adresse, insbesondere
+  Apple Private Relay, wird der Besitz der eingeladenen Adresse separat
+  bestätigt; eine Kontaktbestätigung allein verknüpft keine Auth-Konten.
+- Erster und zweiter Vorstand haben dieselben Verwaltungsrechte und jeweils
+  ein persönliches Konto. Kassenwart und weitere bedarfsgerechte Rollen sind
+  in Verband und Verein vorgesehen. Eigene Rollen können ohne externe
+  Absegnung angelegt und zugeordnet werden. Kassenwart und weitere neue Rollen
+  bleiben vorerst reine Funktionsbezeichnungen ohne zusätzliche Zugriffsrechte.
+  Eine Erweiterung der Rechte folgt erst nach gesonderter Bedarfsermittlung;
+  die bestätigten gleichen Verwaltungsrechte beider Vorstände bleiben bestehen.
+- Mehrere Vereine lassen sich in einer Liste mit Namen, Kontaktperson und
+  E-Mail vorbereiten und gemeinsam einladen. Status je Einladung, Prüfung
+  auf bestehende Organisationen und doppelte Einladungen gehören zum Ablauf.
+- Aus dem vollständig beschriebenen Ablauf wurde `onboarding_accounts` als
+  minimales Zustandsmodell abgeleitet. Es speichert nur Zustand, Kontoerstellung,
+  Abschluss und die feste 30-Tage-Frist; Rollenrechte entstehen daraus nicht.
+
+### Noch zu klären und anschließend technisch auszuarbeiten
+
+Die ersten Verbandseinladungen werden vorerst gemeinsam durch den
+Projektverantwortlichen (Nutzer) UND die zuständigen DRIV-/SK-Vorsitzenden
+freigegeben. Die konkrete technische Abbildung dieser gemeinsamen Freigabe
+ist noch auszuarbeiten.
+
+Bestätigt: Die 30-Tage-Löschfrist für unvollständige Konten ohne Fachdaten
+beginnt mit der Kontoerstellung und gilt auch bei ausstehender Elternfreigabe.
+Bloßes Einloggen verlängert die Frist nicht. Vollständig eingerichtete Konten
+mit noch offener Vereinsfreigabe fallen nicht unter diese Bereinigung.
+
+Bestätigt: Manuelles Verknüpfen und Entfernen von Login-Methoden bei
+unterschiedlichen Login-Adressen wird auf später verschoben und gehört nicht
+zu Schritt 2. Automatisches Linking gleicher verifizierter E-Mail bleibt
+Bestandteil von Schritt 2.
+
+Technisch vorzubereiten: Einladungsablauf mit Ablaufdatum, Widerruf, erneutem
+Versand und einmaliger Annahme; Umgang mit bereits vorhandenen Vereinen und
+Konten; Berechtigungsmatrix samt direkten Datenbanktests; Fehler-/Abbruchpfade
+und mobile Praxisprüfliste. Persönliche Termine und Trainingspläne müssen
+tatsächlich ohne Organisationsmitgliedschaft funktionieren; dieser Umfang in
+Schritt 2 ist vom späteren umfangreichen Trainingspaket in Schritt 6 abzugrenzen.
+Betreiber-, Anschrift- und Kontaktdaten sowie finale Rechtstexte bleiben
+Veröffentlichungsblocker. Schritt 1 bleibt fachlich offen.
 
 ## Festlegungen für Google- und Apple-Anmeldung
 

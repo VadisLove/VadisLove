@@ -5,7 +5,6 @@ import {
   evaluateRegistrationAge,
   guardianApprovalAge,
   localIsoDate,
-  minimumSelfRegistrationAge,
 } from "@/domain/registration-age";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./page.module.css";
@@ -22,13 +21,13 @@ export function AgeAndGuardianFields() {
   const ageResult = birthDate
     ? evaluateRegistrationAge(birthDate, today)
     : null;
-  const enteredDateIsTooYoung = Boolean(birthDate && !ageResult);
+  const enteredDateIsInvalid = Boolean(birthDate && !ageResult);
 
   return (
     <section className={styles.ageSection} aria-labelledby="registration-age-title">
       <div>
         <strong id="registration-age-title">{t("auth.ageTitle")}</strong>
-        <small>{t("auth.ageDescription", { age: minimumSelfRegistrationAge })}</small>
+        <small>{t("auth.ageDescription", { age: guardianApprovalAge })}</small>
       </div>
 
       <label>
@@ -46,10 +45,10 @@ export function AgeAndGuardianFields() {
 
       <small
         id="registration-age-help"
-        className={enteredDateIsTooYoung ? styles.fieldError : ""}
+        className={enteredDateIsInvalid ? styles.fieldError : ""}
       >
-        {enteredDateIsTooYoung
-          ? t("auth.minimumAgeError", { age: minimumSelfRegistrationAge })
+        {enteredDateIsInvalid
+          ? t("auth.minimumAgeError", { age: guardianApprovalAge })
           : t("auth.birthDatePrivacy")}
       </small>
 

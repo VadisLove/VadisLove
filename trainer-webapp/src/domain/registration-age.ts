@@ -1,5 +1,8 @@
-export const minimumSelfRegistrationAge = 13;
-export const guardianApprovalAge = 18;
+// Die bestätigte Produktregel betrifft das Onboarding in Deutschland: ab dem
+// 16. Geburtstag darf es selbstständig abgeschlossen werden. Sie ist keine
+// pauschale rechtliche Bewertung anderer Einwilligungen oder Verträge.
+export const minimumSelfRegistrationAge = 0;
+export const guardianApprovalAge = 16;
 
 interface ParsedDate {
   year: number;

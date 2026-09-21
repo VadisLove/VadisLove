@@ -19,8 +19,8 @@ const selectableAccountTypes: AccountType[] = [
 ];
 
 /**
- * Wechselt die Organisationsliste passend zum Kontotyp. So können Personen
- * nur Vereine und Verwaltungskonten nur Landesverbände auswählen.
+ * Wechselt die Organisationsliste passend zum Kontotyp. Die Auswahl ist
+ * freiwillig: persönlicher Zugriff hängt nie von einer Organisation ab.
  */
 export function RegistrationOrganizationFields({
   organizations,
@@ -74,7 +74,6 @@ export function RegistrationOrganizationFields({
             name="organizationId"
             value={organizationId}
             onChange={(event) => setOrganizationId(event.target.value)}
-            required
           >
             <option value="">{expectsStateAssociation
               ? t("auth.selectStateAssociation")
