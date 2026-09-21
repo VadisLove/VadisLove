@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { evaluateRegistrationAge, localIsoDate } from "@/domain/registration-age";
 import { issueGuardianApprovalEmail } from "@/lib/guardian-approval-email";
 import { legalDocumentVersions } from "@/lib/legal-documents";
+import { validateNewPassword } from "@/domain/password-security";
 
 const accountTypes = new Set([
   "athlete",
@@ -96,12 +97,9 @@ export async function register(formData: FormData) {
     );
   }
 
-  if (password.length < 8) {
-    redirect(loginUrl("Das Passwort muss mindestens 8 Zeichen lang sein.", "/", "register"));
-  }
-
-  if (password !== passwordConfirmation) {
-    redirect(loginUrl("Die eingegebenen Passwörter stimmen nicht überein.", "/", "register"));
+  const passwordError = validateNewPassword(password, passwordConfirmation);
+  if (passwordError) {
+    redirect(loginUrl(passwordError, "/", "register"));
   }
 
   const supabase = await createClient();
@@ -183,6 +181,7 @@ export async function register(formData: FormData) {
     ),
   );
 }
+
 
 /**
  * Beendet die aktuelle Sitzung und führt zurück zum Login.

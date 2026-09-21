@@ -152,6 +152,20 @@ Token und sensible Diagnosedaten erscheinen nie in Client, Logs oder Git.
 Produktionsgeheimnisse für den Schritt-2-Cleanup, Passwortänderungen durch
 Organisationen oder Trainer sowie neue Rollen- und Organisationsrechte.
 
+**Bestätigte Entscheidungen vom 21.09.2026:** Bestehende Passwortkonten
+bestätigen Änderungen mit dem aktuellen Passwort; Konten ohne Passwort nutzen
+einen Einmalcode an ihre bestätigte Auth-E-Mail. Für alle Abläufe gelten wie bei
+der Registrierung mindestens acht Zeichen und eine doppelte Eingabe. Nach einer
+Profiländerung bleibt die aktuelle Sitzung bestehen, alle anderen Sitzungen
+werden beendet; nach öffentlichem Recovery ist eine neue Anmeldung erforderlich.
+Supabase erzwingt den 60-Sekunden-Abstand pro Recovery-Adresse sowie die
+IP-bezogenen Auth-Grenzen. Cloudflare Turnstile kann bei erhöhtem Missbrauch als
+zusätzliche Schutzschicht aktiviert werden. Die kurzlebige Reset-Berechtigung
+wird serverseitig signiert; ihr Geheimnis liegt ausschließlich in der
+Produktionsumgebung. Ein ausdrücklich freigegebener
+externer Testempfänger ist außerhalb des Repositorys festgelegt und wird weder
+in Quellcode noch Git dokumentiert.
+
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
 Termine oder persönlichen Trainingspläne. Vereins- und Teamdaten bleiben bis

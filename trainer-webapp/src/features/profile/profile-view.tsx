@@ -40,6 +40,7 @@ import {
   type ProfileOverview,
 } from "@/domain/profile";
 import { ProfilePhotoEditor } from "./profile-photo-editor";
+import { PasswordSecurityCard } from "./password-security-card";
 import styles from "./profile-view.module.css";
 
 const initialActionState: ProfileActionState = { status: "idle", message: "" };
@@ -163,10 +164,15 @@ function ActionMessage({ state }: { state: ProfileActionState }) {
 
 export function ProfileView({
   profile,
+  passwordSecurity,
   deleteError,
   restored,
 }: {
   profile: ProfileOverview;
+  passwordSecurity: {
+    hasPassword: boolean;
+    hasConfirmedEmail: boolean;
+  };
   deleteError: string;
   restored: boolean;
 }) {
@@ -379,6 +385,8 @@ export function ProfileView({
             </button>
           </div>
         </form>
+
+        <PasswordSecurityCard {...passwordSecurity} />
 
         <section className={styles.sectionCard} aria-labelledby="clubs-heading">
           <header className={styles.sectionHeader}>

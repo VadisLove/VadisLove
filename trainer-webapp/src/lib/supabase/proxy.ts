@@ -41,6 +41,7 @@ export async function updateSession(request: NextRequest) {
   const isPublicAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/auth/callback") ||
+    request.nextUrl.pathname.startsWith("/passwort-vergessen") ||
     request.nextUrl.pathname.startsWith("/einladung") ||
     request.nextUrl.pathname.startsWith("/elternfreigabe") ||
     request.nextUrl.pathname.startsWith("/datenschutz") ||

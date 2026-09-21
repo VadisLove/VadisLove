@@ -96,6 +96,124 @@
   gap: 18px;
 }
 
+.formLinkRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+}
+
+.formLinkRow a,
+.authBackLink a {
+  color: var(--color-blue-dark);
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.recoveryIntro {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 24px 0 20px;
+  padding: 14px;
+  border: 1px solid #cfe1f2;
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, #f8fbff, #eef6fd);
+  color: var(--color-navy-soft);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.recoveryIntro > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: white;
+  color: var(--color-blue-dark);
+}
+
+.securityNote {
+  margin-top: -4px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.recoveryConfirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #bce5ca;
+  border-radius: var(--radius-md);
+  background: #f0fbf4;
+  color: #087b35;
+}
+
+.recoveryConfirmation svg {
+  flex: 0 0 auto;
+}
+
+.recoveryConfirmation strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.recoveryConfirmation p {
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.expiredRecovery {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #f0c1c4;
+  border-radius: var(--radius-md);
+  background: #fff4f4;
+  color: var(--color-danger);
+}
+
+.expiredRecovery svg {
+  flex: 0 0 auto;
+}
+
+.expiredRecovery strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.expiredRecovery p {
+  margin-bottom: 10px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.expiredRecovery a {
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.authBackLink {
+  display: flex;
+  margin-top: 22px;
+}
+
+.authBackLink a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+}
+
 .form label {
   display: grid;
   gap: 8px;

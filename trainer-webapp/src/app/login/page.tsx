@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LockKeyhole, UserPlus } from "lucide-react";
 import { login, register } from "@/app/login/actions";
+import { minimumPasswordLength } from "@/domain/password-security";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getTranslations } from "@/i18n/server";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -126,7 +127,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   type="password"
                   name="password"
                   autoComplete="new-password"
-                  minLength={8}
+                  minLength={minimumPasswordLength}
                   required
                 />
               </label>
@@ -136,7 +137,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   type="password"
                   name="passwordConfirmation"
                   autoComplete="new-password"
-                  minLength={8}
+                  minLength={minimumPasswordLength}
                   required
                 />
               </label>
@@ -187,10 +188,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 type="password"
                 name="password"
                 autoComplete="current-password"
-                minLength={8}
+                minLength={minimumPasswordLength}
                 required
               />
             </label>
+
+            <div className={styles.formLinkRow}>
+              <Link href="/passwort-vergessen">Passwort vergessen?</Link>
+            </div>
 
             <button type="submit" disabled={!configured}>
               <LockKeyhole size={18} />

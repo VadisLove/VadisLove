@@ -364,6 +364,146 @@
   grid-column: 1 / -1;
 }
 
+.passwordForm {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.passwordFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.passwordFieldGrid label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--color-text);
+  font-size: 0.74rem;
+  font-weight: 740;
+}
+
+.passwordFieldGrid input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #cfd8e2;
+  border-radius: 9px;
+  background: white;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.passwordFieldGrid input:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(20, 140, 242, 0.12);
+}
+
+.passwordFullField {
+  grid-column: 1 / -1;
+}
+
+.passwordFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.passwordFooter > small {
+  max-width: 480px;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.passwordFooter > div {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+
+.passwordSecondaryButton {
+  min-height: 46px;
+  padding: 0 15px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  color: var(--color-blue-dark);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.passwordExplanation,
+.passwordSuccess {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 22px;
+  padding: 15px;
+  border-radius: 11px;
+}
+
+.passwordExplanation {
+  border: 1px solid #cfe1f2;
+  background: #f4f9fd;
+  color: var(--color-navy-soft);
+}
+
+.passwordSuccess {
+  border: 1px solid #bce5ca;
+  background: #f0fbf4;
+  color: #087b35;
+}
+
+.passwordExplanation svg,
+.passwordSuccess svg {
+  flex: 0 0 auto;
+}
+
+.passwordExplanation strong,
+.passwordSuccess strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+}
+
+.passwordExplanation p,
+.passwordSuccess p {
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.passwordError,
+.passwordCodeMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.passwordError {
+  border: 1px solid #f0c1c4;
+  background: #fff4f4;
+  color: #b81f29;
+}
+
+.passwordCodeMessage {
+  border: 1px solid #bcd9f1;
+  background: #f2f8fd;
+  color: var(--color-blue-dark);
+}
+
+.passwordError svg,
+.passwordCodeMessage svg {
+  flex: 0 0 auto;
+}
+
 .formFooter {
   display: flex;
   min-width: 0;
@@ -779,13 +919,15 @@
   }
 
   .fieldGrid,
-  .readonlyGrid {
+  .readonlyGrid,
+  .passwordFieldGrid {
     grid-template-columns: minmax(0, 1fr);
     padding: 18px;
   }
 
   .fullField,
-  .fullReadonly {
+  .fullReadonly,
+  .passwordFullField {
     grid-column: auto;
   }
 
@@ -801,6 +943,15 @@
   .dangerBody {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .passwordFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .passwordFooter > div {
+    justify-content: flex-end;
   }
 
   .dangerBody > button {
@@ -860,6 +1011,18 @@
   }
 
   .primaryButton {
+    width: 100%;
+  }
+
+  .passwordForm {
+    padding: 18px 16px;
+  }
+
+  .passwordFooter > div {
+    flex-direction: column-reverse;
+  }
+
+  .passwordSecondaryButton {
     width: 100%;
   }
 

@@ -64,6 +64,8 @@ export function AppShell({
   // Öffentliche Seiten wie der Login benötigen weder Navigation noch App-Rahmen.
   if (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/passwort-vergessen") ||
+    pathname.startsWith("/passwort-zuruecksetzen") ||
     pathname.startsWith("/konto-wiederherstellen") ||
     pathname.startsWith("/freigabe-ausstehend") ||
     pathname.startsWith("/elternfreigabe") ||

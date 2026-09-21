@@ -37,6 +37,16 @@ die Warteseite erneut angestoßen werden.
 Token werden ausschließlich dem Versandserver ausgegeben. Das minderjährige
 Konto kann einen erneuten Versand anfordern, erhält aber niemals den Freigabelink.
 
+## Passwortverwaltung
+
+Die öffentliche Seite `/passwort-vergessen` nutzt Supabase Auth für
+rate-limitierte Recovery-Mails. `PASSWORD_RECOVERY_COOKIE_SECRET` muss in jeder
+produktiven Laufzeit als separates, zufälliges Geheimnis mit mindestens 32
+Zeichen gesetzt sein. Es signiert ausschließlich die kurzlebige Berechtigung
+für `/passwort-zuruecksetzen` und darf nie als `NEXT_PUBLIC_`-Variable oder im
+Repository gespeichert werden. Optional kann Supabase Auth zusätzlich mit
+Cloudflare Turnstile geschützt werden.
+
 ## Fahrgemeinschaften
 
 Fahrtangebote, Gesuche, Buchungen und Elterninformationen sind direkt am Termin
