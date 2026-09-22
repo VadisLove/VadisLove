@@ -234,6 +234,40 @@
   background: white;
 }
 
+/* Hält den Anzeigen-Button innerhalb des Passwortfelds, ohne die Touch-Zone
+   oder die Breite der Formulare auf schmalen Geräten zu verringern. */
+.passwordInputControl {
+  position: relative;
+  display: block;
+}
+
+.passwordInputControl input {
+  padding-right: 52px !important;
+}
+
+.passwordVisibilityButton {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-blue-dark);
+  cursor: pointer;
+}
+
+.passwordVisibilityButton:hover,
+.passwordVisibilityButton:focus-visible {
+  background: var(--color-blue-soft);
+  outline: 2px solid var(--color-blue);
+  outline-offset: 1px;
+}
+
 .ageSection {
   display: grid;
   gap: 13px;

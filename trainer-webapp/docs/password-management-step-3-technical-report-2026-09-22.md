@@ -29,6 +29,9 @@ Passwörter anderer Personen ändern.
 - `/passwort-vergessen` liefert unabhängig von Kontoexistenz und Provider eine
   neutrale Antwort und nutzt die Supabase-Auth-Limits. Cloudflare Turnstile ist
   als optionale weitere Schutzschicht dokumentiert, aber nicht aktiviert.
+- Recovery-E-Mails verwenden auch bei einer Anfrage aus einer Vorschau die
+  verbindliche öffentliche App-Adresse. Passwortfelder können auf Wunsch lokal
+  angezeigt und wieder verborgen werden.
 - Der Recovery-Link wird im Auth-Callback eingelöst. Eine kurzlebige,
   HttpOnly-signierte Berechtigung bindet `/passwort-zuruecksetzen` an Nutzer
   und Ablaufzeit. Nach dem Reset werden alle Sitzungen beendet.

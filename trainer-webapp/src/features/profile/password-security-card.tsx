@@ -7,6 +7,7 @@ import {
   type PasswordActionState,
 } from "@/app/profil/actions";
 import { minimumPasswordLength } from "@/domain/password-security";
+import { PasswordInput } from "@/components/forms/password-input";
 import styles from "./profile-view.module.css";
 
 const initialState: PasswordActionState = { status: "idle", message: "" };
@@ -80,32 +81,35 @@ export function PasswordSecurityCard({
             {hasPassword ? (
               <label className={styles.passwordFullField}>
                 <span>Aktuelles Passwort</span>
-                <input
-                  type="password"
+                <PasswordInput
                   name="currentPassword"
                   autoComplete="current-password"
                   required
+                  controlClassName={styles.passwordInputControl}
+                  toggleClassName={styles.passwordVisibilityButton}
                 />
               </label>
             ) : null}
             <label>
               <span>Neues Passwort</span>
-              <input
-                type="password"
+              <PasswordInput
                 name="password"
                 autoComplete="new-password"
                 minLength={minimumPasswordLength}
                 required
+                controlClassName={styles.passwordInputControl}
+                toggleClassName={styles.passwordVisibilityButton}
               />
             </label>
             <label>
               <span>Neues Passwort wiederholen</span>
-              <input
-                type="password"
+              <PasswordInput
                 name="passwordConfirmation"
                 autoComplete="new-password"
                 minLength={minimumPasswordLength}
                 required
+                controlClassName={styles.passwordInputControl}
+                toggleClassName={styles.passwordVisibilityButton}
               />
             </label>
             {codeRequested ? (

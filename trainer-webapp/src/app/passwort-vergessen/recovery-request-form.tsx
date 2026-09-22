@@ -4,6 +4,7 @@ import { MailCheck } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { passwordResetPath } from "@/lib/password-recovery";
+import { getPublicAppUrl } from "@/lib/public-app-url";
 import styles from "@/app/login/page.module.css";
 
 const neutralConfirmation =
@@ -27,7 +28,9 @@ export function RecoveryRequestForm({ configured }: { configured: boolean }) {
     setPending(true);
 
     try {
-      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      // Recovery-E-Mails müssen auch aus einem Vorschau-Tab zur dauerhaft
+      // verfügbaren Produktionsadresse zurückführen.
+      const callbackUrl = new URL("/auth/callback", getPublicAppUrl());
       callbackUrl.searchParams.set("next", passwordResetPath);
       const supabase = createClient();
 

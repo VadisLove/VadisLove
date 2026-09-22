@@ -3,6 +3,7 @@
 import { AlertTriangle, KeyRound } from "lucide-react";
 import { useActionState } from "react";
 import { minimumPasswordLength } from "@/domain/password-security";
+import { PasswordInput } from "@/components/forms/password-input";
 import {
   resetRecoveredPassword,
   type ResetPasswordState,
@@ -27,22 +28,24 @@ export function ResetPasswordForm() {
       ) : null}
       <label>
         Neues Passwort
-        <input
-          type="password"
+        <PasswordInput
           name="password"
           autoComplete="new-password"
           minLength={minimumPasswordLength}
           required
+          controlClassName={styles.passwordInputControl}
+          toggleClassName={styles.passwordVisibilityButton}
         />
       </label>
       <label>
         Neues Passwort wiederholen
-        <input
-          type="password"
+        <PasswordInput
           name="passwordConfirmation"
           autoComplete="new-password"
           minLength={minimumPasswordLength}
           required
+          controlClassName={styles.passwordInputControl}
+          toggleClassName={styles.passwordVisibilityButton}
         />
       </label>
       <p className={styles.securityNote}>

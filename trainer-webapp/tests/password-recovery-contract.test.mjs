@@ -19,6 +19,7 @@ const urls = {
   profileAction: new URL("../src/app/profil/actions.ts", import.meta.url),
   proxy: new URL("../src/lib/supabase/proxy.ts", import.meta.url),
   appShell: new URL("../src/components/layout/app-shell.tsx", import.meta.url),
+  publicAppUrl: new URL("../src/lib/public-app-url.ts", import.meta.url),
 };
 
 const sources = Object.fromEntries(
@@ -32,6 +33,9 @@ test("öffentliche Recovery-Antworten geben keine Kontoexistenz preis", () => {
   assert.match(sources.requestForm, /finally/);
   assert.doesNotMatch(sources.requestForm, /error\.message/);
   assert.match(sources.requestForm, /resetPasswordForEmail/);
+  assert.match(sources.requestForm, /getPublicAppUrl/);
+  assert.doesNotMatch(sources.requestForm, /window\.location\.origin/);
+  assert.match(sources.publicAppUrl, /https:\/\/trainer-webapp-ruby\.vercel\.app/);
 });
 
 test("nur ein eingelöster Recovery-Code öffnet die eigene Reset-Seite", () => {

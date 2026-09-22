@@ -179,6 +179,11 @@ Der gehärtete Quellstand `38cd671` läuft im produktiven Deployment
 `dpl_2rWseTYMMNeZevxepPFGUhCjjQHw`; der öffentliche Alias wurde anschließend
 gegen dieses `Ready`-Deployment geprüft.
 
+**Ergänzung vom 22.09.2026:** Recovery-E-Mails verwenden für jede
+produktionsähnliche Ausführung ausschließlich die maßgebliche öffentliche
+Adresse statt einer aufgerufenen Vorschauadresse. Passwortfelder erhalten einen
+lokalen, barrierefrei beschrifteten Anzeigen-/Verbergen-Schalter.
+
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
 Termine oder persönlichen Trainingspläne. Vereins- und Teamdaten bleiben bis
