@@ -78,6 +78,15 @@ verweist. Der vorherige Produktionsstand `38cd671` ist mit dem Git-Tag
 `production/stable-before-step-3-recovery-url-2026-09-22` als Rollback-Punkt
 gesichert.
 
+Die Supabase-Auth-URL-Konfiguration wurde am 22.09.2026 geprüft und korrigiert:
+Die Site URL lautet nun `https://trainer-webapp-ruby.vercel.app`. Als Redirect-
+Ziele bleiben ausschließlich `https://trainer-webapp-ruby.vercel.app/**` und
+`http://localhost:3000/**` erhalten. Die konkrete alte Vorschauadresse sowie
+die allgemeine Vercel-Vorschau-Wildcard wurden entfernt. Eine neue Recovery-
+Anfrage über die Produktionsseite zeigte die neutrale Bestätigung; die Prüfung
+des tatsächlich empfangenen Mail-Links erfolgt durch den Nutzer, ohne Token
+oder Link in Dokumentation oder Chat zu speichern.
+
 ## Bekannte Grenzen und fachliche Praxisabnahme
 
 Der HTTP-200-Nachweis bestätigt nur, dass Supabase die Recovery-Anfrage

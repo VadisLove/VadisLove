@@ -187,6 +187,13 @@ Der korrigierte Quellstand `daa464e` läuft im produktiven Deployment
 `dpl_EWwb45J21EamZtEkG8ZwJqsgCjZY`; der öffentliche Alias wurde erneut gegen
 dieses `Ready`-Deployment geprüft.
 
+**Supabase-Produktionskonfiguration vom 22.09.2026:** Die Auth-Site-URL lautet
+`https://trainer-webapp-ruby.vercel.app`. Erlaubt sind nur diese
+Produktionsdomain als Redirect-Ziel und `http://localhost:3000/**` für die
+lokale Entwicklung. Die alte konkrete Vorschauadresse und die generelle
+Vercel-Vorschau-Wildcard wurden entfernt, damit Recovery-Links nicht mehr auf
+kurzlebige Deployments zurückfallen.
+
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
 Termine oder persönlichen Trainingspläne. Vereins- und Teamdaten bleiben bis
