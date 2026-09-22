@@ -25,6 +25,9 @@ bestanden** oder **nicht geprüft** markieren und Auffälligkeiten notieren.
 
 ## Terminersteller
 
+- [ ] „Verbindliche Kommunikation“ lässt sich auf- und zuklappen; Eingaben
+  bleiben dabei erhalten. Weitere Links lassen sich über „+ Link hinzufügen“
+  ergänzen (maximal zehn).
 - [ ] Rückmeldefrist, mehrere beschriftete Links und neue Wochenserie lassen
   sich mobil erstellen.
 - [ ] Bei einer Serie ist eindeutig zwischen „nur dieser Termin“ und „dieser

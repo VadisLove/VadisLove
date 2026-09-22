@@ -319,6 +319,8 @@ export function CalendarView({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(initialSelectedEvent);
   const [dialogOpen, setDialogOpen] = useState(Boolean(initialCreateDialogRequest));
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  // Nur die sichtbare Zeilenzahl wird verwaltet; Eingaben bleiben im Formular erhalten.
+  const [informationLinkCount, setInformationLinkCount] = useState(1);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState(
     organizationOptions[0]?.id || "",
   );
@@ -562,6 +564,7 @@ export function CalendarView({
     const firstOrganization = organizationOptions[0];
     setEditingEvent(null);
     setCreateDate(date);
+    setInformationLinkCount(1);
     setCreateEndDate(endDate);
     setEventDraft({
       organizationId: firstOrganization?.id || "",
@@ -696,6 +699,7 @@ export function CalendarView({
     }
 
     setEditingEvent(selectedEvent);
+    setInformationLinkCount(Math.max(1, selectedEvent.informationLinks.length));
     setSelectedOrganizationId(selectedEvent.organizationId || "");
     setSelectedEventType(selectedEvent.type);
     setEventDraft({
@@ -1712,8 +1716,16 @@ export function CalendarView({
                 <label>{t("calendar.capacity")}<input name="capacity" type="number" min="1" defaultValue={editingEvent?.capacity || 16} required /></label>
               </div>
               <label>{t("calendar.descriptionField")}<textarea name="description" rows={3} defaultValue={editingEvent?.description || ""} /></label>
-              <fieldset className={styles.communicationFields}>
-                <legend>Verbindliche Kommunikation</legend>
+              {/* Native Details erhalten Eingaben auch im geschlossenen Zustand. */}
+              <details
+                className={styles.communicationFields}
+                onInvalidCapture={(event) => {
+                  // Ungültige Felder vor der nativen Browser-Fokussierung sichtbar machen.
+                  event.currentTarget.open = true;
+                }}
+              >
+                <summary>Verbindliche Kommunikation</summary>
+                <div className={styles.communicationFieldsBody}>
                 <div className={styles.dateTimeRow}>
                   <label>
                     Rückmeldefrist – Datum
@@ -1732,14 +1744,24 @@ export function CalendarView({
                 ) : null}
                 <div className={styles.linkEditor}>
                   <strong>Informationslinks</strong>
-                  {Array.from({ length: Math.max(3, editingEvent?.informationLinks.length || 0) }, (_, index) => (
+                  {Array.from({ length: informationLinkCount }, (_, index) => (
                     <div key={index}>
                       <input name="linkLabel" aria-label={`Link ${index + 1} Bezeichnung`} placeholder="Bezeichnung" defaultValue={editingEvent?.informationLinks[index]?.label || ""} />
                       <input name="linkUrl" aria-label={`Link ${index + 1} URL`} type="url" inputMode="url" placeholder="https://…" defaultValue={editingEvent?.informationLinks[index]?.url || ""} />
                     </div>
                   ))}
+                  <button
+                    type="button"
+                    className={styles.addInformationLink}
+                    disabled={informationLinkCount >= 10}
+                    onClick={() => setInformationLinkCount((count) => Math.min(10, count + 1))}
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    {informationLinkCount >= 10 ? "Maximal 10 Links" : "Link hinzufügen"}
+                  </button>
                 </div>
-              </fieldset>
+                </div>
+              </details>
               {feedback ? <p className={styles.formFeedback}>{feedback}</p> : null}
               </div>
               <div className={styles.dialogActions}>

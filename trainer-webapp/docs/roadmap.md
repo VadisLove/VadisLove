@@ -200,6 +200,15 @@ Supabase-Auth-Mail-Quote.
 
 ## Schritt 4 – Verbindliche Kalenderkommunikation
 
+**Bestätigte Bedienungsanpassung (22.09.2026):** Im Terminformular wird
+„Verbindliche Kommunikation“ standardmäßig eingeklappt angezeigt. Ein erstes
+Linkfeld und „+ Link hinzufügen“ ersetzen drei feste Leerzeilen; maximal zehn
+Links entsprechen der bestehenden Validierung. Zielgruppe sind Terminersteller
+auf Desktop und Smartphone. Abnahme: per Tastatur bedienbares Auf-/Zuklappen,
+Erhalt eingegebener und vorhandener Werte, dynamisches Ergänzen und sichtbare
+Validierungsfehler. Die Prüfung erfolgt im Browser sowie durch Typecheck, Lint
+und Build; Datenmodell und Berechtigungen sind nicht Teil dieser Anpassung.
+
 **Zielentität und Nutzungskontext:** Bewertet werden Kalendertermine samt
 Teilnahme, wichtiger Revisionen, Zustellungen und persönlichem ICS-Feed in der
 mobilen und Desktop-Webanwendung sowie deren fachlicher E-Mail-Versand. Der

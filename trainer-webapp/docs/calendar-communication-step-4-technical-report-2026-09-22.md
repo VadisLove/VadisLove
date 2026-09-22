@@ -106,6 +106,19 @@ Fahrgemeinschaftsabsagen ab.
   `https://trainer-webapp-ruby.vercel.app` bedient.
 - Die offenen Praxispunkte aus Schritt 3 bleiben unverändert separat offen.
 
+## Bedienungsnachtrag vom 22.09.2026
+
+Der Abschnitt „Verbindliche Kommunikation“ ist im Terminformular standardmäßig
+eingeklappt. Zusätzliche Linkzeilen werden bis zum bestehenden Limit von zehn
+über „+ Link hinzufügen“ ergänzt. Native Formularvalidierung öffnet den
+Abschnitt bei ungültigen Eingaben. Typecheck, ESLint und Produktionsbuild sind
+bestanden. Chromium-Prüfung mit lokalem Fixture: neue und vorhandene Links,
+Zurücksetzen beim Dialogwechsel, zehn Zeilen samt deaktiviertem Plus-Button,
+FormData-Erhalt bei geschlossenem Abschnitt, Tastaturbedienung und mobiles
+Layout bei 390 × 844 Pixeln bestanden. Das lokale Fixture wurde danach entfernt.
+Diese Prüfung bestätigt die Formularbedienung; die fachliche Praxisabnahme
+und reale Versandprüfung bleiben offen.
+
 ## Rollback-Konzept
 
 Der vorherige stabile Produktionsstand `daa464e` ist mit

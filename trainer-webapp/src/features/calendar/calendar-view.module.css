@@ -1165,17 +1165,42 @@ button.legendItem:focus-visible {
 }
 
 .communicationFields {
-  display: grid;
-  gap: 14px;
-  padding: 14px;
   background: #f8fbfe;
 }
 
-.communicationFields legend {
-  padding: 0 6px;
+.communicationFields summary {
+  min-height: 44px;
+  padding: 14px;
   color: var(--color-navy);
   font-size: 0.76rem;
   font-weight: 800;
+  cursor: pointer;
+}
+
+.communicationFieldsBody {
+  display: grid;
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.addInformationLink {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-blue-dark);
+  background: white;
+  font-size: 0.75rem;
+  font-weight: 740;
+}
+
+.addInformationLink:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .linkEditor {
