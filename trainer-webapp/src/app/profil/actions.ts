@@ -162,6 +162,32 @@ export async function changeOwnPassword(
     };
   }
 
+  if (hasPassword) {
+    if (!user.email) {
+      return {
+        status: "error",
+        message: "Für dieses Konto ist keine bestätigte Login-E-Mail verfügbar.",
+      };
+    }
+
+    // Eine frische Passwortanmeldung erzwingt die Prüfung unabhängig davon, ob
+    // die optionale Supabase-Projekteinstellung für current_password aktiv ist.
+    // Die Anmeldung verwendet ausschließlich die bereits authentifizierte
+    // Login-E-Mail und ersetzt die aktuelle Sitzung durch eine neue Sitzung.
+    const { data: verification, error: verificationError } =
+      await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+    if (verificationError || verification.user?.id !== user.id) {
+      return {
+        status: "error",
+        message: "Das aktuelle Passwort ist nicht gültig.",
+      };
+    }
+  }
+
   const { error } = await supabase.auth.updateUser(
     hasPassword
       ? { password, current_password: currentPassword }

@@ -127,7 +127,7 @@ Diese Restarbeiten bleiben bei Schritt 2. Sie blockieren nicht den Start von
 Schritt 3, weil dessen Passwort- und Recovery-Abläufe die bestehenden
 Onboarding-, Elternfreigabe- und RLS-Sperren ausdrücklich weiterverwenden.
 
-## Arbeitsschritt 3: Passwort sicher ändern und wiederherstellen – bereit zur Umsetzung
+## Arbeitsschritt 3: Passwort sicher ändern und wiederherstellen – technisch umgesetzt
 
 **Ziel:** Personen mit bestätigter E-Mail können ein Passwort sicher setzen,
 ändern und wiederherstellen, ohne E-Mail-Adressen preiszugeben oder bestehende
@@ -165,6 +165,16 @@ wird serverseitig signiert; ihr Geheimnis liegt ausschließlich in der
 Produktionsumgebung. Ein ausdrücklich freigegebener
 externer Testempfänger ist außerhalb des Repositorys festgelegt und wird weder
 in Quellcode noch Git dokumentiert.
+
+**Technischer Stand vom 22.09.2026:** Profiländerung, öffentliche
+Recovery-Anfrage und geschützte Reset-Seite sind implementiert. Das aktuelle
+Passwort wird durch eine frische Anmeldung am bereits authentifizierten Konto
+geprüft und zusätzlich beim Passwortwechsel an Supabase übergeben; der Schutz
+hängt damit nicht von einer optionalen Projekteinstellung ab. Der produktive
+Recovery-Versand wurde an den freigegebenen externen Testempfänger von Supabase
+mit HTTP 200 angenommen. Empfang, Linkaufruf und abschließender Login bleiben
+Teil der fachlichen Praxisabnahme. Details und bekannte Grenzen stehen im
+[Technischen Bericht für Schritt 3](password-management-step-3-technical-report-2026-09-22.md).
 
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen

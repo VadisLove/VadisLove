@@ -46,6 +46,8 @@ test("nur ein eingelöster Recovery-Code öffnet die eigene Reset-Seite", () => 
 
 test("Recovery widerruft alle Sitzungen und Profiländerung nur die anderen", () => {
   assert.match(sources.resetAction, /signOut\(\{ scope: "global" \}\)/);
+  assert.match(sources.profileAction, /signInWithPassword/);
+  assert.match(sources.profileAction, /verification\.user\?\.id !== user\.id/);
   assert.match(sources.profileAction, /current_password: currentPassword/);
   assert.match(sources.profileAction, /password, nonce/);
   assert.match(sources.profileAction, /signOut\(\{ scope: "others" \}\)/);

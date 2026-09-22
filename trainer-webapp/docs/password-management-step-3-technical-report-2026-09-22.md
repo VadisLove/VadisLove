@@ -1,0 +1,88 @@
+# Technischer Bericht: Schritt 3 – Passwortverwaltung
+
+Stand: 22.09.2026
+
+## Ziel und Nutzungskontext
+
+Zielentität ist die Passwortanmeldung einer Person mit bestätigter Auth-E-Mail.
+Der Schritt umfasst den Passwortwechsel im angemeldeten Profil sowie die
+öffentliche Wiederherstellung auf mobilen und Desktop-Webbrowsern. Bestehende
+Onboarding-, Elternfreigabe-, Rollen- und RLS-Sperren bleiben unverändert.
+
+Betroffen sind angemeldete Personen mit Passwortidentität, angemeldete
+OAuth-only-Personen mit bestätigter E-Mail sowie abgemeldete Personen im
+Recovery-Ablauf. Organisationen, Trainer und Administratoren können keine
+Passwörter anderer Personen ändern.
+
+## Umgesetzter Umfang
+
+- Im Profil lässt sich ein Passwort mit mindestens acht Zeichen und doppelter
+  Eingabe setzen oder ändern.
+- Ein bestehendes Passwortkonto bestätigt die Änderung durch eine frische
+  Passwortanmeldung an der bereits authentifizierten Login-E-Mail. Zusätzlich
+  wird `current_password` beim Update übergeben.
+- Ein OAuth-only-Konto fordert für das erstmalige Setzen eines Passworts einen
+  E-Mail-Einmalcode über Supabase Reauthentication an.
+- Nach einer Profiländerung bleibt die neue aktuelle Sitzung bestehen; andere
+  Sitzungen werden widerrufen. Schlägt dieser Widerruf fehl, beendet der
+  strengere Fallback alle Sitzungen.
+- `/passwort-vergessen` liefert unabhängig von Kontoexistenz und Provider eine
+  neutrale Antwort und nutzt die Supabase-Auth-Limits. Cloudflare Turnstile ist
+  als optionale weitere Schutzschicht dokumentiert, aber nicht aktiviert.
+- Der Recovery-Link wird im Auth-Callback eingelöst. Eine kurzlebige,
+  HttpOnly-signierte Berechtigung bindet `/passwort-zuruecksetzen` an Nutzer
+  und Ablaufzeit. Nach dem Reset werden alle Sitzungen beendet.
+- Passwörter, Codes, Tokens und der freigegebene Testempfänger werden weder im
+  Repository noch in Diagnosetexten gespeichert.
+
+## Ausgeschlossener Umfang
+
+Nicht enthalten sind die Aktivierung von Google oder Apple, manuelles
+Provider-Linking, Passwortänderungen durch Dritte, eine eigene E-Mail-
+Versandinfrastruktur und die Aktivierung von Cloudflare Turnstile.
+
+## Qualitätsbewertung nach ISO/IEC 25002
+
+| Qualitätsmerkmal | Mess- oder Prüfverfahren | Abnahmekriterium |
+| --- | --- | --- |
+| Funktionale Eignung | Domain- und Vertragstests, Browserprüfung | Setzen, Ändern und Recovery folgen den bestätigten Abläufen. |
+| Sicherheit | Quelltextprüfung, Grant-Signaturtests, anonyme Recovery-Antwort | Kein Konto-Leak; Reset nur mit gültiger nutzergebundener Berechtigung; Sitzungswiderruf wie festgelegt. |
+| Interaktionsfähigkeit | Desktop- und Mobile-Browserprüfung | Öffentlicher Einstieg und Rückmeldungen sind verständlich und ohne App-Navigation nutzbar. |
+| Zuverlässigkeit | Fehlerpfade, abgelaufene und manipulierte Grants | Fehler führen zu erneutem Login oder neuer Recovery-Anfrage, nicht zu einem offenen Reset. |
+| Wartbarkeit | Zentralisierte Passwortregeln, kommentierte Sicherheitsgrenzen, Typecheck und Lint | Gemeinsame Regeln und nachvollziehbare Verantwortlichkeiten ohne duplizierte Geheimnisse. |
+
+## Technischer Prüfnachweis
+
+Geprüfter Quellstand: `codex/step-3-password-recovery`, aufbauend auf Commit
+`bf21c15`. Die abschließende Härtung und Dokumentation werden in einem eigenen
+Commit gesichert. Prüfdatum ist der 22.09.2026.
+
+- `npm run typecheck`: bestanden
+- `npm run lint`: bestanden
+- `npm test`: 125/125 Tests bestanden
+- `npm run build`: bestanden
+- `git diff --check`: bestanden
+- lokale Browserprüfung von `/passwort-vergessen` in Desktop- und Mobile-Größe
+- Weiterleitung einer Reset-Seite ohne gültige Sitzung zur Anmeldung
+- produktive Recovery-Anfrage an den freigegebenen externen Testempfänger;
+  Supabase bestätigte die Annahme mit HTTP 200
+
+Das abschließende Produktions-Deployment und die Prüfung des öffentlichen Alias
+werden nach der Git-Sicherung in diesem Bericht ergänzt.
+
+## Bekannte Grenzen und fachliche Praxisabnahme
+
+Der HTTP-200-Nachweis bestätigt nur, dass Supabase die Recovery-Anfrage
+angenommen hat. Der tatsächliche Eingang im Postfach, der einmalige Linkaufruf,
+das Setzen des neuen Passworts und der anschließende Login müssen durch den
+Nutzer bestätigt werden. Der Profilwechsel mit einem realen Passwortkonto und
+das erstmalige Setzen bei einem realen OAuth-only-Konto sind noch nicht
+fachlich abgenommen. Google und Apple sind weiterhin deaktiviert.
+
+Die lokale Prüfung lief mit Node 26.7.0, während das Projekt Node 24.x verlangt.
+Der Produktions-Build muss deshalb zusätzlich in Vercels Node-24-Umgebung
+erfolgreich sein. Die technische Prüfung und die fachliche Praxisabnahme werden
+bewusst getrennt ausgewiesen.
+
+Die Prüfschritte für den Nutzer stehen in
+[Praxisprüfliste für Schritt 3](mobile-praxispruefliste-schritt-3.md).
