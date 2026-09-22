@@ -1,0 +1,8 @@
+# Lokale Agent- und Browserartefakte gehören nicht in Produktions-Builds.
+.playwright-cli/
+output/
+supabase/.temp/
+
+# Tests und interne Arbeitsdokumente werden nicht zur Laufzeit benötigt.
+tests/
+docs/
