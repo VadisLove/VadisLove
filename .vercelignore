@@ -1,0 +1,12 @@
+# Das Vercel-Projekt verwendet trainer-webapp als Root Directory. Lokale
+# Agent-, Browser- und Supabase-CLI-Artefakte dürfen nicht hochgeladen werden.
+.agents/
+.vercel/
+trainer-webapp/.playwright-cli/
+trainer-webapp/output/
+trainer-webapp/supabase/.temp/
+
+# Tests, interne Arbeitsdokumente und die alte statische App sind kein Runtime-Code.
+trainer-webapp/tests/
+trainer-webapp/docs/
+trainer-termine-manager/
