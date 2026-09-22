@@ -13,6 +13,7 @@ export type RelationshipType = "friend" | "trainer_athlete" | "guardian";
 export type GroupMemberRole = "owner" | "admin" | "member";
 export type NotificationType =
   | "carpool_activity"
+  | "calendar_communication"
   | "relationship_request"
   | "relationship_response"
   | "membership_request"
@@ -155,6 +156,16 @@ export interface EventParticipantSummary {
   email: string;
   accountType: string;
   status: AttendanceStatus;
+  reminderEnabled: boolean;
+  responseIsLate: boolean;
+  acknowledgementOpen: boolean;
+}
+
+export interface EventInformationLink {
+  id?: string;
+  label: string;
+  url: string;
+  sortOrder: number;
 }
 
 export interface CalendarEvent {
@@ -177,6 +188,20 @@ export interface CalendarEvent {
   description: string;
   createdBy?: string;
   canManage?: boolean;
+  responseDeadline?: string;
+  communicationRevision: number;
+  acknowledgementOpen: boolean;
+  reminderEnabled: boolean;
+  seriesId?: string;
+  seriesPosition?: number;
+  status: "scheduled" | "cancelled";
+  informationLinks: EventInformationLink[];
+}
+
+export interface CalendarFeedSubscription {
+  id: string;
+  createdAt: string;
+  lastUsedAt?: string;
 }
 
 export interface EventOrganizationOption {

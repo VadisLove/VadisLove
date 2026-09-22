@@ -1,4 +1,5 @@
 import type {
+  CalendarFeedSubscription,
   NotificationItem,
   NotificationPreferences,
   NotificationType,
@@ -108,4 +109,20 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
         guardianActivity: data.guardian_activity,
       }
     : defaultPreferences;
+}
+
+/** Gibt nur Metadaten zurück; der geheime Feed-Token ist nicht rekonstruierbar. */
+export async function getCalendarFeedSubscription(): Promise<CalendarFeedSubscription | null> {
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId) return null;
+  const { data, error } = await supabase
+    .from("calendar_feed_tokens")
+    .select("id, created_at, last_used_at")
+    .eq("user_id", currentUserId)
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (isMissingNotificationSchema(error)) return null;
+  if (error) throw new Error(`Kalender-Abo konnte nicht geladen werden: ${error.message}`);
+  return data ? { id: data.id, createdAt: data.created_at, lastUsedAt: data.last_used_at || undefined } : null;
 }

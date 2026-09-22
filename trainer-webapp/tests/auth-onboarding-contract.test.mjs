@@ -38,6 +38,8 @@ test("sichere Redirects behalten ausschließlich interne Ziele", () => {
 
 test("der geheimnisgeschützte Cleanup-Worker wird nicht vom Login-Proxy abgefangen", () => {
   assert.match(proxyEntry, /api\/onboarding\/cleanup\$/);
+  assert.match(proxyEntry, /api\/calendar-communications\/mail\$/);
+  assert.match(proxyEntry, /api\/calendar\/\[\^\/\]\+\$/);
 });
 
 test("persönlicher Modus benötigt keine Organisationsauswahl", () => {

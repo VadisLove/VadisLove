@@ -10,7 +10,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useCurrentUser } from "@/components/auth/current-user-context";
 import type { NotificationPreferences } from "@/domain/models";
 import type { EvaluationSkillDefinition, EvaluationWeights } from "@/domain/models";
+import type { CalendarFeedSubscription } from "@/domain/models";
 import { EvaluationSettings } from "./evaluation-settings";
+import { CalendarFeedCard } from "./calendar-feed-card";
 import styles from "./settings-view.module.css";
 
 const initialState: SettingsActionState = { status: "idle", message: "" };
@@ -64,9 +66,11 @@ const options = [
 export function SettingsView({
   preferences,
   evaluationPreferences,
+  calendarFeed,
 }: {
   preferences: NotificationPreferences;
   evaluationPreferences: { skills: EvaluationSkillDefinition[]; weights: EvaluationWeights };
+  calendarFeed: CalendarFeedSubscription | null;
 }) {
   const currentUser = useCurrentUser();
   const [state, action, pending] = useActionState(saveNotificationPreferences, initialState);
@@ -119,6 +123,7 @@ export function SettingsView({
           </button>
         </footer>
       </form>
+      <CalendarFeedCard initialSubscription={calendarFeed} />
       {currentUser?.accountType !== "athlete" ? <EvaluationSettings
         initialSkills={evaluationPreferences.skills}
         initialWeights={evaluationPreferences.weights}

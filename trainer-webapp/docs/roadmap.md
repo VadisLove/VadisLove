@@ -198,6 +198,75 @@ Produktionsnachweis — Empfang eines nach dieser Korrektur erzeugten Links an
 der Produktionsadresse — wartet nur auf das Zurücksetzen der aktuell begrenzten
 Supabase-Auth-Mail-Quote.
 
+## Schritt 4 – Verbindliche Kalenderkommunikation
+
+**Zielentität und Nutzungskontext:** Bewertet werden Kalendertermine samt
+Teilnahme, wichtiger Revisionen, Zustellungen und persönlichem ICS-Feed in der
+mobilen und Desktop-Webanwendung sowie deren fachlicher E-Mail-Versand. Der
+typische Kontext sind Athleten, Terminersteller und aktiv verknüpfte Eltern, die
+Termine vor, während und nach einer Rückmeldefrist verlässlich einordnen müssen.
+
+**Betroffene Rollen:** Nur der jeweilige Terminersteller verwaltet Frist,
+wichtige Änderungen, Informationslinks und Kommunikationsübersicht. Eingeladene
+Personen verwalten ihre eigene Teilnahme, Kenntnisnahme und freiwillige
+Erinnerungsoption. Aktiv verknüpfte Eltern minderjähriger Athleten erhalten
+begrenzte relevante Hinweise, aber kein stellvertretendes Antwortrecht. Andere
+Organisationsmitglieder und unbeteiligte Konten erhalten keine neuen Rechte.
+
+**Fachlicher Umfang:** Eine optionale Rückmeldefrist kennzeichnet spätere
+Antworten, verhindert sie aber nicht. Freiwillige Erinnerungen sind je Person
+und Termin standardmäßig aus und werden höchstens 72 beziehungsweise 24 Stunden
+vor einer noch offenen Frist zugestellt. Datum, Start, Ende, Ort und Absage
+erzeugen automatisch eine neue wichtige Terminrevision; Titel, Beschreibung und
+Kapazität nur nach ausdrücklicher Auswahl. Teilnahme und Kenntnisnahme bleiben
+getrennt. Kommunizierte Termine werden fachlich abgesagt statt gelöscht.
+Persönliche, widerrufbare Kalenderfeeds liefern eigene Termine, Zusagen und
+offene Einladungen mit stabilen UIDs und Berliner Zeitzone. Termine unterstützen
+eine geordnete Liste sicherer HTTP-/HTTPS-Informationslinks. Neu erzeugte
+Serientermine erhalten eine stabile Serien-ID; Änderungen gelten wahlweise nur
+für einen oder für diesen und alle zukünftigen Termine.
+
+**Qualitätsmerkmale und Prüfverfahren:** Funktionale Eignung wird durch Domain-,
+Datenbank-, RLS-, Worker-, ICS-, Zeitzonen-, Serien- und Browserablauftests
+geprüft. Sicherheit umfasst minimale Grants, RLS für exponierte Tabellen,
+gehashte Feed-Token, sichere externe Links und strikte Elternbeziehungen.
+Zuverlässigkeit umfasst idempotente Deduplizierung, Leases, begrenzte
+Wiederholungen und Konkurrenztests. Interoperabilität wird mit
+standardkonformen ICS-Daten, stabilen UIDs und expliziten Absagen geprüft.
+Benutzbarkeit wird in Desktop- und Mobilgröße sowie anschließend anhand einer
+getrennten Praxisprüfliste bewertet. Wartbarkeit verlangt verständliche
+Kommentare und eine nachvollziehbare Trennung von Teilnahme, Kenntnisnahme,
+Zustellung und Fahrgemeinschaftsfolgen.
+
+**Technische Abnahmekriterien:** Nur der Ersteller kann Kommunikationsdaten
+ändern. Verspätete Antworten bleiben möglich und erkennbar. Ohne individuelle
+Aktivierung entsteht keine Erinnerung; je Person, Termin und Stufe höchstens
+eine. Jede wichtige Revision öffnet eine neue, von der Teilnahme unabhängige
+Kenntnisnahme. Wiederholte und konkurrierende Aktionen erzeugen keine doppelten
+Seiteneffekte. Elterninformationen setzen eine aktive, geprüfte Beziehung zu
+einem minderjährigen Athleten voraus und gewähren keine Antwortrechte.
+Gefährliche URL-Schemata werden abgelehnt. Feed-Token sind nicht im Klartext
+gespeichert, sofort widerrufbar und nach Erneuerung ungültig; ICS-Einträge
+bilden offene Einladungen, Zusagen, eigene Absagen, Terminabsagen und
+Sommer-/Winterzeit korrekt ab. Serienänderungen verändern nur den gewählten
+Terminbereich. Bestehende Fahrgemeinschaften durchlaufen weiterhin ihre
+Prüf- oder Absageregeln. Fremde Konten können keine geschützten Kalenderdaten
+lesen oder verändern.
+
+**Ausgeschlossen:** Chat, Push, Wartelisten, neue Familienprofile oder weitere
+Familienfunktionen, native Apps, stellvertretende Elternantworten und eine
+automatische Zusammenführung bestehender Termine ohne Serien-ID. Die offene
+Recovery-Praxisprüfung und die noch nicht geklärte Kopplung der Passwort-
+Augen-Schalter aus Schritt 3 bleiben getrennte Restarbeiten.
+
+**Abnahmestatus (22.09.2026):** Lokale Umsetzung und technische Prüfung sind
+abgeschlossen (Typecheck, ESLint, 138 Tests, Produktionsbuild, isoliertes
+PostgreSQL 17 sowie Desktop-/Mobilprüfung). Die Prüfung der produktiven
+Migrationshistorie, Produktionsmigration und das Deployment stehen mangels
+lokaler Supabase-CLI-Authentifizierung noch aus. Die fachliche Praxisabnahme
+durch den Nutzer bleibt getrennt offen und wird anhand der mobilen Prüfliste
+dokumentiert.
+
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
 Termine oder persönlichen Trainingspläne. Vereins- und Teamdaten bleiben bis

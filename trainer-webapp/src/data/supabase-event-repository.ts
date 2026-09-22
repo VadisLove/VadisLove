@@ -3,6 +3,7 @@ import type {
   CalendarEvent,
   EventOrganizationOption,
   EventParticipantSummary,
+  EventInformationLink,
   EventType,
 } from "@/domain/models";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
@@ -21,10 +22,24 @@ export interface CalendarEventRow {
   state_code: string | null;
   region_name: string | null;
   capacity: number;
+  response_deadline: string | null;
+  communication_revision: number;
+  series_id: string | null;
+  series_position: number | null;
+  status: "scheduled" | "cancelled";
+  event_information_links?: Array<{
+    id: string;
+    label: string;
+    url: string;
+    sort_order: number;
+  }>;
   event_participants?: Array<{
     status: AttendanceStatus;
     user_id: string | null;
     invited_email: string;
+    reminder_enabled: boolean;
+    response_is_late: boolean;
+    acknowledged_revision: number;
     profiles?:
       | {
       display_name: string | null;
@@ -46,7 +61,7 @@ const allEventTypes: EventType[] = [
 ];
 
 const dashboardEventLimit = 5;
-const calendarEventSelect = `
+export const calendarEventSelect = `
   id,
   organization_id,
   created_by,
@@ -59,10 +74,19 @@ const calendarEventSelect = `
   state_code,
   region_name,
   capacity,
+  response_deadline,
+  communication_revision,
+  series_id,
+  series_position,
+  status,
+  event_information_links(id, label, url, sort_order),
   event_participants(
     status,
     user_id,
     invited_email,
+    reminder_enabled,
+    response_is_late,
+    acknowledged_revision,
     profiles:user_id(display_name, account_type)
   )
 `;
@@ -153,6 +177,11 @@ export function mapCalendarEvent(
         email: participant.invited_email,
         accountType: profile?.account_type || "unspecified",
         status: participant.status,
+        reminderEnabled: participant.reminder_enabled,
+        responseIsLate: participant.response_is_late,
+        acknowledgementOpen:
+          participant.status !== "declined" &&
+          (participant.acknowledged_revision || 0) < (row.communication_revision || 0),
       };
     })
     .sort((left, right) => {
@@ -188,6 +217,27 @@ export function mapCalendarEvent(
     description: row.description,
     createdBy: row.created_by,
     canManage: row.created_by === currentUserId,
+    responseDeadline: row.response_deadline || undefined,
+    communicationRevision: row.communication_revision || 0,
+    acknowledgementOpen: Boolean(
+      ownAttendance && ownAttendance.status !== "declined" &&
+      (ownAttendance.acknowledged_revision || 0) < (row.communication_revision || 0),
+    ),
+    reminderEnabled: ownAttendance?.reminder_enabled || false,
+    seriesId: row.series_id || undefined,
+    seriesPosition: row.series_position ?? undefined,
+    status: row.status || "scheduled",
+    informationLinks: ((row.event_information_links || []) as Array<{
+      id: string;
+      label: string;
+      url: string;
+      sort_order: number;
+    }>).map<EventInformationLink>((link) => ({
+      id: link.id,
+      label: link.label,
+      url: link.url,
+      sortOrder: link.sort_order,
+    })).sort((left, right) => left.sortOrder - right.sortOrder),
   };
 }
 

@@ -33,6 +33,7 @@ async function runSuite(files, extraEnv) {
     "RELEASE_TEST_SCHEMA_PATH",
     "GUARDIAN_TEST_DATABASE_URL",
     "CARPOOL_TEST_DATABASE_URL",
+    "CALENDAR_TEST_DATABASE_URL",
   ])
     delete env[key];
   const child = spawn(process.execPath, ["--test", ...files], {
@@ -74,17 +75,30 @@ async function withCluster(port, verify) {
   }
 }
 
-await withCluster(55439, (url) =>
-  runSuite(["tests/carpool-database.test.mjs"], {
-    CARPOOL_TEST_DATABASE_URL: url,
+const scope = process.env.RELEASE_NATIVE_SCOPE || "all";
+assert.ok(["all", "calendar"].includes(scope), "Unsupported RELEASE_NATIVE_SCOPE");
+
+if (scope === "all") {
+  await withCluster(55439, (url) =>
+    runSuite(["tests/carpool-database.test.mjs"], {
+      CARPOOL_TEST_DATABASE_URL: url,
+    }),
+  );
+}
+await withCluster(55441, (url) =>
+  runSuite(["tests/calendar-communication-database.test.mjs"], {
+    CALENDAR_TEST_DATABASE_URL: url,
+    CALENDAR_NATIVE_PG_MODULE: process.env.CARPOOL_NATIVE_PG_MODULE,
   }),
 );
-await withCluster(55440, async (url) => {
-  await runSuite(["tests/release-migrations.test.mjs"], {
-    RELEASE_TEST_DATABASE_URL: url,
-    RELEASE_TEST_SCHEMA_PATH: schema,
+if (scope === "all") {
+  await withCluster(55440, async (url) => {
+    await runSuite(["tests/release-migrations.test.mjs"], {
+      RELEASE_TEST_DATABASE_URL: url,
+      RELEASE_TEST_SCHEMA_PATH: schema,
+    });
+    await runSuite(["tests/guardian-database.test.mjs"], {
+      GUARDIAN_TEST_DATABASE_URL: url,
+    });
   });
-  await runSuite(["tests/guardian-database.test.mjs"], {
-    GUARDIAN_TEST_DATABASE_URL: url,
-  });
-});
+}

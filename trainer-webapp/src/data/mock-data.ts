@@ -25,8 +25,17 @@ export const people: Person[] = [
   { id: "p9", name: "Dr. Lea Winter", email: "lea@sportmedizin.de", role: "Medizinische Fachkraft", region: "München", initials: "LW" },
 ];
 
+const calendarCommunicationDefaults = {
+  communicationRevision: 0,
+  acknowledgementOpen: false,
+  reminderEnabled: false,
+  status: "scheduled",
+  informationLinks: [],
+} satisfies Partial<CalendarEvent>;
+
 export const events: CalendarEvent[] = [
   {
+    ...calendarCommunicationDefaults,
     id: "e1",
     title: "Street Basics U14",
     type: "training",
@@ -42,13 +51,14 @@ export const events: CalendarEvent[] = [
     attendanceSummary: { confirmed: 12, open: 3, declined: 1 },
     attendanceStatus: "confirmed",
     participants: [
-      { id: "p5", name: "Anna Richter", email: "anna@mail.de", accountType: "trainer", status: "confirmed" },
-      { id: "p1", name: "Lukas Berger", email: "lukas@urban.de", accountType: "athlete", status: "confirmed" },
-      { id: "p8", name: "Tom Weber", email: "tom@verein.de", accountType: "organization_staff", status: "open" },
+      { id: "p5", name: "Anna Richter", email: "anna@mail.de", accountType: "trainer", status: "confirmed", reminderEnabled: false, responseIsLate: false, acknowledgementOpen: false },
+      { id: "p1", name: "Lukas Berger", email: "lukas@urban.de", accountType: "athlete", status: "confirmed", reminderEnabled: false, responseIsLate: false, acknowledgementOpen: false },
+      { id: "p8", name: "Tom Weber", email: "tom@verein.de", accountType: "organization_staff", status: "open", reminderEnabled: false, responseIsLate: false, acknowledgementOpen: false },
     ],
     description: "Grundlagen, Boardkontrolle und sichere Linien für U14.",
   },
   {
+    ...calendarCommunicationDefaults,
     id: "e2",
     title: "Sportmedizinische Untersuchung",
     type: "medical",
@@ -67,6 +77,7 @@ export const events: CalendarEvent[] = [
     description: "Terminfenster für sportmedizinische Routineuntersuchungen.",
   },
   {
+    ...calendarCommunicationDefaults,
     id: "e3",
     title: "Bavarian Open 2026 – Quali",
     type: "contest",
@@ -85,6 +96,7 @@ export const events: CalendarEvent[] = [
     description: "Qualifikation und organisatorisches Briefing.",
   },
   {
+    ...calendarCommunicationDefaults,
     id: "e4",
     title: "Ramp Session",
     type: "training",
@@ -102,6 +114,7 @@ export const events: CalendarEvent[] = [
     description: "Techniktraining an Miniramp und Quarterpipe.",
   },
   {
+    ...calendarCommunicationDefaults,
     id: "e5",
     title: "Park Training Advanced",
     type: "training",
@@ -119,6 +132,7 @@ export const events: CalendarEvent[] = [
     description: "Fortgeschrittene Lines und Contest-Vorbereitung.",
   },
   {
+    ...calendarCommunicationDefaults,
     id: "e6",
     title: "Bundestrainer Meeting",
     type: "meeting",
@@ -136,6 +150,7 @@ export const events: CalendarEvent[] = [
     description: "Abstimmung der nächsten Lehrgänge und Best Practices.",
   },
   {
+    ...calendarCommunicationDefaults,
     id: "e7",
     title: "Norddeutscher Nachwuchs-Cup",
     type: "contest",

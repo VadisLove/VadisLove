@@ -9,6 +9,7 @@ const migrations = [
   "20260901113922_add_guardian_registration_approval.sql",
   "20260903080920_carpool_release.sql",
   "20260903082255_carpool_mail_schedule.sql",
+  "20260921102535_step_2_auth_onboarding.sql",
 ];
 let db;
 
@@ -113,7 +114,7 @@ async function asRole(role, id, sql, params = []) {
   });
 }
 
-test("Alle drei Release-Migrationen installieren Tabellen, RLS und genau einen Scheduler", async () => {
+test("Alle vier Release-Migrationen installieren Tabellen, RLS und genau einen Scheduler", async () => {
   const { rows } = await db.query(
     "select relname,relrowsecurity from pg_class where relname in ('guardian_approval_requests','legal_document_acceptances','carpool_rides','carpool_requests','carpool_comments','carpool_preferences','carpool_wanted')",
   );

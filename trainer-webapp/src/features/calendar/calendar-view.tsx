@@ -20,11 +20,13 @@ import type {
 } from "@/domain/models";
 import {
   deleteCalendarEvent,
+  acknowledgeCalendarRevision,
   respondToCalendarEvent,
   saveCalendarEvent,
+  setCalendarReminder,
 } from "@/app/kalender/actions";
 import { PageHeader } from "@/components/ui/page-header";
-import { getIntlLocale } from "@/i18n/config";
+import { getIntlLocale, type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/i18n-provider";
 import { getInitialCalendarCursor } from "@/lib/calendar-date-time";
 import styles from "./calendar-view.module.css";
@@ -190,8 +192,38 @@ function buildEventFormData(event: CalendarEvent, range: DateRange) {
   data.set("region", event.region);
   data.set("capacity", String(event.capacity));
   data.set("description", event.description);
+  data.set("updateScope", "single");
+  if (event.responseDeadline) {
+    const deadline = formatBerlinFormDateTime(event.responseDeadline);
+    const dayShift = diffDays(event.date, range.startDate);
+    data.set("responseDeadlineDate", addDays(deadline.date, dayShift));
+    data.set("responseDeadlineTime", deadline.time);
+  }
+  for (const link of event.informationLinks) {
+    data.append("linkLabel", link.label);
+    data.append("linkUrl", link.url);
+  }
 
   return data;
+}
+
+function formatBerlinFormDateTime(value: string) {
+  const date = new Date(value);
+  const datePart = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(date);
+  return { date: datePart, time: timePart };
+}
+
+function formatDeadline(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
+    timeZone: "Europe/Berlin",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function rangesOverlap(
@@ -677,6 +709,9 @@ export function CalendarView({
     setRepeatCount(4);
     setEventTypeMenuOpen(false);
     setFeedback("");
+    // Auf Smartphones darf nicht gleichzeitig der Detail- und Bearbeitungsdialog
+    // aktiv bleiben; sonst liegt der Detail-Sheet über dem Formular.
+    setMobileDetailOpen(false);
     setDialogOpen(true);
   }
 
@@ -1091,11 +1126,13 @@ export function CalendarView({
         return;
       }
 
-      setEvents((current) =>
-        current.filter((event) => event.id !== selectedEvent.id),
-      );
-      setSelectedEvent(null);
-      setMobileDetailOpen(false);
+      if (result.event) {
+        replaceEvent(result.event);
+      } else {
+        setEvents((current) => current.filter((event) => event.id !== selectedEvent.id));
+        setSelectedEvent(null);
+        setMobileDetailOpen(false);
+      }
     });
   }
 
@@ -1107,7 +1144,7 @@ export function CalendarView({
   }
 
   function handleEventResponse(status: "confirmed" | "declined") {
-    if (!selectedEvent) {
+    if (!selectedEvent || selectedEvent.status === "cancelled") {
       return;
     }
 
@@ -1118,6 +1155,27 @@ export function CalendarView({
       if (result.status === "success" && result.event) {
         replaceEvent(result.event);
       }
+    });
+  }
+
+  function handleReminderToggle() {
+    if (!selectedEvent) return;
+    startTransition(async () => {
+      const result = await setCalendarReminder(selectedEvent.id, !selectedEvent.reminderEnabled);
+      setFeedback(result.message);
+      if (result.event) replaceEvent(result.event);
+    });
+  }
+
+  function handleAcknowledgement() {
+    if (!selectedEvent) return;
+    startTransition(async () => {
+      const result = await acknowledgeCalendarRevision(
+        selectedEvent.id,
+        selectedEvent.communicationRevision,
+      );
+      setFeedback(result.message);
+      if (result.event) replaceEvent(result.event);
     });
   }
 
@@ -1317,13 +1375,28 @@ export function CalendarView({
                 {t(`eventTypes.${selectedEvent.type}`)}
               </span>
               <h3>{selectedEvent.title}</h3>
+              {selectedEvent.status === "cancelled" ? (
+                <p className={styles.cancelledNotice}>Dieser Termin wurde abgesagt.</p>
+              ) : null}
               <p>{selectedEvent.description}</p>
               <dl>
                 <div><dt>{t("calendar.date")}</dt><dd>{formatEventDateRange(selectedEvent)}</dd></div>
                 <div><dt>{t("calendar.time")}</dt><dd>{selectedEvent.startTime} – {selectedEvent.endTime}</dd></div>
                 <div><dt>{t("calendar.place")}</dt><dd><MapPin size={14} /> {selectedEvent.location}</dd></div>
                 <div><dt>{t("calendar.participation")}</dt><dd>{selectedEvent.confirmed} / {selectedEvent.capacity}</dd></div>
+                {selectedEvent.responseDeadline ? (
+                  <div><dt>Rückmeldefrist</dt><dd>{formatDeadline(selectedEvent.responseDeadline, locale)}</dd></div>
+                ) : null}
               </dl>
+              {selectedEvent.acknowledgementOpen ? (
+                <div className={styles.communicationAlert} role="status">
+                  <strong>Wichtige Änderung offen</strong>
+                  <span>Die Kenntnisnahme ändert deine Zu- oder Absage nicht.</span>
+                  <button type="button" onClick={handleAcknowledgement} disabled={pending}>
+                    Änderung zur Kenntnis nehmen
+                  </button>
+                </div>
+              ) : null}
               <div className={styles.attendanceSummary}>
                 <span className={styles.confirmedStatus}>
                   {t("attendance.confirmed")}
@@ -1347,7 +1420,7 @@ export function CalendarView({
                       : ""
                   }
                   onClick={() => handleEventResponse("confirmed")}
-                  disabled={pending}
+                  disabled={pending || selectedEvent.status === "cancelled"}
                 >
                   {t("calendar.confirmAttendance")}
                 </button>
@@ -1359,11 +1432,35 @@ export function CalendarView({
                       : ""
                   }
                   onClick={() => handleEventResponse("declined")}
-                  disabled={pending}
+                  disabled={pending || selectedEvent.status === "cancelled"}
                 >
                   {t("calendar.declineAttendance")}
                 </button>
               </div>
+              {selectedEvent.attendanceStatus === "open" && selectedEvent.responseDeadline && selectedEvent.status === "scheduled" ? (
+                <label className={styles.reminderToggle}>
+                  <input
+                    type="checkbox"
+                    checked={selectedEvent.reminderEnabled}
+                    onChange={handleReminderToggle}
+                    disabled={pending || new Date(selectedEvent.responseDeadline) <= new Date()}
+                  />
+                  <span>
+                    <strong>Rückmelde-Erinnerungen</strong>
+                    <small>Freiwillig, höchstens 72 und 24 Stunden vor der Frist.</small>
+                  </span>
+                </label>
+              ) : null}
+              {selectedEvent.informationLinks.length ? (
+                <section className={styles.informationLinks}>
+                  <h4>Informationen</h4>
+                  {selectedEvent.informationLinks.map((link) => (
+                    <a key={link.id || link.url} href={link.url} target="_blank" rel="noopener noreferrer">
+                      {link.label}<ChevronRight size={15} aria-hidden="true" />
+                    </a>
+                  ))}
+                </section>
+              ) : null}
               <div className={styles.participantPreview}>
                 <h4>{t("calendar.participantStatus")}</h4>
                 {selectedEvent.participants.length > 0 ? (
@@ -1377,6 +1474,7 @@ export function CalendarView({
                       </span>
                       <em className={styles[participant.status]}>
                         {t(`attendance.${participant.status}`)}
+                        {participant.responseIsLate ? " · verspätet" : ""}
                       </em>
                     </div>
                   ))
@@ -1390,6 +1488,15 @@ export function CalendarView({
                 <CarpoolPanel key={selectedEvent.id} eventId={selectedEvent.id} />
               </>}
               {selectedEvent.canManage ? (
+                <div className={styles.communicationSummary}>
+                  <strong>Kommunikationsübersicht</strong>
+                  <span>
+                    {selectedEvent.participants.filter((participant) => participant.acknowledgementOpen).length}
+                    {" "}offene Kenntnisnahmen · Revision {selectedEvent.communicationRevision}
+                  </span>
+                </div>
+              ) : null}
+              {selectedEvent.canManage ? (
                 <div className={styles.ownerActions}>
                   <button type="button" onClick={openEditDialog}>
                     <Pencil size={16} />
@@ -1398,7 +1505,7 @@ export function CalendarView({
                   <button
                     type="button"
                     onClick={handleDeleteEvent}
-                    disabled={pending}
+                    disabled={pending || selectedEvent.status === "cancelled"}
                   >
                     <Trash2 size={16} />
                     {t("calendar.delete")}
@@ -1578,6 +1685,15 @@ export function CalendarView({
                   </label>
                 </fieldset>
               ) : null}
+              {editingEvent?.seriesId ? (
+                <label>
+                  Änderungen anwenden auf
+                  <select name="updateScope" defaultValue="single">
+                    <option value="single">Nur diesen Termin</option>
+                    <option value="future">Diesen und alle zukünftigen Termine</option>
+                  </select>
+                </label>
+              ) : null}
               {conflictEvents.length > 0 ? (
                 <div className={styles.conflictWarning} role="alert">
                   <strong>{t("calendar.conflictWarning")}</strong>
@@ -1596,6 +1712,34 @@ export function CalendarView({
                 <label>{t("calendar.capacity")}<input name="capacity" type="number" min="1" defaultValue={editingEvent?.capacity || 16} required /></label>
               </div>
               <label>{t("calendar.descriptionField")}<textarea name="description" rows={3} defaultValue={editingEvent?.description || ""} /></label>
+              <fieldset className={styles.communicationFields}>
+                <legend>Verbindliche Kommunikation</legend>
+                <div className={styles.dateTimeRow}>
+                  <label>
+                    Rückmeldefrist – Datum
+                    <input name="responseDeadlineDate" type="date" defaultValue={editingEvent?.responseDeadline ? formatBerlinFormDateTime(editingEvent.responseDeadline).date : ""} />
+                  </label>
+                  <label>
+                    Uhrzeit
+                    <input name="responseDeadlineTime" type="time" defaultValue={editingEvent?.responseDeadline ? formatBerlinFormDateTime(editingEvent.responseDeadline).time : ""} />
+                  </label>
+                </div>
+                {editingEvent ? (
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" name="requireAcknowledgement" />
+                    Kenntnisnahme auch für Änderungen an Titel, Beschreibung, Kapazität oder Links verlangen
+                  </label>
+                ) : null}
+                <div className={styles.linkEditor}>
+                  <strong>Informationslinks</strong>
+                  {Array.from({ length: Math.max(3, editingEvent?.informationLinks.length || 0) }, (_, index) => (
+                    <div key={index}>
+                      <input name="linkLabel" aria-label={`Link ${index + 1} Bezeichnung`} placeholder="Bezeichnung" defaultValue={editingEvent?.informationLinks[index]?.label || ""} />
+                      <input name="linkUrl" aria-label={`Link ${index + 1} URL`} type="url" inputMode="url" placeholder="https://…" defaultValue={editingEvent?.informationLinks[index]?.url || ""} />
+                    </div>
+                  ))}
+                </div>
+              </fieldset>
               {feedback ? <p className={styles.formFeedback}>{feedback}</p> : null}
               </div>
               <div className={styles.dialogActions}>

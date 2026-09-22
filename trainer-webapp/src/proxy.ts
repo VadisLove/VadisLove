@@ -10,6 +10,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/carpools/mail$|api/onboarding/cleanup$|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/carpools/mail$|api/calendar-communications/mail$|api/calendar/[^/]+$|api/onboarding/cleanup$|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

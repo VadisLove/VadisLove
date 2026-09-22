@@ -3,9 +3,14 @@
 import { revalidatePath } from "next/cache";
 import type { AttendanceStatus, CalendarEvent, EventType } from "@/domain/models";
 import {
+  calendarEventSelect,
   mapCalendarEvent,
   type CalendarEventRow,
 } from "@/data/supabase-event-repository";
+import {
+  calendarCommunicationError,
+  normalizeEventInformationLinks,
+} from "@/domain/calendar-communication";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { parseBerlinCalendarDateTime } from "@/lib/calendar-date-time";
 import { createClient } from "@/lib/supabase/server";
@@ -80,6 +85,17 @@ function parseEventForm(formData: FormData) {
     26,
     Math.max(1, Number(formData.get("repeatCount") || 1)),
   );
+  const responseDeadlineDate = String(formData.get("responseDeadlineDate") || "");
+  const responseDeadlineTime = String(formData.get("responseDeadlineTime") || "");
+  const updateScope = String(formData.get("updateScope") || "single") === "future"
+    ? "future"
+    : "single";
+  const requireAcknowledgement = formData.get("requireAcknowledgement") === "on";
+  const labels = formData.getAll("linkLabel").map(String);
+  const urls = formData.getAll("linkUrl").map(String);
+  const informationLinks = normalizeEventInformationLinks(
+    labels.map((label, index) => ({ label, url: urls[index] || "" })),
+  );
 
   if (
     !organizationId ||
@@ -92,7 +108,8 @@ function parseEventForm(formData: FormData) {
     !location ||
     !state ||
     !Number.isInteger(capacity) ||
-    capacity < 1
+    capacity < 1 || informationLinks === null ||
+    Boolean(responseDeadlineDate) !== Boolean(responseDeadlineTime)
   ) {
     return null;
   }
@@ -101,11 +118,14 @@ function parseEventForm(formData: FormData) {
   // dass die Zeitzone des Servers gespeicherte Uhrzeiten unbemerkt verschiebt.
   const startsAt = parseBerlinCalendarDateTime(startDate, startTime);
   const endsAt = parseBerlinCalendarDateTime(endDate, endTime);
+  const responseDeadline = responseDeadlineDate && responseDeadlineTime
+    ? parseBerlinCalendarDateTime(responseDeadlineDate, responseDeadlineTime)
+    : null;
 
   if (
     !startsAt ||
     !endsAt ||
-    endsAt <= startsAt
+    endsAt <= startsAt || (responseDeadline && responseDeadline >= startsAt)
   ) {
     return null;
   }
@@ -114,8 +134,9 @@ function parseEventForm(formData: FormData) {
     id,
     repeatWeekly: !id && repeatWeekly,
     repeatCount: Number.isInteger(repeatCount) ? repeatCount : 1,
-    durationMs: endsAt.getTime() - startsAt.getTime(),
-    startsAt,
+    updateScope,
+    requireAcknowledgement,
+    informationLinks,
     values: {
       organization_id: organizationId,
       title,
@@ -127,14 +148,9 @@ function parseEventForm(formData: FormData) {
       state_code: state,
       region_name: region || null,
       capacity,
+      response_deadline: responseDeadline?.toISOString() || "",
     },
   };
-}
-
-function addWeeks(date: Date, weeks: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(date.getDate() + weeks * 7);
-  return nextDate;
 }
 
 /**
@@ -183,60 +199,35 @@ export async function saveCalendarEvent(
     };
   }
 
-  const recurringValues = Array.from(
-    { length: parsed.repeatWeekly ? parsed.repeatCount : 1 },
-    (_, index) => {
-      const startsAt = addWeeks(parsed.startsAt, index);
-      const endsAt = new Date(startsAt.getTime() + parsed.durationMs);
-
-      return {
-        ...parsed.values,
-        starts_at: startsAt.toISOString(),
-        ends_at: endsAt.toISOString(),
-        created_by: currentUserId,
-      };
-    },
-  );
-
-  const query = parsed.id
-    ? supabase
-        .from("events")
-        .update(parsed.values)
-        .eq("id", parsed.id)
-        .eq("created_by", currentUserId)
-    : supabase.from("events").insert(recurringValues);
-
-  const { data, error } = await query
-    .select(`
-      id,
-      organization_id,
-      created_by,
-      title,
-      description,
-      type,
-      starts_at,
-      ends_at,
-      location,
-      state_code,
-      region_name,
-      capacity,
-      event_participants(
-        status,
-        user_id,
-        invited_email,
-        profiles:user_id(display_name, account_type)
-      )
-    `)
-    .returns<CalendarEventRow[]>();
-
-  const savedRows = Array.isArray(data) ? data : data ? [data] : [];
+  const mutation = parsed.id
+    ? await supabase.rpc("update_calendar_event", {
+      target_event: parsed.id,
+        payload: { ...parsed.values, links: parsed.informationLinks },
+        update_scope: parsed.updateScope,
+        require_acknowledgement: parsed.requireAcknowledgement,
+      })
+    : await supabase.rpc("create_calendar_events", {
+        payload: parsed.values,
+        repeat_count: parsed.repeatWeekly ? parsed.repeatCount : 1,
+        links: parsed.informationLinks,
+      });
+  const savedIds = ((mutation.data || []) as Array<string | Record<string, string>>)
+    .map((item) => typeof item === "string"
+      ? item
+      : item.id || item.update_calendar_event || item.create_calendar_events)
+    .filter((item): item is string => Boolean(item));
+  const { data, error: loadError } = savedIds.length
+    ? await supabase.from("events").select(calendarEventSelect).in("id", savedIds).order("starts_at")
+    : { data: [], error: null };
+  const error = mutation.error || loadError;
+  const savedRows = (data || []) as unknown as CalendarEventRow[];
 
   if (error || savedRows.length === 0) {
     return {
       status: "error",
       message: parsed.id
-        ? "Der Termin konnte nicht bearbeitet werden. Nur der Ersteller darf Änderungen speichern."
-        : "Der Termin konnte nicht erstellt werden. Prüfe Rolle, Terminart und Organisation.",
+        ? calendarCommunicationError(error || {})
+        : calendarCommunicationError(error || {}),
     };
   }
 
@@ -313,26 +304,7 @@ export async function respondToCalendarEvent(
 
   const { data } = await supabase
     .from("events")
-    .select(`
-      id,
-      organization_id,
-      created_by,
-      title,
-      description,
-      type,
-      starts_at,
-      ends_at,
-      location,
-      state_code,
-      region_name,
-      capacity,
-      event_participants(
-        status,
-        user_id,
-        invited_email,
-        profiles:user_id(display_name, account_type)
-      )
-    `)
+    .select(calendarEventSelect)
     .eq("id", eventId)
     .maybeSingle<CalendarEventRow>();
 
@@ -435,13 +407,9 @@ export async function deleteCalendarEvent(
     return { status: "error", message: "Der Termin konnte nicht gelöscht werden." };
   }
 
-  const { data, error } = await supabase
-    .from("events")
-    .delete()
-    .eq("id", eventId)
-    .eq("created_by", currentUserId)
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("delete_or_cancel_calendar_event", {
+    target_event: eventId,
+  });
 
   if (error || !data) {
     return {
@@ -451,6 +419,55 @@ export async function deleteCalendarEvent(
   }
 
   revalidatePath("/kalender");
+  revalidatePath("/");
+  if (data === "cancelled") {
+    const { data: row } = await supabase
+      .from("events")
+      .select(calendarEventSelect)
+      .eq("id", eventId)
+      .maybeSingle<CalendarEventRow>();
+    return {
+      status: "success",
+      message: "Der kommunizierte Termin wurde abgesagt und die Beteiligten wurden informiert.",
+      event: row ? mapCalendarEvent(row, currentUserId) : undefined,
+    };
+  }
+  return { status: "success", message: "Der noch nicht kommunizierte Termin wurde gelöscht." };
+}
 
-  return { status: "success", message: "Der Termin wurde gelöscht." };
+/** Schaltet die freiwillige eigene Rückmelde-Erinnerung für genau diesen Termin. */
+export async function setCalendarReminder(eventId: string, enabled: boolean): Promise<CalendarMutationResult> {
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId) return { status: "error", message: "Bitte melde dich erneut an." };
+  const { error } = await supabase.rpc("set_event_reminder", { target_event: eventId, enabled });
+  if (error) return { status: "error", message: calendarCommunicationError(error) };
+  const { data: email } = await supabase.rpc("get_current_profile_email");
+  const { data } = await supabase.from("events").select(calendarEventSelect).eq("id", eventId).maybeSingle<CalendarEventRow>();
+  revalidatePath("/kalender");
+  return {
+    status: "success",
+    message: enabled ? "Rückmelde-Erinnerungen sind für diesen Termin aktiviert." : "Rückmelde-Erinnerungen sind deaktiviert.",
+    event: data ? mapCalendarEvent(data, currentUserId, email || "") : undefined,
+  };
+}
+
+/** Bestätigt nur die aktuelle wichtige Revision und verändert nie die Teilnahme. */
+export async function acknowledgeCalendarRevision(eventId: string, revision: number): Promise<CalendarMutationResult> {
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId) return { status: "error", message: "Bitte melde dich erneut an." };
+  const { error } = await supabase.rpc("acknowledge_event_revision", {
+    target_event: eventId,
+    target_revision: revision,
+  });
+  if (error) return { status: "error", message: calendarCommunicationError(error) };
+  const { data: email } = await supabase.rpc("get_current_profile_email");
+  const { data } = await supabase.from("events").select(calendarEventSelect).eq("id", eventId).maybeSingle<CalendarEventRow>();
+  revalidatePath("/kalender");
+  return {
+    status: "success",
+    message: "Die wichtige Änderung wurde zur Kenntnis genommen. Deine Teilnahme bleibt unverändert.",
+    event: data ? mapCalendarEvent(data, currentUserId, email || "") : undefined,
+  };
 }

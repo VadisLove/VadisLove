@@ -154,8 +154,59 @@
   opacity: 0.6;
 }
 
+.feedBody {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.feedLinkRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.feedLinkRow input {
+  min-width: 0;
+  height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #f7f9fb;
+}
+
+.feedLinkRow button,
+.feedCard footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.feedStatus {
+  padding: 11px 12px;
+  border-left: 3px solid var(--color-blue);
+  border-radius: 6px;
+  background: var(--color-blue-soft);
+  color: var(--color-navy);
+}
+
+.feedCard footer {
+  justify-content: flex-start;
+}
+
+.feedCard footer .secondaryButton {
+  border: 1px solid var(--color-border);
+  background: white;
+  color: var(--color-danger);
+}
+
 @media (max-width: 600px) {
   .option { padding: 13px 15px; }
   .settingsCard footer { align-items: stretch; flex-direction: column; }
   .settingsCard footer button { width: 100%; }
+  .feedLinkRow { grid-template-columns: 1fr; }
 }
