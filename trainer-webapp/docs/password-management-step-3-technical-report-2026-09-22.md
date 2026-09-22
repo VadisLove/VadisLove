@@ -53,9 +53,9 @@ Versandinfrastruktur und die Aktivierung von Cloudflare Turnstile.
 
 ## Technischer Prüfnachweis
 
-Geprüfter Quellstand: `codex/step-3-password-recovery`, aufbauend auf Commit
-`bf21c15`. Die abschließende Härtung und Dokumentation werden in einem eigenen
-Commit gesichert. Prüfdatum ist der 22.09.2026.
+Geprüfter und produktiv gebauter Quellstand ist Commit `38cd671` auf
+`codex/step-3-password-recovery`, aufbauend auf `bf21c15`. Prüfdatum ist der
+22.09.2026.
 
 - `npm run typecheck`: bestanden
 - `npm run lint`: bestanden
@@ -67,8 +67,13 @@ Commit gesichert. Prüfdatum ist der 22.09.2026.
 - produktive Recovery-Anfrage an den freigegebenen externen Testempfänger;
   Supabase bestätigte die Annahme mit HTTP 200
 
-Das abschließende Produktions-Deployment und die Prüfung des öffentlichen Alias
-werden nach der Git-Sicherung in diesem Bericht ergänzt.
+Vercels Produktions-Build mit Node 24.x bestand. Deployment
+`dpl_2rWseTYMMNeZevxepPFGUhCjjQHw` ist `Ready`; die anschließende Prüfung zeigt,
+dass der öffentliche Alias `https://trainer-webapp-ruby.vercel.app` auf die
+Deployment-URL `https://trainer-webapp-ctcb3bl35-vladi-sntlove.vercel.app`
+verweist. Der vorherige Produktionsstand `bf21c15` ist mit dem Git-Tag
+`production/stable-before-step-3-reauth-hardening-2026-09-22` als Rollback-Punkt
+gesichert.
 
 ## Bekannte Grenzen und fachliche Praxisabnahme
 
@@ -80,9 +85,9 @@ das erstmalige Setzen bei einem realen OAuth-only-Konto sind noch nicht
 fachlich abgenommen. Google und Apple sind weiterhin deaktiviert.
 
 Die lokale Prüfung lief mit Node 26.7.0, während das Projekt Node 24.x verlangt.
-Der Produktions-Build muss deshalb zusätzlich in Vercels Node-24-Umgebung
-erfolgreich sein. Die technische Prüfung und die fachliche Praxisabnahme werden
-bewusst getrennt ausgewiesen.
+Der zusätzliche Produktions-Build in Vercels Node-24-Umgebung war erfolgreich.
+Die technische Prüfung und die fachliche Praxisabnahme werden bewusst getrennt
+ausgewiesen.
 
 Die Prüfschritte für den Nutzer stehen in
 [Praxisprüfliste für Schritt 3](mobile-praxispruefliste-schritt-3.md).

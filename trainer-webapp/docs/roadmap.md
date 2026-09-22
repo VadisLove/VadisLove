@@ -175,6 +175,9 @@ Recovery-Versand wurde an den freigegebenen externen Testempfänger von Supabase
 mit HTTP 200 angenommen. Empfang, Linkaufruf und abschließender Login bleiben
 Teil der fachlichen Praxisabnahme. Details und bekannte Grenzen stehen im
 [Technischen Bericht für Schritt 3](password-management-step-3-technical-report-2026-09-22.md).
+Der gehärtete Quellstand `38cd671` läuft im produktiven Deployment
+`dpl_2rWseTYMMNeZevxepPFGUhCjjQHw`; der öffentliche Alias wurde anschließend
+gegen dieses `Ready`-Deployment geprüft.
 
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
