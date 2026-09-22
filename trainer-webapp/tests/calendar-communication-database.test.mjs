@@ -60,6 +60,7 @@ before(async () => {
   await db.exec(await read("./fixtures/calendar-communication-base.sql"));
   await db.exec(await read("../supabase/migrations/20260903080920_carpool_release.sql"));
   await db.exec(await read("../supabase/migrations/20260922122040_step_4_calendar_communication.sql"));
+  await db.exec(await read("../supabase/migrations/20260922200121_step_4_optimize_event_link_rls.sql"));
   for (const [id, name, email] of [
     [OWNER, "Owner", "owner@example.invalid"],
     [ATHLETE, "Athlete", "athlete@example.invalid"],
@@ -88,6 +89,10 @@ const eventPayload = (overrides = {}) => ({
 });
 
 test("Serien erhalten stabile Zuordnung und gefährliche Links werden atomar abgelehnt", async () => {
+  const readPolicies = await db.query(`select count(*)::int count from pg_policies
+    where schemaname='public' and tablename='event_information_links'
+      and cmd in ('SELECT','ALL')`);
+  assert.equal(readPolicies.rows[0].count, 1);
   const created = await asUser(OWNER, (tx) => tx.query(
     "select public.create_calendar_events($1,3,$2) id",
     [JSON.stringify(eventPayload()), JSON.stringify([{ label: "Info", url: "https://example.org/info" }])],
