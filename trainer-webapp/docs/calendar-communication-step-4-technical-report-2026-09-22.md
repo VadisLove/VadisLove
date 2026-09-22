@@ -21,6 +21,10 @@ ISO/IEC-25002-Zusammenfassung.
   `20260922122040_step_4_calendar_communication.sql` ergänzt Fristen,
   Verspätungskennzeichnung, Terminrevisionen, getrennte Kenntnisnahmen,
   Informationslinks, stabile Serien-IDs, fachliche Absagen und Feed-Tokens.
+- Die Folgemigration
+  `20260922200121_step_4_optimize_event_link_rls.sql` trennt die schreibenden
+  Informationslink-Policies nach Operation und vermeidet dadurch eine neue
+  RLS-Performancewarnung ohne die Berechtigungsgrenze zu verändern.
 - Nur der Ersteller kann Termin-Kommunikationsdaten ändern. Teilnehmer verwalten
   ausschließlich ihre eigene Teilnahme, Erinnerung und Kenntnisnahme.
 - Freiwillige Erinnerungen sind standardmäßig aus. Der Worker materialisiert nur
@@ -69,6 +73,10 @@ Fremdschlüssel und Worker-Abfragen besitzen passende Indizes.
 | Vollständige Testsuite | 138 Tests | bestanden |
 | Next.js-Produktionsbuild | Next.js 16.2.12 | bestanden, 28 Seiten erzeugt |
 | `git diff --check` | vollständiger Patch | bestanden |
+| Supabase-Produktion | beide Schritt-4-Migrationen | angewandt; RLS, Grants, RPC und beide Cron-Jobs geprüft |
+| Supabase-Advisors | nach beiden Migrationen | keine neue Kalender-Sicherheits- oder Performancewarnung |
+| Vercel-Produktion | `dpl_GhY7qzj6KJGbkMJ2sGWEmtbW3o6J`, Node 24 | `Ready`; Alias zeigt auf das Deployment |
+| Produktions-Smoke-Test | Chromium auf Produktionsalias | Login-Weiterleitung korrekt; ungültiger Feed 404; Worker ohne Schlüssel 401 |
 
 Die automatisierten Schritt-4-Prüfungen decken insbesondere Erstellerrechte,
 gefährliche Links, späte Antworten, Reminder-Opt-in und Deduplizierung,
@@ -81,22 +89,29 @@ Fahrgemeinschaftsabsagen ab.
 - Die technische lokale Prüfung ist von der fachlichen Praxisabnahme getrennt.
   Die Praxisabnahme durch den Nutzer ist noch offen; dafür existiert eine eigene
   mobile Prüfliste.
-- Die produktive Supabase-Migrationshistorie und das aktuelle Produktionsschema
-  konnten noch nicht erneut gelesen werden, weil lokal kein Supabase-CLI-Zugriff
-  (`SUPABASE_ACCESS_TOKEN`) für das Projekt vorliegt. Die neue Migration wurde
-  deshalb nicht auf Produktion angewendet.
-- Reale Schritt-4-Mails über Resend und ein produktiver ICS-Abruf wurden noch
-  nicht ausgelöst. Es wurden keine Geheimnisse ausgegeben oder dokumentiert.
-- Es erfolgte noch kein Commit, Push, Produktions-Tag oder Vercel-Deployment.
-  Diese Schritte beginnen erst nach erfolgreicher Produktionsschema-Prüfung und
-  vollständigem grünen Abschlusslauf.
+- Beide Migrationen sind auf Supabase-Produktion registriert. Neue öffentliche
+  Tabellen haben RLS; anonyme Schreibversuche und Worker-Aufrufe wurden
+  abgewiesen, während die vorgesehenen authentifizierten beziehungsweise
+  `service_role`-Abläufe technisch erreichbar sind. Die vorhandene produktive
+  Migrationshistorie wich in älteren Einträgen von der lokalen Historie ab;
+  deshalb wurden nur die beiden neuen, vorab abgeglichenen Migrationen aus
+  einer temporären Remote-Historie angewandt.
+- Reale Schritt-4-Mails über Resend und ein gültiger produktiver ICS-Abruf
+  wurden bewusst nicht ausgelöst, um weder echte Empfänger anzuschreiben noch
+  synthetische Produktionsdaten anzulegen. Es wurden keine Geheimnisse
+  ausgegeben oder dokumentiert.
+- Der veröffentlichte Anwendungsstand `b745c3d` liegt auf
+  `codex/step-4-calendar-communication`. Das Deployment
+  `dpl_GhY7qzj6KJGbkMJ2sGWEmtbW3o6J` ist `Ready` und wird von
+  `https://trainer-webapp-ruby.vercel.app` bedient.
 - Die offenen Praxispunkte aus Schritt 3 bleiben unverändert separat offen.
 
 ## Rollback-Konzept
 
-Vor einem späteren Produktionsdeployment wird der dann aktive stabile
-Produktionscommit eindeutig getaggt. Bei einem kritischen Fehler wird die
-Anwendung auf diesen Commit zurückgesetzt. Für die additive Datenbankmigration
-erfolgt kein unkontrolliertes Down-Migration-Skript; eine Datenbankkorrektur wird
-als geprüfte Vorwärtsmigration ausgeführt, damit bereits entstandene
+Der vorherige stabile Produktionsstand `daa464e` ist mit
+`production/stable-before-step-4-calendar-2026-09-22` getaggt und auf den
+Remote übertragen. Bei einem kritischen Anwendungsfehler wird auf diesen Stand
+zurückgerollt. Für die additiven Datenbankmigrationen erfolgt kein
+unkontrolliertes Down-Migration-Skript; eine Datenbankkorrektur wird als
+geprüfte Vorwärtsmigration ausgeführt, damit bereits entstandene
 Kommunikations- und Kenntnisnahmedaten erhalten bleiben.

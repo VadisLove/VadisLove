@@ -259,13 +259,18 @@ automatische Zusammenführung bestehender Termine ohne Serien-ID. Die offene
 Recovery-Praxisprüfung und die noch nicht geklärte Kopplung der Passwort-
 Augen-Schalter aus Schritt 3 bleiben getrennte Restarbeiten.
 
-**Abnahmestatus (22.09.2026):** Lokale Umsetzung und technische Prüfung sind
-abgeschlossen (Typecheck, ESLint, 138 Tests, Produktionsbuild, isoliertes
-PostgreSQL 17 sowie Desktop-/Mobilprüfung). Die Prüfung der produktiven
-Migrationshistorie, Produktionsmigration und das Deployment stehen mangels
-lokaler Supabase-CLI-Authentifizierung noch aus. Die fachliche Praxisabnahme
-durch den Nutzer bleibt getrennt offen und wird anhand der mobilen Prüfliste
-dokumentiert.
+**Abnahmestatus (22.09.2026):** Umsetzung, technische Prüfung und technischer
+Produktionsstart sind abgeschlossen. Typecheck, ESLint, 138 Tests,
+Produktionsbuild, isoliertes PostgreSQL 17 sowie Desktop-/Mobilprüfung waren
+erfolgreich. Die Migrationen
+`20260922122040_step_4_calendar_communication.sql` und
+`20260922200121_step_4_optimize_event_link_rls.sql` sind im
+Supabase-Produktionsprojekt angewandt und geprüft. Das Vercel-Deployment
+`dpl_GhY7qzj6KJGbkMJ2sGWEmtbW3o6J` ist `Ready`; der Produktionsalias zeigt auf
+diesen Stand. Login-Schutz, ungültiger Feed-Token und unautorisierter
+Mail-Worker wurden auf der Produktionsdomain geprüft. Reale Schritt-4-Mails,
+ein gültiges persönliches Kalender-Abo und die fachliche Praxisabnahme bleiben
+bewusst getrennt offen und werden anhand der mobilen Prüfliste bestätigt.
 
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen
