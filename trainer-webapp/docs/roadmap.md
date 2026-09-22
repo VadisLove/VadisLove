@@ -183,6 +183,9 @@ gegen dieses `Ready`-Deployment geprüft.
 produktionsähnliche Ausführung ausschließlich die maßgebliche öffentliche
 Adresse statt einer aufgerufenen Vorschauadresse. Passwortfelder erhalten einen
 lokalen, barrierefrei beschrifteten Anzeigen-/Verbergen-Schalter.
+Der korrigierte Quellstand `daa464e` läuft im produktiven Deployment
+`dpl_EWwb45J21EamZtEkG8ZwJqsgCjZY`; der öffentliche Alias wurde erneut gegen
+dieses `Ready`-Deployment geprüft.
 
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen

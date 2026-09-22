@@ -56,13 +56,13 @@ Versandinfrastruktur und die Aktivierung von Cloudflare Turnstile.
 
 ## Technischer Prüfnachweis
 
-Geprüfter und produktiv gebauter Quellstand ist Commit `38cd671` auf
+Geprüfter und produktiv gebauter Quellstand ist Commit `daa464e` auf
 `codex/step-3-password-recovery`, aufbauend auf `bf21c15`. Prüfdatum ist der
 22.09.2026.
 
 - `npm run typecheck`: bestanden
 - `npm run lint`: bestanden
-- `npm test`: 125/125 Tests bestanden
+- `npm test`: 126/126 Tests bestanden
 - `npm run build`: bestanden
 - `git diff --check`: bestanden
 - lokale Browserprüfung von `/passwort-vergessen` in Desktop- und Mobile-Größe
@@ -71,11 +71,11 @@ Geprüfter und produktiv gebauter Quellstand ist Commit `38cd671` auf
   Supabase bestätigte die Annahme mit HTTP 200
 
 Vercels Produktions-Build mit Node 24.x bestand. Deployment
-`dpl_2rWseTYMMNeZevxepPFGUhCjjQHw` ist `Ready`; die anschließende Prüfung zeigt,
+`dpl_EWwb45J21EamZtEkG8ZwJqsgCjZY` ist `Ready`; die anschließende Prüfung zeigt,
 dass der öffentliche Alias `https://trainer-webapp-ruby.vercel.app` auf die
-Deployment-URL `https://trainer-webapp-ctcb3bl35-vladi-sntlove.vercel.app`
-verweist. Der vorherige Produktionsstand `bf21c15` ist mit dem Git-Tag
-`production/stable-before-step-3-reauth-hardening-2026-09-22` als Rollback-Punkt
+Deployment-URL `https://trainer-webapp-104wbuk2w-vladi-sntlove.vercel.app`
+verweist. Der vorherige Produktionsstand `38cd671` ist mit dem Git-Tag
+`production/stable-before-step-3-recovery-url-2026-09-22` als Rollback-Punkt
 gesichert.
 
 ## Bekannte Grenzen und fachliche Praxisabnahme
@@ -83,9 +83,11 @@ gesichert.
 Der HTTP-200-Nachweis bestätigt nur, dass Supabase die Recovery-Anfrage
 angenommen hat. Der tatsächliche Eingang im Postfach, der einmalige Linkaufruf,
 das Setzen des neuen Passworts und der anschließende Login müssen durch den
-Nutzer bestätigt werden. Der Profilwechsel mit einem realen Passwortkonto und
-das erstmalige Setzen bei einem realen OAuth-only-Konto sind noch nicht
-fachlich abgenommen. Google und Apple sind weiterhin deaktiviert.
+Nutzer bestätigt werden. Nach der Korrektur ist zusätzlich ein neuer
+Recovery-Link von der Produktionsseite anzufordern und darauf zu prüfen, dass
+er auf `trainer-webapp-ruby.vercel.app` zurückführt. Der Profilwechsel mit einem
+realen Passwortkonto und das erstmalige Setzen bei einem realen OAuth-only-Konto
+sind noch nicht fachlich abgenommen. Google und Apple sind weiterhin deaktiviert.
 
 Die lokale Prüfung lief mit Node 26.7.0, während das Projekt Node 24.x verlangt.
 Der zusätzliche Produktions-Build in Vercels Node-24-Umgebung war erfolgreich.
