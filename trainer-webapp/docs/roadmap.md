@@ -193,6 +193,10 @@ Produktionsdomain als Redirect-Ziel und `http://localhost:3000/**` für die
 lokale Entwicklung. Die alte konkrete Vorschauadresse und die generelle
 Vercel-Vorschau-Wildcard wurden entfernt, damit Recovery-Links nicht mehr auf
 kurzlebige Deployments zurückfallen.
+Die technische Umsetzung und Konfiguration sind abgeschlossen. Der letzte
+Produktionsnachweis — Empfang eines nach dieser Korrektur erzeugten Links an
+der Produktionsadresse — wartet nur auf das Zurücksetzen der aktuell begrenzten
+Supabase-Auth-Mail-Quote.
 
 Bestätigt am 09.09.2026: Nach abgeschlossenem Onboarding ist der persönliche
 Modus sofort nutzbar; eine offene Organisationsanfrage sperrt keine eigenen

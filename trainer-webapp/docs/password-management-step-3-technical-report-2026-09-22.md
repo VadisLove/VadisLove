@@ -87,6 +87,12 @@ Anfrage über die Produktionsseite zeigte die neutrale Bestätigung; die Prüfun
 des tatsächlich empfangenen Mail-Links erfolgt durch den Nutzer, ohne Token
 oder Link in Dokumentation oder Chat zu speichern.
 
+Zum Prüfzeitpunkt begrenzt die konfigurierte Supabase-Auth-Mail-Quote weitere
+Recovery-Mails. Daher ist die Konfigurationskorrektur technisch nachgewiesen,
+aber der Empfang eines nach der Korrektur erzeugten Links noch als offene
+Produktions-Praxisabnahme markiert. Nach Ablauf des Limits genügt genau eine
+neue Anfrage über die Produktionsseite und die Prüfung der Zieladresse.
+
 ## Bekannte Grenzen und fachliche Praxisabnahme
 
 Der HTTP-200-Nachweis bestätigt nur, dass Supabase die Recovery-Anfrage
