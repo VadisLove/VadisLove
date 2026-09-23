@@ -125,6 +125,15 @@ Vercel meldet `READY`, und der feste Alias
 vorherige stabile Stand ist mit dem Git-Tag
 `production/stable-before-auth-password-visibility-2026-09-23` gesichert.
 
+Visuelle Korrektur vom 23.09.2026: Die Sichtbarkeitsschalter in Anmeldung und
+Registrierung verwenden verbindlich denselben zurückhaltenden Stil wie die
+Passwortänderung im Profil: transparenter Hintergrund, blaues Augen-Icon und
+vollständige Positionierung innerhalb des Eingabefelds. Primärbutton-Regeln
+dürfen eingebettete Icon-Schalter nicht erfassen. Der kombinierte
+Referenzvergleich, die gemessene Begrenzung im Feld, beide Umschaltzustände und
+eine fehlerfreie Browser-Konsole sind in `design-qa.md` dokumentiert; der
+Design-QA-Status lautet `passed`.
+
 Ziel: Eine neue Auth-Identität bleibt bis zu vollständigem Profil,
 Organisationsauswahl, Dokumentannahme und gegebenenfalls Elternfreigabe
 serverseitig sowie per RLS gesperrt. Der bestehende E-Mail/Passwort-Ablauf
