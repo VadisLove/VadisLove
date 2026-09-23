@@ -118,7 +118,12 @@ Alle drei Felder wechseln unabhängig zwischen verborgen und sichtbar, behalten
 ihren Wert und aktualisieren `aria-pressed` sowie die Beschriftung. Bekannte
 Grenze: Es wurde bewusst kein echtes Konto registriert und keine Anmeldung mit
 Produktionszugangsdaten ausgeführt. Die fachliche Praxisabnahme in der
-Produktionsoberfläche bleibt offen.
+Produktionsoberfläche bleibt offen. Commit `6d663d6` wurde als Vercel-
+Produktionsdeployment `dpl_2Lmogpd5eudfWSfT2dCeXgUqi3ti` erfolgreich gebaut;
+Vercel meldet `READY`, und der feste Alias
+`https://trainer-webapp-ruby.vercel.app` zeigt auf dieses Deployment. Der
+vorherige stabile Stand ist mit dem Git-Tag
+`production/stable-before-auth-password-visibility-2026-09-23` gesichert.
 
 Ziel: Eine neue Auth-Identität bleibt bis zu vollständigem Profil,
 Organisationsauswahl, Dokumentannahme und gegebenenfalls Elternfreigabe
