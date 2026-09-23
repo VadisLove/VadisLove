@@ -119,7 +119,41 @@ Layout bei 390 × 844 Pixeln bestanden. Das lokale Fixture wurde danach entfernt
 Diese Prüfung bestätigt die Formularbedienung; die fachliche Praxisabnahme
 und reale Versandprüfung bleiben offen.
 
-## Rollback-Konzept
+## Produktionskorrektur Teilnahme – 23.09.2026
+
+Version: `2b6ffec`; Migration:
+`20260923080024_fix_calendar_participant_upsert.sql`.
+Der App-Upsert aktualisiert auch den unveränderten Konfliktschlüssel `event_id`.
+Das in Schritt 4 eingeschränkte Spaltenrecht blockierte deshalb bereits eine
+erste Zusage mit SQLSTATE 42501. Die bisherigen Tests nutzten einfache Updates
+und erkannten diese Regression nicht.
+
+Die Korrektur gewährt ausschließlich das zusätzlich benötigte Spaltenrecht.
+Ein neuer SECURITY-INVOKER-Trigger verhindert einen tatsächlichen Terminwechsel;
+bestehende RLS-Regeln bleiben wirksam. Ein App-getreuer Upsert-Test scheiterte
+vor der Korrektur und besteht danach. Geprüft wurden erstmalige Zusage,
+mehrfache Zu-/Absage, vorhandene Einladung, unveränderte Erinnerung und
+Kenntnisnahme sowie gesperrte fremde Antworten und Terminwechsel. Ergebnis:
+139/139 Tests, zusätzlich 9/9 Kalenderfälle auf isoliertem PostgreSQL 17.
+
+Der Produktions-Dry-Run enthielt ausschließlich diese Migration; sie wurde
+angewandt und ihre Registrierung, das Spaltenrecht und der aktive Trigger
+anschließend bestätigt. Auf Produktion wurde mit Rolle `authenticated` und
+einem berechtigten Nicht-Ersteller der vorhandene Upsert für
+Zusage → Absage → Zusage erfolgreich geprüft. Die gesamte Testtransaktion
+wurde zurückgerollt, sodass keine Teilnahmeänderung bestehen blieb.
+Der Security-Advisor meldet keinen Befund zur neuen Funktion. Eine tatsächliche
+Browserbestätigung durch den betroffenen Nutzer steht noch aus.
+
+Die Korrektur wirkt unmittelbar in Supabase. Der unveränderte App-Stand
+`70de08c` wird weiterhin vom bestätigten Ready-Deployment
+`dpl_9k5TqZbT6PS3K77CYKZrpneTgEKv` ausgeliefert; ein erneuter Vercel-Build ist
+für diese reine Datenbankkorrektur nicht erforderlich. Der Git-Checkpoint
+`production/before-calendar-response-fix-2026-09-23` wurde gepusht. Ein
+App-Rollback allein hebt Datenbankrechte nicht auf; eine erforderliche
+Rücknahme muss als geprüfte SQL-Korrektur erfolgen.
+
+## Ursprüngliches Rollback-Konzept
 
 Der vorherige stabile Produktionsstand `daa464e` ist mit
 `production/stable-before-step-4-calendar-2026-09-22` getaggt und auf den

@@ -209,7 +209,10 @@ erstmalige Zusage und wiederholter Statuswechsel funktionieren; fremde Antworten
 und Terminwechsel bleiben gesperrt, Erinnerung und Kenntnisnahme unverändert.
 Der regressionsbezogene Test reproduzierte vor der Korrektur SQLSTATE 42501;
 danach bestanden 139 Tests und alle neun Kalenderfälle auf PostgreSQL 17.
-Produktionsnachweis wird im technischen Bericht separat festgehalten.
+Die Migration ist produktiv angewandt. Eine zurückgerollte Produktionsprüfung
+mit Rolle `authenticated` bestätigte Zusage → Absage → Zusage für einen
+berechtigten Nicht-Ersteller. Der technische Bericht dokumentiert den Nachweis;
+die Browserbestätigung durch den betroffenen Nutzer bleibt offen.
 
 **Bestätigte Bedienungsanpassung (22.09.2026):** Im Terminformular wird
 „Verbindliche Kommunikation“ standardmäßig eingeklappt angezeigt. Ein erstes
