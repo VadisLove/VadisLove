@@ -132,7 +132,12 @@ vollständige Positionierung innerhalb des Eingabefelds. Primärbutton-Regeln
 dürfen eingebettete Icon-Schalter nicht erfassen. Der kombinierte
 Referenzvergleich, die gemessene Begrenzung im Feld, beide Umschaltzustände und
 eine fehlerfreie Browser-Konsole sind in `design-qa.md` dokumentiert; der
-Design-QA-Status lautet `passed`.
+Design-QA-Status lautet `passed`. Die Korrektur aus Commit `add7cee` wurde als
+Vercel-Produktionsdeployment `dpl_EkWjWdv2ysYNF7Vh3D9JNXjTrw34` erfolgreich
+gebaut; Vercel meldet `READY`, und der feste Alias
+`https://trainer-webapp-ruby.vercel.app` zeigt auf dieses Deployment. Der
+vorherige stabile Stand ist mit dem Git-Tag
+`production/stable-before-auth-password-toggle-style-2026-09-23` gesichert.
 
 Ziel: Eine neue Auth-Identität bleibt bis zu vollständigem Profil,
 Organisationsauswahl, Dokumentannahme und gegebenenfalls Elternfreigabe
