@@ -37,6 +37,12 @@ create policy participants_read_related on public.event_participants for select 
 create policy participants_update_self on public.event_participants for update to authenticated
   using(user_id=auth.uid() or invited_email=private.current_profile_email())
   with check(user_id=auth.uid() or invited_email=private.current_profile_email());
+-- Selbstanmeldungen folgen derselben Organisationsgrenze wie in Produktion.
+create policy participants_insert_self on public.event_participants for insert to authenticated
+  with check(user_id=auth.uid() and invited_by=auth.uid()
+    and invited_email=private.current_profile_email()
+    and exists(select 1 from public.events event where event.id=event_id
+      and private.can_view_event_organization(event.organization_id)));
 grant insert,update,delete on public.events to authenticated;
 create policy events_insert on public.events for insert to authenticated with check(created_by=auth.uid());
 create policy events_update on public.events for update to authenticated using(created_by=auth.uid()) with check(created_by=auth.uid());

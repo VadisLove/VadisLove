@@ -200,6 +200,17 @@ Supabase-Auth-Mail-Quote.
 
 ## Schritt 4 – Verbindliche Kalenderkommunikation
 
+**Fehlerkorrektur Teilnahme (23.09.2026):** Die Spaltenrechte aus Schritt 4
+blockierten den bestehenden PostgREST-Upsert, weil dieser auch die unveränderte
+`event_id` setzt. Die Korrektur erlaubt dieses erneute Setzen und verhindert
+einen tatsächlichen Terminwechsel per Trigger. Ziel sind eigene Zu-/Absagen
+für berechtigte Teilnehmer, einschließlich vorhandener Einladungen. Abnahme:
+erstmalige Zusage und wiederholter Statuswechsel funktionieren; fremde Antworten
+und Terminwechsel bleiben gesperrt, Erinnerung und Kenntnisnahme unverändert.
+Der regressionsbezogene Test reproduzierte vor der Korrektur SQLSTATE 42501;
+danach bestanden 139 Tests und alle neun Kalenderfälle auf PostgreSQL 17.
+Produktionsnachweis wird im technischen Bericht separat festgehalten.
+
 **Bestätigte Bedienungsanpassung (22.09.2026):** Im Terminformular wird
 „Verbindliche Kommunikation“ standardmäßig eingeklappt angezeigt. Ein erstes
 Linkfeld und „+ Link hinzufügen“ ersetzen drei feste Leerzeilen; maximal zehn

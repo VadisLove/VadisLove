@@ -61,6 +61,7 @@ before(async () => {
   await db.exec(await read("../supabase/migrations/20260903080920_carpool_release.sql"));
   await db.exec(await read("../supabase/migrations/20260922122040_step_4_calendar_communication.sql"));
   await db.exec(await read("../supabase/migrations/20260922200121_step_4_optimize_event_link_rls.sql"));
+  await db.exec(await read("../supabase/migrations/20260923080024_fix_calendar_participant_upsert.sql"));
   for (const [id, name, email] of [
     [OWNER, "Owner", "owner@example.invalid"],
     [ATHLETE, "Athlete", "athlete@example.invalid"],
@@ -72,6 +73,17 @@ before(async () => {
 });
 
 after(async () => db?.close());
+
+// PostgREST aktualisiert beim Upsert jede übergebene Spalte, auch event_id.
+// Ein reiner UPDATE-Test hätte die fehlende Berechtigung dafür nicht erkannt.
+const respondViaUpsert = (actor, eventId, email, status) => asUser(actor, (tx) => tx.query(`
+  insert into public.event_participants(event_id,user_id,invited_email,invited_by,status,responded_at)
+  values($1,$2,$3,$2,$4,now())
+  on conflict(event_id,invited_email) do update set
+    event_id=excluded.event_id, user_id=excluded.user_id,
+    invited_email=excluded.invited_email, invited_by=excluded.invited_by,
+    status=excluded.status, responded_at=excluded.responded_at`,
+  [eventId, actor, email, status]));
 
 const eventPayload = (overrides = {}) => ({
   organization_id: ORG,
@@ -225,6 +237,43 @@ test("Konkurrierende Worker-Claims liefern dieselbe Zustellung höchstens einmal
     ? await Promise.all([claim(), claim()])
     : [await claim(), await claim()];
   assert.equal(claims.flatMap((result) => result.rows).filter((row) => row.id === mailId).length, 1);
+});
+
+test("Selbstanmeldung per App-Upsert erlaubt Zu- und Absage ohne Terminwechsel oder fremde Antworten", async () => {
+  const created = await asUser(OWNER, (tx) => tx.query(
+    "select public.create_calendar_events($1,1,'[]') id", [JSON.stringify(eventPayload())],
+  ));
+  const target = created.rows[0].id;
+  await respondViaUpsert(ATHLETE, target, "athlete@example.invalid", "confirmed");
+  await respondViaUpsert(ATHLETE, target, "athlete@example.invalid", "declined");
+  await respondViaUpsert(ATHLETE, target, "athlete@example.invalid", "confirmed");
+  assert.equal((await db.query("select status from public.event_participants where event_id=$1 and user_id=$2", [target, ATHLETE])).rows[0].status, "confirmed");
+  await assert.rejects(respondViaUpsert(OTHER, target, "outsider@example.invalid", "confirmed"), /row-level security/);
+  await assert.rejects(respondViaUpsert(ATHLETE, target, "owner@example.invalid", "confirmed"), /row-level security/);
+  const otherEvent = (await asUser(OWNER, (tx) => tx.query(
+    "select public.create_calendar_events($1,1,'[]') id", [JSON.stringify(eventPayload())],
+  ))).rows[0].id;
+  await assert.rejects(asUser(ATHLETE, (tx) => tx.query(
+    "update public.event_participants set event_id=$1 where event_id=$2 and user_id=$3", [otherEvent, target, ATHLETE],
+  )), /CALENDAR_FORBIDDEN/);
+
+  // Auch eine bestehende Einladung und ihre unabhängige Kenntnisnahme prüfen.
+  await asUser(OWNER, (tx) => tx.query(
+    "insert into public.event_participants(event_id,user_id,invited_email,invited_by) values($1,$2,'athlete@example.invalid',$3)",
+    [otherEvent, ATHLETE, OWNER],
+  ));
+  await asUser(ATHLETE, (tx) => tx.query("select public.set_event_reminder($1,true)", [otherEvent]));
+  await asUser(OWNER, (tx) => tx.query(
+    "select public.update_calendar_event($1,$2,'single',false)",
+    [otherEvent, JSON.stringify({ ...eventPayload(), location: "Neuer Ort", links: [] })],
+  ));
+  await respondViaUpsert(ATHLETE, otherEvent, "athlete@example.invalid", "confirmed");
+  const invitation = (await db.query(
+    "select status,reminder_enabled,acknowledged_revision from public.event_participants where event_id=$1 and user_id=$2", [otherEvent, ATHLETE],
+  )).rows[0];
+  assert.equal(invitation.status, "confirmed");
+  assert.equal(invitation.reminder_enabled, true);
+  assert.equal(invitation.acknowledged_revision, 0);
 });
 
 test("Kommunizierte Absage bleibt erhalten und storniert vorhandene Fahrten", async () => {
