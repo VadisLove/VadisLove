@@ -37,6 +37,10 @@
 - `npm run typecheck`: bestanden
 - `npm run build`: bestanden mit Next.js 16.2.12
 - Browser-Konsole: keine Fehler
+- Produktionsprüfung: Anmeldung und beide Registrierungsfelder unter
+  `https://trainer-webapp-ruby.vercel.app/login` geprüft; alle drei Schalter
+  sind transparent, 38 × 38 px groß, mit 5 px Innenabstand vollständig im Feld
+  begrenzt und die Browser-Konsole bleibt fehlerfrei.
 
 Bekannte Grenze: Die fachliche Praxisabnahme auf dem persönlichen Endgerät des Nutzers steht noch aus; Anmeldung oder Registrierung mit echten Zugangsdaten war nicht Bestandteil dieser visuellen Änderung.
 
