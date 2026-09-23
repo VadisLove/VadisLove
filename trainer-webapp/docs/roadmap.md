@@ -88,7 +88,13 @@ aktiv zugeordnete Trainer, unveränderliche abgeschlossene Sessions sowie
 Start/Pause/Fortsetzen je Übung mit zeitlichem Weiterlaufen bei geschlossenem
 Fenster. Erfassung pro Fahrer: Gestanden, Nicht gestanden und Rückgängig.
 Ziel, Qualitätsmerkmale, Umfang und Abnahmekriterien: [Schritt 5](training-step-5.md).
-Implementierung in Arbeit; technische Prüfung und Praxisabnahme sind getrennt.
+Implementierung und technischer Produktionsrelease am 23.09.2026 erfolgt:
+150 automatisierte Tests, zusätzliche native PostgreSQL-Prüfung und lokale
+Browserabläufe bestanden. Migration `20260923202413` angewandt; Deployment
+`dpl_9r8oXSv6spsCnTpxEtC8dN5F7Wmg` ist `READY`, Produktionsalias geprüft.
+[Prüfkontext, Grenzen und Rollback](training-step-5-release.md).
+Die fachliche Praxisabnahme durch den Nutzer ist weiterhin offen; Schritt 5 wird
+noch nicht als im Trainingsalltag bestätigt geführt.
 
 ## Arbeitsschritt 2: Anmeldung und Profilerstellung – technische Produktionsbasis
 

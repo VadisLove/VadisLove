@@ -76,7 +76,15 @@ vor Migration und Deployment zu origin gepusht. Die Migration wurde am 23.09.202
 Migrationsversion angeglichen; SQL-Inhalt unverändert. Anschließend erfolgreich:
 transaktionaler Produktions-Funktionstest (vollständig zurückgerollt), RLS auf
 allen fünf neuen öffentlichen Tabellen, Advisor ohne neue Findings.
-Neuer Deploymentnachweis folgt nach Veröffentlichung. Bei kritischen Fehlern den vorherigen Vercel-Stand wieder
+Vercel-Produktionsdeployment: `dpl_9r8oXSv6spsCnTpxEtC8dN5F7Wmg`,
+Codecommit `6dceb7a`, Ziel Produktion, Status `READY`, Next.js 16.2.12, Node 24.
+Build-Dauer laut Vercel: 99 Sekunden.
+Die bestehende Adresse `https://trainer-webapp-ruby.vercel.app` zeigt laut
+anschließendem `vercel inspect` auf `trainer-webapp-fxtg21oxc-vladi-sntlove.vercel.app`.
+HTTP-Prüfung: Login 200; Trainingsseite, Freigaben und Trainings-API führen ohne
+Anmeldung korrekt zum Login (307). Auch ein nicht angemeldeter Cross-Origin-POST
+wird bereits von der Anmeldung abgefangen. Kein authentifizierter Produktivbrowser-
+End-to-End-Test mit einem Nutzerkonto; dieser bleibt Teil der Praxisabnahme. Bei kritischen Fehlern den vorherigen Vercel-Stand wieder
 zuweisen; die additive Datenbankerweiterung bleibt erhalten, damit neu erfasste
 Sessions bei einem App-Rollback nicht verloren gehen.
 
@@ -86,6 +94,11 @@ an diesen Altbereichen in Schritt 5. Neue öffentliche RPCs sind Security Invoke
 privilegierte Schreibfunktionen liegen im privaten Schema mit expliziter Rechteprüfung.
 [Advisor-Erläuterung](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable),
 [Passwortschutz](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+Betriebsprüfung direkt nach Veröffentlichung: `vercel logs` für dieses Deployment,
+Level error, letzte zehn Minuten: keine Einträge. Das ist eine Momentaufnahme;
+Drains und dauerhaftes Monitoring wurden in diesem Paket nicht neu eingerichtet
+oder bewertet.
 
 ## Fachliche Praxisabnahme – offen
 
