@@ -6,6 +6,7 @@ import { minimumPasswordLength } from "@/domain/password-security";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getTranslations } from "@/i18n/server";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { PasswordInput } from "@/components/forms/password-input";
 import { getRegistrationOrganizations } from "@/data/registration-organization-repository";
 import { getSafeRedirectPath } from "@/lib/safe-redirect-path";
 import { RegistrationOrganizationFields } from "./registration-organization-fields";
@@ -123,22 +124,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className={styles.passwordGrid}>
               <label>
                 {t("auth.password")}
-                <input
-                  type="password"
+                <PasswordInput
                   name="password"
                   autoComplete="new-password"
                   minLength={minimumPasswordLength}
                   required
+                  controlClassName={styles.passwordInputControl}
+                  toggleClassName={styles.passwordVisibilityButton}
                 />
               </label>
               <label>
                 {t("auth.repeatPassword")}
-                <input
-                  type="password"
+                <PasswordInput
                   name="passwordConfirmation"
                   autoComplete="new-password"
                   minLength={minimumPasswordLength}
                   required
+                  controlClassName={styles.passwordInputControl}
+                  toggleClassName={styles.passwordVisibilityButton}
                 />
               </label>
             </div>
@@ -184,12 +187,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
             <label>
               {t("auth.password")}
-              <input
-                type="password"
+              <PasswordInput
                 name="password"
                 autoComplete="current-password"
                 minLength={minimumPasswordLength}
                 required
+                controlClassName={styles.passwordInputControl}
+                toggleClassName={styles.passwordVisibilityButton}
               />
             </label>
 

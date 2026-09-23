@@ -94,6 +94,32 @@ vollständige technische Vorschlag, die Entscheidungen und der Prüfnachweis ste
 Der vollständige fachliche Ablauf und die abgeleiteten Zustände stehen in
 [Onboarding-Ablauf für Schritt 2](onboarding-flow-step-2.md).
 
+Ergänzung vom 23.09.2026 – Passwortsichtbarkeit:
+
+- **Zielentität und Nutzungskontext:** Die Passwortfelder der öffentlichen
+  Anmeldung und Registrierung für alle anonymen Nutzerrollen.
+- **Umfang:** Jedes Passwort- und Passwortbestätigungsfeld erhält denselben
+  lokalen, tastatur- und screenreaderbedienbaren Sichtbarkeitsschalter wie die
+  Passwortänderung im Profil.
+- **Abnahmekriterien:** Der Feldwert bleibt beim Umschalten erhalten, die Felder
+  lassen sich unabhängig ein- und ausblenden, und Browser-Autofill,
+  Passwortregeln sowie Formularübermittlung bleiben unverändert.
+- **Ausgeschlossen:** Änderungen an Supabase Auth, Passwortregeln,
+  Berechtigungen, Datenmodell und Recovery-Ablauf.
+- **Qualitätsprüfung:** Funktionale Eignung, Benutzbarkeit, Barrierefreiheit und
+  Wartbarkeit werden über Typprüfung, Lint, Tests, Produktions-Build und einen
+  Browser-Nachweis geprüft. Ergebnis, Version und bekannte Grenzen werden mit
+  dem Deployment dokumentiert; die fachliche Praxisabnahme bleibt beim Nutzer.
+
+Technischer Nachweis vom 23.09.2026: Typprüfung und Lint ohne Befund, 139 Tests
+erfolgreich, Produktions-Build mit Next.js 16.2.12 erfolgreich. Im lokalen
+Desktop-Browser wurden Anmeldung und Registrierung ohne Fehler-Overlay geprüft:
+Alle drei Felder wechseln unabhängig zwischen verborgen und sichtbar, behalten
+ihren Wert und aktualisieren `aria-pressed` sowie die Beschriftung. Bekannte
+Grenze: Es wurde bewusst kein echtes Konto registriert und keine Anmeldung mit
+Produktionszugangsdaten ausgeführt. Die fachliche Praxisabnahme in der
+Produktionsoberfläche bleibt offen.
+
 Ziel: Eine neue Auth-Identität bleibt bis zu vollständigem Profil,
 Organisationsauswahl, Dokumentannahme und gegebenenfalls Elternfreigabe
 serverseitig sowie per RLS gesperrt. Der bestehende E-Mail/Passwort-Ablauf
