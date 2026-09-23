@@ -1,0 +1,244 @@
+/* Gemeinsame Produkttokens; die Session bleibt auf schmalen Geräten einspaltig. */
+.workspace {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px;
+  color: var(--color-text);
+}
+.workspace h1 {
+  font-size: 30px;
+}
+.workspace h2 {
+  margin: 16px 0;
+  font-size: 24px;
+}
+.workspace h3 {
+  margin: 0 0 10px;
+}
+.workspace p {
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.workspace section {
+  margin: 28px 0;
+}
+.workspace a {
+  text-decoration: underline;
+  color: var(--color-blue-dark);
+}
+.header,
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.header {
+  margin-bottom: 24px;
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--color-muted);
+}
+.workspace button {
+  min-height: 46px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: white;
+  cursor: pointer;
+}
+.workspace button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.workspace button.primary,
+.workspace button[aria-pressed="true"] {
+  background: var(--color-blue-dark);
+  border-color: var(--color-blue-dark);
+  color: white;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 18px;
+  margin: 12px 0;
+}
+.card a {
+  display: block;
+  margin-top: 12px;
+}
+.pill {
+  display: inline-block;
+  padding: 5px 10px;
+  background: var(--color-blue-soft);
+  border-radius: 20px;
+  color: var(--color-blue-dark);
+  font-size: 13px;
+}
+.notice,
+.error {
+  padding: 14px;
+  border-radius: 9px;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+.notice {
+  background: #edf8f0;
+  color: #175c31;
+}
+.error {
+  background: #fff0ef;
+  color: #902328;
+}
+.error button {
+  margin: 10px 8px 0 0;
+}
+.form {
+  border: 0;
+  max-width: 680px;
+  display: grid;
+  gap: 16px;
+}
+.workspace label {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+}
+.workspace input,
+.workspace select,
+.workspace textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: white;
+  font: inherit;
+  font-size: 16px;
+}
+.workspace textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.workspace label.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.check input {
+  width: 22px;
+  min-height: 22px;
+}
+.workspace details {
+  padding: 12px 0;
+}
+.workspace summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px 0;
+}
+.history {
+  width: 100%;
+  margin: 6px 0;
+}
+.session {
+  max-width: 540px;
+  margin: 20px auto;
+}
+.muted {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+.timer {
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.actions button {
+  font-size: 14px;
+  padding: 12px 8px;
+}
+.undo {
+  margin-top: 12px;
+}
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+.names {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  gap: 6px;
+}
+.names button {
+  flex: none;
+}
+.picker > button {
+  min-width: 44px;
+  padding: 8px;
+}
+.carousel {
+  display: flex;
+  gap: 12px;
+  overflow: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.carousel > .card {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+.session > form {
+  margin: 16px 0;
+}
+.session > button {
+  margin: 16px 0;
+}
+@media (max-width: 600px) {
+  .workspace {
+    padding: 14px 8px;
+  }
+  .header {
+    align-items: flex-start;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 14px;
+  }
+  .session {
+    max-width: 100%;
+  }
+  .actions button {
+    font-size: 13px;
+  }
+}

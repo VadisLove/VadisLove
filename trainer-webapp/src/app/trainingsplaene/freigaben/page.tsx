@@ -1,0 +1,57 @@
+import Link from "next/link";
+import { trainerRepository } from "@/data/trainer-repository";
+import { getPeopleDirectory } from "@/data/supabase-people-repository";
+import {
+  getSharedTrainingPlanSnapshots,
+  getTrainingExerciseDemoVideos,
+  getTrainingVideoEvidence,
+  getTrainingXpLeaderboard,
+} from "@/data/shared-training-plan-repository";
+import { PlansView } from "@/features/plans/plans-view";
+
+interface TrainingPlansPageProps {
+  searchParams: Promise<{
+    plan?: string | string[];
+    action?: string | string[];
+  }>;
+}
+
+export default async function TrainingPlansPage({
+  searchParams,
+}: TrainingPlansPageProps) {
+  const params = await searchParams;
+  const selectedPlanId = typeof params.plan === "string"
+    ? params.plan
+    : undefined;
+  const requestedAction = typeof params.action === "string"
+    ? params.action
+    : undefined;
+  const [plans, people, sharedPlans, leaderboard, videoEvidence, demoVideos] = await Promise.all([
+    trainerRepository.getTrainingPlans(),
+    getPeopleDirectory(),
+    getSharedTrainingPlanSnapshots(),
+    getTrainingXpLeaderboard(),
+    getTrainingVideoEvidence(),
+    getTrainingExerciseDemoVideos(),
+  ]);
+  return (
+    <>
+    {/* Der bisherige Freigabe-/Videopfad bleibt erreichbar; dauerhafte eigene
+        Pläne werden ausschließlich im neuen Trainingsbereich verwaltet. */}
+    <p style={{ padding: "16px 24px" }}>
+      Bisherige Freigaben, Vorlagen und Fortschritte. Eigene Änderungen in dieser
+      bisherigen Ansicht sind weiterhin lokale Entwürfe. Dauerhafte eigene Pläne
+      und Trainings findest du unter <Link href="/trainingsplaene">Meine Trainings</Link>.
+    </p>
+    <PlansView
+      initialPlans={[...sharedPlans, ...plans]}
+      people={people}
+      initialLeaderboard={leaderboard}
+      initialVideoEvidence={videoEvidence}
+      initialDemoVideos={demoVideos}
+      initialSelectedPlanId={selectedPlanId}
+      initialDialog={requestedAction === "share" ? "share" : null}
+    />
+    </>
+  );
+}
