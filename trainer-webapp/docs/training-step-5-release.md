@@ -29,7 +29,7 @@ Profilumbenennung bzw. vorhandene Kontoanonymisierung aktualisieren auch den Ath
 ## Technische Prüfung
 
 Prüfversion: freigegebener Schritt-5-Code mit Migration
-`20260923141926_step_5_training_sessions.sql`, Node 24, Next 16.2.12.
+`20260923202413_step_5_training_sessions.sql`, Node 24, Next 16.2.12.
 
 - `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`: bestanden.
   Gesamtsuite: 150 Tests, keine Fehler und keine übersprungenen Tests.
@@ -71,8 +71,12 @@ Supabase-Auth-/Directory-Antworten. Keine echten Nutzerdaten im Prüfstand.
 Vorheriger stabiler Stand: Deployment `dpl_EkWjWdv2ysYNF7Vh3D9JNXjTrw34`,
 `trainer-webapp-em7ze0ote-vladi-sntlove.vercel.app`, Code `add7cee`.
 Sicherungstag: `production/stable-before-step-5-training-20260923` auf `add7cee`,
-vor Migration und Deployment zu origin gepusht. Neuer Deploymentnachweis folgt
-nach Veröffentlichung. Bei kritischen Fehlern den vorherigen Vercel-Stand wieder
+vor Migration und Deployment zu origin gepusht. Die Migration wurde am 23.09.2026 als `20260923202413` auf
+`lglmlktrngmrimvhwxab` angewandt. Lokaler Dateiname an die vom MCP erzeugte
+Migrationsversion angeglichen; SQL-Inhalt unverändert. Anschließend erfolgreich:
+transaktionaler Produktions-Funktionstest (vollständig zurückgerollt), RLS auf
+allen fünf neuen öffentlichen Tabellen, Advisor ohne neue Findings.
+Neuer Deploymentnachweis folgt nach Veröffentlichung. Bei kritischen Fehlern den vorherigen Vercel-Stand wieder
 zuweisen; die additive Datenbankerweiterung bleibt erhalten, damit neu erfasste
 Sessions bei einem App-Rollback nicht verloren gehen.
 

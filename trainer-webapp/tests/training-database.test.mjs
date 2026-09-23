@@ -46,7 +46,7 @@ before(async () => {
   await db.exec(
     await readFile(
       new URL(
-        "../supabase/migrations/20260923141926_step_5_training_sessions.sql",
+        "../supabase/migrations/20260923202413_step_5_training_sessions.sql",
         import.meta.url,
       ),
       "utf8",
