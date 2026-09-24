@@ -1,11 +1,11 @@
 # Schritt 7 – Technischer Nachweis und Praxisprüfliste
 
-Datum: 24.09.2026. Branch `claude/skateparks-tricks-system-1c780a`, Basis
-`codex/step-5-training` (`0d7975c`). Umfang, Rollen und Abnahmekriterien:
+Datum: 24.09.2026. Branch `claude/step-7-park-planner`, Basis
+`codex/step-6-session-recaps` (`8aa88a3`, produktiver Stand mit Schritt 6 und Stance). Umfang, Rollen und Abnahmekriterien:
 [Schritt 7](park-run-planner-step-7.md).
 
-**Status: implementiert und lokal geprüft. Nicht veröffentlicht.** Die Migration
-wurde auf keine Supabase-Datenbank angewandt; kein Deployment.
+**Status: technisch produktiv veröffentlicht am 24.09.2026** auf ausdrücklichen
+Wunsch des Nutzers (App bisher nur vom Nutzer selbst genutzt). Praxisabnahme offen.
 
 ## Implementierter Umfang
 
@@ -58,11 +58,32 @@ echten Migrationen, synthetische Konten, simulierte Auth/Storage):
 - RLS-Hilfsfunktionen der Produktion (`calendar_event_visible`,
   `is_trainer_profile`) sind im Prüfstand vereinfacht nachgebildet.
 
-## Vor Veröffentlichung
+## Produktionsrelease (24.09.2026)
 
-1. Migration auf einem Supabase-Branch anwenden, Advisors prüfen, Upload und
-   signierte URLs mit echtem Storage testen.
-2. Rollback-Tag setzen, Migration produktiv anwenden, deployen, Alias prüfen.
+- Vorheriger Stand: `dpl_AxqqDHdSxVZ8Frq6mWN6pwYSAWCc` (Schritt 6). Sicherungstag
+  `production/stable-before-step-7-park-planner-20260924` auf `8aa88a3`, vor
+  Migration und Deployment zu origin gepusht.
+- Kombinierter Stand (Schritt 6 + 7) vor Veröffentlichung erneut geprüft:
+  165/165 Tests, Typprüfung, Lint, Produktionsbuild.
+- Migration auf `lglmlktrngmrimvhwxab` als Version `20260924135627` angewandt;
+  lokaler Dateiname angeglichen. Kommentare wurden beim Anwenden weggelassen,
+  SQL-Anweisungen unverändert. Vorabprüfung der referenzierten Funktionen,
+  Tabellen und Spalten bestanden. RLS auf allen fünf neuen Tabellen aktiv,
+  65 Tricks, Bucket privat. Transaktionaler Funktionstest (Park, Run mit zwei
+  Pins am selben Obstacle, Detail- und Listen-RPC) bestanden und vollständig
+  zurückgerollt; danach 0 Parks, 0 Runs, 0 Requests. Security-Advisor: keine
+  neuen Findings, nur bekannte Altbestände.
+- Vercel: `dpl_7BCNCfEAEMNRE7o5L6Nsd2PzMVyA`, Status `READY`; die Produktions-
+  adresse `https://trainer-webapp-ruby.vercel.app` zeigt laut `vercel inspect`
+  darauf. Ein unmittelbar vorheriger, identischer Deploy-Aufruf erzeugte zusätzlich
+  `trainer-webapp-n9plrwado` (gleicher Code, ersetzt).
+- HTTP: `/login` 200; `/skateparks` und `/api/parks` ohne Anmeldung 307 zum Login.
+  `vercel logs` (Level error, 30 min): keine Einträge.
+- Kein angemeldeter Produktions-Browsertest; Teil der Praxisabnahme.
+
+Rollback: vorheriges Vercel-Deployment wieder zuweisen
+(`vercel promote dpl_AxqqDHdSxVZ8Frq6mWN6pwYSAWCc`). Die additive
+Datenbankerweiterung bleibt bestehen, damit erfasste Parks/Runs nicht verloren gehen.
 
 ## Praxisprüfliste für den Nutzer
 
