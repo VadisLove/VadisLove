@@ -20,6 +20,7 @@ test("validiert und normalisiert eine Profilaktualisierung", () => {
     location: "München",
     bio: "Skateboarderin",
     disciplines,
+    stance: null,
     visibility: "contacts",
   }), null);
   assert.match(validateProfileDetails({
@@ -29,6 +30,7 @@ test("validiert und normalisiert eine Profilaktualisierung", () => {
     location: "",
     bio: "",
     disciplines: [],
+    stance: null,
     visibility: "private",
   }), /Vor- und Nachname/);
 });
@@ -73,4 +75,16 @@ test("bewahrt mehrere parallele Vereinsmitgliedschaften und Rollen", () => {
     federations.find((federation) => federation.id === "by")?.qualifyingClubs,
     ["Verein Bayern"],
   );
+});
+
+// Die gemeinsame Validierung schützt auch künftige Aufrufer außerhalb des Formulars.
+test("akzeptiert nur Regular, Goofy und keine Stance-Angabe", () => {
+  const profile = { firstName: "Lea", lastName: "Muster", phone: "", location: "",
+    bio: "", disciplines: [], visibility: "private" };
+  for (const stance of [null, "regular", "goofy"]) {
+    assert.equal(validateProfileDetails({ ...profile, stance }), null);
+  }
+  for (const stance of ["", "switch", "defaultChecked", undefined]) {
+    assert.match(validateProfileDetails({ ...profile, stance }), /Stance/);
+  }
 });

@@ -3,6 +3,7 @@ import type { OrganizationRole } from "@/domain/models";
 import type {
   FederationAffiliation,
   ProfileOverview,
+  ProfileStance,
   ProfileVisibility,
 } from "@/domain/profile";
 import {
@@ -44,6 +45,7 @@ interface OwnProfileRow {
   location: string | null;
   bio: string | null;
   disciplines: string[];
+  stance: ProfileStance;
   visibility: ProfileVisibility;
   avatar_path: string | null;
   account_type: AccountType;
@@ -171,6 +173,7 @@ export async function getOwnProfileOverview(): Promise<ProfileOverview> {
     location: profile.location || "",
     bio: profile.bio || "",
     disciplines: profile.disciplines || [],
+    stance: profile.stance,
     visibility: profile.visibility as ProfileVisibility,
     avatarPath: profile.avatar_path,
     avatarUrl,

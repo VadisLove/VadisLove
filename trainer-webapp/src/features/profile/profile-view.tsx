@@ -316,6 +316,38 @@ export function ProfileView({
                 placeholder="Street, Park, Bowl"
               />
             </label>
+
+            {/* Die gespeicherte Grundstellung bestimmt die anfängliche Auswahl. */}
+            <fieldset className={styles.visibilityOptions}>
+              <legend>Stance</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="stance"
+                  value="regular"
+                  defaultChecked={profile.stance === "regular"}
+                />
+                <span><strong>Regular</strong></span>
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="stance"
+                  value="goofy"
+                  defaultChecked={profile.stance === "goofy"}
+                />
+                <span><strong>Goofy</strong></span>
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="stance"
+                  value=""
+                  defaultChecked={profile.stance === null}
+                />
+                <span><strong>Keine Angabe</strong></span>
+              </label>
+            </fieldset>
           </section>
 
           <section className={styles.sectionCard} aria-labelledby="privacy-heading">

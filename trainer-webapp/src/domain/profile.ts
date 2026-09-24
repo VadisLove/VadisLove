@@ -2,6 +2,8 @@ import type { AccountType } from "@/domain/current-user";
 import type { OrganizationRole } from "@/domain/models";
 
 export type ProfileVisibility = "all_members" | "contacts" | "private";
+/** Grundstellung auf dem Board; null bedeutet „Keine Angabe“. */
+export type ProfileStance = "regular" | "goofy" | null;
 
 export interface ClubMembership {
   organizationId: string;
@@ -39,6 +41,7 @@ export interface ProfileOverview {
   location: string;
   bio: string;
   disciplines: string[];
+  stance: ProfileStance;
   visibility: ProfileVisibility;
   avatarPath: string | null;
   avatarUrl: string | null;
@@ -113,6 +116,7 @@ export interface EditableProfileDetails {
   location: string;
   bio: string;
   disciplines: string[];
+  stance: ProfileStance;
   visibility: ProfileVisibility;
 }
 
@@ -202,6 +206,10 @@ export function validateProfileDetails(
 ): string | null {
   if (!details.firstName || !details.lastName) {
     return "Bitte gib Vor- und Nachname vollständig an.";
+  }
+  // Auch andere Aufrufer der gemeinsamen Profilprüfung müssen gültige Werte liefern.
+  if (details.stance !== null && details.stance !== "regular" && details.stance !== "goofy") {
+    return "Bitte wähle eine gültige Stance aus.";
   }
   if (
     details.firstName.length > 80 ||

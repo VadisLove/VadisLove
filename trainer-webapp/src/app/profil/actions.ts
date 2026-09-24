@@ -51,6 +51,13 @@ export async function updateProfile(
   const disciplines = parseDisciplines(String(formData.get("disciplines") || ""));
   const visibility = String(formData.get("visibility") || "") as ProfileVisibility;
 
+  // Nur die drei Formularoptionen akzeptieren; leer bedeutet „Keine Angabe“.
+  const stanceValue = formData.get("stance");
+  if (stanceValue !== "" && stanceValue !== "regular" && stanceValue !== "goofy") {
+    return { status: "error", message: "Bitte wähle eine gültige Stance aus." };
+  }
+  const stance = stanceValue === "" ? null : stanceValue;
+
   const validationError = validateProfileDetails({
     firstName,
     lastName,
@@ -58,6 +65,7 @@ export async function updateProfile(
     location,
     bio,
     disciplines,
+    stance,
     visibility,
   });
   if (validationError) return { status: "error", message: validationError };
@@ -77,6 +85,7 @@ export async function updateProfile(
       location: location || null,
       bio: bio || null,
       disciplines,
+      stance,
       visibility,
     })
     .eq("id", userId);
