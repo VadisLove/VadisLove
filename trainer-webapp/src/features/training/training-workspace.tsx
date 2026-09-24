@@ -176,6 +176,7 @@ export function TrainingWorkspaceView({
           <span className={styles.eyebrow}>TRAINING</span>
           <h1>{session ? session.plan_snapshot.title : "Trainingspläne"}</h1>
         </div>
+        <Link href="/trainingsplaene/verlauf">Session-Rückblick & Fortschritt</Link>
         <Link href="/trainingsplaene/freigaben">
           Freigaben & bisherige Fortschritte
         </Link>
