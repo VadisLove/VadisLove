@@ -17,7 +17,7 @@ des Datenbankschemas und des Vercel-Produktionsalias. Ergebnisse folgen nach Pr�
 
 Basis: Produktionscommit 6dceb7a, Deployment dpl_9r8oXSv6spsCnTpxEtC8dN5F7Wmg.
 Stance wird als additive nullable Spalte ergänzt. Bei App-Rollback bleibt sie erhalten.
-Keine separate Staging-Abnahme. Fachliche Praxisabnahme noch offen:
+Keine separate Staging-Abnahme. Fachliche Praxisprüfliste (nach Veröffentlichung vom Nutzer bestätigt):
 - Profil öffnen, Regular speichern, neu laden und Auswahl prüfen.
 - Auf Goofy wechseln, speichern und neu laden.
 - Keine Angabe speichern und neu laden.
@@ -43,8 +43,9 @@ Vercel: `dpl_B563561MMB8zifvLcR1Ty7K7rN6r`, Status READY, Ziel Produktion,
 `trainer-webapp-bz223t9o0-vladi-sntlove.vercel.app`. Nach erfolgreichem Build promoviert.
 Abfrage der bestehenden Adresse `https://trainer-webapp-ruby.vercel.app` bestätigt
 diese Deployment-ID. Login HTTP 200; Profil und Trainingspläne ohne Anmeldung
-HTTP 307 zum Login. Kein authentifizierter Produktions-Browsertest durchgeführt;
-die obige Nutzer-Prüfliste bleibt offen. Keine separate Staging-Praxisabnahme.
+HTTP 307 zum Login. Kein authentifizierter Produktions-Browsertest durch Codex
+durchgeführt. Die anschließende Nutzerabnahme ist unten dokumentiert. Keine separate
+Staging-Praxisabnahme.
 
 Ein wegen fehlender Root-Verknüpfung versehentlich erzeugtes Zusatzprojekt
 `trainer-profile-stance-release` wurde vollständig entfernt. Das bestehende
@@ -55,3 +56,12 @@ die additive Spalte samt Werten beibehalten.
 Betriebsprüfung direkt nach Promotion: Vercel-Fehlerlogs dieses Deployments für
 die letzten zehn Minuten ohne Einträge. Momentaufnahme; dauerhaftes Monitoring
 und Drains wurden in diesem Release nicht verändert oder neu geprüft.
+
+## Fachliche Produktionsabnahme – bestätigt
+
+24.09.2026: Der Nutzer bestätigt nach Aufforderung zur Prüfung der drei Stance-
+Optionen mit Speichern und Neuladen im Produktionsprofil: „passt. alles ist geprüft
+und funktioniert.“ Damit ist die Stance-Erweiterung fachlich abgenommen und der
+Produktionsbetrieb für diesen Ablauf bestätigt. Bezug: Deployment
+`dpl_B563561MMB8zifvLcR1Ty7K7rN6r`, Code `c085a61`. Gerät und Browser wurden nicht
+genannt; eine gesonderte Mobilgeräteprüfung wird daraus nicht abgeleitet.

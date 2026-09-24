@@ -551,3 +551,7 @@ Bestätigt: optionale Grundstellung Regular / Goofy / Keine Angabe im eigenen
 sportlichen Profil, bestehende Konten ohne Vorbelegung. Produktionsrelease vom
 Nutzer freigegeben. Umfang, Qualitätskriterien und getrennte technische/fachliche
 Abnahme: [Stance-Release](profile-stance-release.md). Produktreihenfolge unverändert.
+
+Stance-Abnahme am 24.09.2026: Nutzer bestätigt nach Produktionsprüfung, dass alles
+funktioniert. Diese Profilerweiterung ist technisch veröffentlicht und fachlich
+abgenommen; andere offene Roadmap-Abnahmen bleiben unverändert.
