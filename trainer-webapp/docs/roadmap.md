@@ -37,7 +37,7 @@ Familienübersicht, Offline und Videos bleiben als spätere Schritte 11–13 gep
   („ich habe es abgenommen passt erstmal“); damit im vereinbarten Umfang abgeschlossen.
   Die Bestätigung ergänzt die historischen Nachweise, ohne einzelne Prüfergebnisse
   oder eine neue technische Prüfung zu behaupten.
-- **Schritt 6 in Umsetzung:** Session-Abschluss und Fortschrittsverlauf. Umfang und bestätigte Regeln stehen in [roadmap-details.md](roadmap-details.md#arbeitsschritt-6-session-abschluss-und-fortschrittsverlauf). Praxisabnahme bleibt offen.
+- **Schritt 6 technisch veröffentlicht (24.09.2026):** Session-Abschluss und Fortschrittsverlauf. Deployment-Build erfolgreich, Produktionsalias bestätigt. Umfang und bestätigte Regeln stehen in [roadmap-details.md](roadmap-details.md#arbeitsschritt-6-session-abschluss-und-fortschrittsverlauf). Praxisabnahme bleibt offen.
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
   bleiben bestehen. Sie ändern die vereinbarte Produktreihenfolge nicht.

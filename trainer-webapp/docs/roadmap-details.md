@@ -102,7 +102,7 @@ ergänzt den damaligen technischen Nachweis; sie behauptet keine erneute Prüfun
 
 ## Arbeitsschritt 6: Session-Abschluss und Fortschrittsverlauf
 
-Stand 24.09.2026: Umsetzung beauftragt; fachliche Praxisabnahme offen.
+Stand 24.09.2026: implementiert und technisch veröffentlicht; fachliche Praxisabnahme offen.
 
 - **Zielentität und Nutzungskontext:** persönliche Rückblicke und Verlauf der
   abgeschlossenen Schritt-5-Sessions, auf Mobilgerät und Desktop nach dem Training.
@@ -159,7 +159,37 @@ Stand 24.09.2026: Umsetzung beauftragt; fachliche Praxisabnahme offen.
 8. Abgeschlossene Erfassungsdaten bleiben unveränderlich. Ergänzungen ändern keine
    Versuche, Zeiten, Notizen oder historischen Planfortschritte.
 
-Technischer Release-Nachweis wird nach Build und Veröffentlichung hier ergänzt.
+### Technischer Release-Nachweis Schritt 6 · 24.09.2026
+
+- Implementierungscommit: `b9774e1207bee43151beef4ef38bae2321184fed`, Branch
+  `codex/step-6-session-recaps`; zum verifizierten bestehenden GitHub-Remote gepusht.
+- Ein erforderlicher Vercel-Build (`npm run build` / Next.js 16.2.12) erfolgreich:
+  Kompilierung, integrierte TypeScript-Prüfung und Seitengenerierung bestanden.
+  Build-Ausgabe: 32 Sekunden. Kein separater lokaler Build notwendig.
+- Produktionswerte bleiben in Vercel; Build zunächst mit `--skip-domain`, danach
+  Migration und Promotion. Die bestehende Ruby-Produktionsadresse wurde zuletzt
+  ausdrücklich dem neuen Deployment zugeordnet.
+- Supabase-Projekt `lglmlktrngmrimvhwxab`: Migration
+  `20260924132843_step_6_session_recaps` erfolgreich angewandt. Lokaler Dateiname
+  an die vom Server vergebene Versionsnummer angepasst; SQL-Inhalt unverändert.
+- Deployment `dpl_AxqqDHdSxVZ8Frq6mWN6pwYSAWCc`: API-Status `READY`.
+  Alias `trainer-webapp-ruby.vercel.app` zeigt laut Vercel-API genau auf dieses
+  Deployment. [Produktiver Verlauf](https://trainer-webapp-ruby.vercel.app/trainingsplaene/verlauf).
+- Rollback-Tag `rollback/step-6-before-20260924-1320` auf `c085a61` wurde vor
+  Veröffentlichung erstellt und gepusht. Vorheriges Deployment:
+  `dpl_B563561MMB8zifvLcR1Ty7K7rN6r`. Dessen Metadaten nennen `c085a61` und
+  `gitDirty=1`; für einen bytegleichen App-Rollback daher das vorherige Deployment
+  verwenden und auch den Ruby-Alias darauf setzen. Die additive Migration kann
+  dabei bestehen bleiben, damit neue Bewertungen nicht verloren gehen.
+- **Ausgelassen auf Nutzerwunsch:** automatisierte Tests, Lint, separate Typprüfung,
+  Browserprüfungen und funktionale Datenbank-/Berechtigungsprüfungen. Keine neuen
+  Tests geschrieben. Migrationsstatus und Deployment-Metadaten sind keine
+  funktionale Prüfung von Nutzerabläufen.
+- **Grenzen:** keine lokale Funktionsabnahme, keine Staging-Praxisabnahme und kein
+  bestätigter produktiver Nutzerablauf. Die obige Praxisprüfliste bleibt vollständig
+  beim Nutzer offen. Historische Freigabe-/Planfortschritte werden nicht nachträglich
+  in Session-Bestätigungen umgedeutet.
+
 
 ## Arbeitsschritt 2: Anmeldung und Profilerstellung – technische Produktionsbasis
 
