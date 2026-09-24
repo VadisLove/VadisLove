@@ -32,7 +32,7 @@ test("Stance-Migration erhält eigene Profilrechte und speichert alle Optionen",
     `);
     const old = await readFile(new URL("../supabase/migrations/20260901114523_restrict_profile_contact_columns.sql", import.meta.url), "utf8");
     await db.exec(old.slice(old.indexOf("create or replace function public.get_own_profile()"), old.indexOf("-- Kontaktfelder")));
-    await db.exec(await readFile(new URL("../supabase/migrations/20260924095100_add_profile_stance.sql", import.meta.url), "utf8"));
+    await db.exec(await readFile(new URL("../supabase/migrations/20260924102610_add_profile_stance.sql", import.meta.url), "utf8"));
     assert.equal((await db.query("select count(*)::int as n from public.profiles where stance is null")).rows[0].n, 2);
     await db.exec("set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false)");
     for (const stance of ["regular", "goofy", null]) {
