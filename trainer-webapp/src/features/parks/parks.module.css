@@ -1,0 +1,468 @@
+/* Schritt 7: Park- und Run-Planer. Mobil einspaltig, ab 960 px Szene und Seitenleiste nebeneinander. */
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+  color: var(--color-text);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.header h1 {
+  font-size: 28px;
+  line-height: 1.15;
+}
+.header p,
+.muted {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-muted);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-blue-soft);
+  color: var(--color-blue-dark);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.badgeWarn {
+  composes: badge;
+  background: #fff3e0;
+  color: var(--color-warning);
+}
+
+.button,
+.primary,
+.danger,
+.ghost {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.primary {
+  background: var(--color-blue);
+  border-color: var(--color-blue);
+  color: white;
+}
+.primary:hover {
+  background: var(--color-blue-dark);
+}
+.danger {
+  color: var(--color-danger);
+}
+.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-muted);
+}
+.iconButton {
+  composes: button;
+  min-width: 44px;
+  padding: 8px;
+}
+.button:disabled,
+.primary:disabled,
+.danger:disabled,
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+}
+.section {
+  margin: 28px 0;
+}
+.section h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.search {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--color-surface);
+  margin-bottom: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.parkCard {
+  composes: card;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s;
+}
+.parkCard:hover {
+  border-color: var(--color-blue);
+}
+.parkCard strong {
+  font-size: 16px;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.listItem {
+  composes: card;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  box-shadow: none;
+}
+.listItem > div {
+  min-width: 0;
+}
+.listItem strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+.field {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.field input,
+.field select,
+.field textarea {
+  min-height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 400;
+  font-size: 15px;
+  min-width: 0;
+  width: 100%;
+}
+.field textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+.checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.checkbox input {
+  margin-top: 3px;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.twoCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.threeCols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.message {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: #fff3e0;
+  color: #8a4d00;
+  font-size: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.hint {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-blue-soft);
+  color: var(--color-blue-dark);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Planer */
+.planner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.stage {
+  position: relative;
+  height: 56vh;
+  min-height: 320px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: #f5f7f9;
+}
+.stageTools {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.stageTools button {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+  box-shadow: var(--shadow-soft);
+}
+.stageHint {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(7, 24, 45, 0.85);
+  color: white;
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
+}
+.loadingStage {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.panel h2 {
+  font-size: 18px;
+}
+.panel h3 {
+  font-size: 15px;
+}
+
+.library {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.library button {
+  min-height: 40px;
+  padding: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.library button:hover {
+  border-color: var(--color-blue);
+  color: var(--color-blue-dark);
+}
+
+.steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.step {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: var(--color-surface);
+  display: grid;
+  gap: 8px;
+}
+.stepActive {
+  composes: step;
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 2px rgba(20, 140, 242, 0.15);
+}
+.stepMissing {
+  composes: step;
+  border-color: var(--color-warning);
+}
+.stepHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stepHead > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.number {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-navy);
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+}
+.stepTools {
+  display: flex;
+  gap: 4px;
+}
+.stepTools button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.stepTools button:disabled {
+  opacity: 0.4;
+}
+
+.points {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pointButton {
+  composes: button;
+  justify-content: flex-start;
+}
+.pointActive {
+  composes: pointButton;
+  border-color: var(--color-blue);
+  color: var(--color-blue-dark);
+  background: var(--color-blue-soft);
+}
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.runSummary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  position: sticky;
+  bottom: 0;
+  padding: 10px 0;
+  background: var(--color-background);
+}
+.actions .primary {
+  flex: 1;
+}
+
+.dialog {
+  border: 0;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  width: min(440px, calc(100vw - 32px));
+  box-shadow: 0 20px 60px rgba(7, 24, 45, 0.25);
+}
+.dialog::backdrop {
+  background: rgba(7, 24, 45, 0.45);
+}
+.dialog h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 960px) {
+  .planner {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    align-items: start;
+  }
+  .stage {
+    height: calc(100vh - 170px);
+    position: sticky;
+    top: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px;
+  }
+  .header h1 {
+    font-size: 24px;
+  }
+  .stage {
+    height: 52vh;
+  }
+}

@@ -38,6 +38,10 @@ Familienübersicht, Offline und Videos bleiben als spätere Schritte 11–13 gep
   Die Bestätigung ergänzt die historischen Nachweise, ohne einzelne Prüfergebnisse
   oder eine neue technische Prüfung zu behaupten.
 - **Schritt 6 technisch veröffentlicht (24.09.2026):** Session-Abschluss und Fortschrittsverlauf. Deployment-Build erfolgreich, Produktionsalias bestätigt. Umfang und bestätigte Regeln stehen in [roadmap-details.md](roadmap-details.md#arbeitsschritt-6-session-abschluss-und-fortschrittsverlauf). Praxisabnahme bleibt offen.
+- **Schritt 7 (24.09.2026):** 3D-Park- und Run-Planer fachlich festgelegt, implementiert,
+  lokal geprüft und auf Wunsch des Nutzers produktiv veröffentlicht (App bisher nur für
+  den Nutzer selbst im Einsatz). [Umfang](park-run-planner-step-7.md),
+  [Nachweis und Praxisprüfliste](park-run-planner-step-7-release.md). Praxisabnahme offen.
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
   bleiben bestehen. Sie ändern die vereinbarte Produktreihenfolge nicht.
@@ -49,6 +53,8 @@ Familienübersicht, Offline und Videos bleiben als spätere Schritte 11–13 gep
 - [Fachlicher Umfang, bestätigte Entscheidungen und bisherige Nachweise](roadmap-details.md).
 - [Schritt 5: Umfang und Praxisprüfliste](training-step-5.md).
 - [Schritt 5: technischer Release-Nachweis](training-step-5-release.md).
+- [Schritt 7: Umfang und Entscheidungen](park-run-planner-step-7.md) ·
+  [technischer Nachweis](park-run-planner-step-7-release.md).
 - [Qualitätsrahmen](ISO_IEC_25002_Zusammenfassung.md).
 
 Vor Umsetzung eines Pakets Ziel, Rollen, Umfang, Ausschlüsse und Abnahmekriterien
