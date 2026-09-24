@@ -26,7 +26,7 @@ before(async () => {
   await db.exec(await read("./fixtures/park-base.sql"));
   await db.exec(
     await read(
-      "../supabase/migrations/20260924120000_step_7_park_run_planner.sql",
+      "../supabase/migrations/20260924135627_step_7_park_run_planner.sql",
     ),
   );
   await db.query(

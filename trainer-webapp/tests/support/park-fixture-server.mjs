@@ -13,7 +13,7 @@ const db = new PGlite();
 await db.exec(await read("../fixtures/training-base.sql"));
 await db.exec(await read("../../supabase/migrations/20260923202413_step_5_training_sessions.sql"));
 await db.exec(await read("../fixtures/park-base.sql"));
-await db.exec(await read("../../supabase/migrations/20260924120000_step_7_park_run_planner.sql"));
+await db.exec(await read("../../supabase/migrations/20260924135627_step_7_park_run_planner.sql"));
 
 const users = [
   ["athlete", "00000000-0000-4000-8000-000000000001", "Alex", "athlete"],

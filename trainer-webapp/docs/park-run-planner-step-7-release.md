@@ -9,7 +9,7 @@ wurde auf keine Supabase-Datenbank angewandt; kein Deployment.
 
 ## Implementierter Umfang
 
-- Migration `20260924120000_step_7_park_run_planner.sql`: `skateparks`,
+- Migration `20260924135627_step_7_park_run_planner.sql`: `skateparks`,
   unveränderliche `skatepark_versions`, `trick_catalog` (65 vorbefüllte Tricks),
   `park_runs`, `park_run_steps`, idempotenter Command `park_command`, Lese-RPCs
   `park_directory` / `park_detail`, privater Bucket `skatepark-aerials`.
