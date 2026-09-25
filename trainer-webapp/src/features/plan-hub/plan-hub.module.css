@@ -1251,7 +1251,10 @@ button.cell {
 }
 
 .thumb {
-  display: grid;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
   width: 64px;
   height: 48px;
   place-items: center;
@@ -1843,13 +1846,99 @@ button.cell {
 }
 
 .videoThumb {
-  display: grid;
+  display: flex;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
   width: 72px;
   height: 52px;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   border-radius: 10px;
   background: var(--navy);
   color: #fff;
+}
+
+/* Video aufnehmen / Aus Galerie (je 96 px hoch) */
+.pickGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pickTile {
+  display: grid;
+  min-height: 96px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pickTile:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.recordIcon {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5484d;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e5484d 0 9px, transparent 10px);
+}
+
+.textBlue {
+  color: var(--primary);
+}
+
+.uploadBox {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.uploadBox strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uploadBox > button {
+  justify-self: start;
+}
+
+.uploadTrack {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--divider);
+}
+
+.uploadTrack span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  transition: width 120ms linear;
+}
+
+.videoFrame video {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  object-fit: contain;
 }
 
 .reviewHead {

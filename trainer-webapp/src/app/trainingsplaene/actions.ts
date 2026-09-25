@@ -50,11 +50,14 @@ interface TrainingVideoEvidenceActionRow {
   snapshot_share_id: string;
   trick_id: string;
   athlete_id: string;
-  provider: "youtube";
-  video_id: string;
+  provider: "youtube" | "upload" | "note";
+  video_id: string | null;
+  storage_path: string | null;
+  video_duration_seconds: number | null;
+  video_removed_at: string | null;
   athlete_comment: string;
-  attempt_count: number;
-  self_rating: 1 | 2 | 3 | 4 | 5;
+  attempt_count: number | null;
+  self_rating: 1 | 2 | 3 | 4 | 5 | null;
   submitted_at: string;
   review_status: "pending" | "approved" | "changes_requested";
   trainer_feedback: string;
@@ -70,6 +73,9 @@ function mapEvidenceRow(row: TrainingVideoEvidenceActionRow): TrainingVideoEvide
     athleteId: row.athlete_id,
     provider: row.provider,
     videoId: row.video_id,
+    storagePath: row.storage_path || undefined,
+    durationSeconds: row.video_duration_seconds || undefined,
+    videoRemovedAt: row.video_removed_at || undefined,
     athleteComment: row.athlete_comment,
     attemptCount: row.attempt_count,
     selfRating: row.self_rating,
@@ -81,7 +87,7 @@ function mapEvidenceRow(row: TrainingVideoEvidenceActionRow): TrainingVideoEvide
   };
 }
 
-const evidenceSelect = "id, snapshot_share_id, trick_id, athlete_id, provider, video_id, athlete_comment, attempt_count, self_rating, submitted_at, review_status, trainer_feedback, reviewed_by, reviewed_at";
+const evidenceSelect = "id, snapshot_share_id, trick_id, athlete_id, provider, video_id, storage_path, video_duration_seconds, video_removed_at, athlete_comment, attempt_count, self_rating, submitted_at, review_status, trainer_feedback, reviewed_by, reviewed_at";
 
 interface TrainingExerciseDemoVideoActionRow {
   id: string;
@@ -248,6 +254,92 @@ export async function submitTrainingVideoEvidence({
     message: "Dein YouTube-Nachweis wurde sicher zur Prüfung eingereicht.",
     evidence: mapEvidenceRow(data as TrainingVideoEvidenceActionRow),
   };
+}
+
+const uploadPathPattern =
+  /^[0-9a-f-]{36}\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(mp4|mov)$/;
+
+/**
+ * Meldung aus dem neuen Planbereich: entweder mit einem bereits in den privaten
+ * Bucket hochgeladenen Video (max. 60 Sekunden) oder nur mit einer Notiz.
+ * Datenbank-Policy und Constraints prüfen Besitz, Pfad und Dauer erneut.
+ */
+export async function submitTrainingReport({
+  planId,
+  trickId,
+  note,
+  video,
+}: {
+  planId: string;
+  trickId: string;
+  note: string;
+  video: { storagePath: string; durationSeconds: number } | null;
+}): Promise<TrainingEvidenceActionResult> {
+  const normalizedNote = note.trim();
+  if (!planId.startsWith(sharedPlanPrefix) || !trickId.trim()) {
+    return { status: "error", message: "Die zugewiesene Übung wurde nicht gefunden." };
+  }
+  if (normalizedNote.length > 2_000) {
+    return { status: "error", message: "Die Notiz darf höchstens 2.000 Zeichen lang sein." };
+  }
+  if (!video && !normalizedNote) {
+    return { status: "error", message: "Bitte ein Video hinzufügen oder eine Notiz schreiben." };
+  }
+
+  const supabase = await createClient();
+  const currentUserId = await getAuthenticatedUserId(supabase);
+  if (!currentUserId) return { status: "error", message: "Bitte erneut anmelden." };
+
+  const duration = video ? Math.round(video.durationSeconds) : null;
+  if (
+    video &&
+    (!uploadPathPattern.test(video.storagePath) ||
+      !video.storagePath.startsWith(`${currentUserId}/`) ||
+      !duration ||
+      duration < 1 ||
+      duration > 60)
+  ) {
+    return { status: "error", message: "Das Video ist ungültig oder länger als 60 Sekunden." };
+  }
+
+  const { data, error } = await supabase
+    .from("training_video_evidence")
+    .insert({
+      snapshot_share_id: planId.slice(sharedPlanPrefix.length),
+      trick_id: trickId,
+      athlete_id: currentUserId,
+      provider: video ? "upload" : "note",
+      video_id: null,
+      storage_path: video?.storagePath ?? null,
+      video_duration_seconds: duration,
+      athlete_comment: normalizedNote,
+      attempt_count: null,
+      self_rating: null,
+    })
+    .select(evidenceSelect)
+    .single();
+
+  if (error) {
+    console.error("Meldung konnte nicht gespeichert werden.", { code: error.code, message: error.message });
+    return {
+      status: "error",
+      message: error.code === "23505"
+        ? "Für diesen Trick wartet bereits eine Meldung auf Prüfung."
+        : error.code === "42501"
+          ? "Du kannst nur eigene, geübte Tricks mit deinem eigenen Video melden."
+          : "Die Meldung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    };
+  }
+
+  revalidatePath("/trainingsplaene");
+  const evidence = mapEvidenceRow(data as TrainingVideoEvidenceActionRow);
+  if (evidence.storagePath) {
+    const { data: signed } = await supabase.storage
+      .from("training-evidence-videos")
+      .createSignedUrl(evidence.storagePath, 60 * 60);
+    evidence.videoUrl = signed?.signedUrl;
+  }
+  return { status: "success", message: "Gemeldet.", evidence };
 }
 
 /** Prueft einen Nachweis; der Datenbank-Trigger aktualisiert Status und XP atomar. */

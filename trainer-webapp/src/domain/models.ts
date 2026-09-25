@@ -289,11 +289,19 @@ export interface TrainingVideoEvidence {
   planId: string;
   trickId: string;
   athleteId: string;
-  provider: "youtube";
-  videoId: string;
+  /** youtube = Link, upload = eigenes Video im privaten Bucket, note = nur Notiz. */
+  provider: "youtube" | "upload" | "note";
+  videoId: string | null;
+  /** Pfad im Bucket `training-evidence-videos` (nur bei Uploads, bis zur Löschung). */
+  storagePath?: string;
+  /** Kurzlebiger signierter Link zum Abspielen (serverseitig erzeugt). */
+  videoUrl?: string;
+  durationSeconds?: number;
+  /** Gesetzt, sobald das Video nach 14 Tagen automatisch gelöscht wurde. */
+  videoRemovedAt?: string;
   athleteComment: string;
-  attemptCount: number;
-  selfRating: 1 | 2 | 3 | 4 | 5;
+  attemptCount: number | null;
+  selfRating: 1 | 2 | 3 | 4 | 5 | null;
   submittedAt: string;
   reviewStatus: "pending" | "approved" | "changes_requested";
   trainerFeedback: string;

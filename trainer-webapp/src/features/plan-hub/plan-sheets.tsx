@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
-import { Check, Link2, Play, X } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Check, Play, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isYoutubeVideoId, parseYoutubeVideoUrl } from "@/lib/youtube-video";
+import { isYoutubeVideoId } from "@/lib/youtube-video";
+import { checkVideo, formatClip, removeVideo, uploadVideo, videoLimits, type UploadedVideo } from "./video-upload";
 import { formatRelative, shortName, words, type WaitingReport } from "./plan-hub-model";
 import styles from "./plan-hub.module.css";
 
@@ -48,17 +49,19 @@ export function Sheet({
 }
 
 export interface ReportInput {
-  youtubeUrl: string;
   note: string;
-  attempts: number;
-  rating: number;
+  video: { storagePath: string; durationSeconds: number } | null;
 }
 
+type UploadState =
+  | { phase: "idle"; error?: string }
+  | { phase: "uploading"; fileName: string; percent: number }
+  | { phase: "done"; video: UploadedVideo };
+
 /**
- * „<Trick> melden“ für Athlet*innen. Das Video ist optional und wird als
- * YouTube-Link übergeben (kein eigener Upload). Ohne Video wird nur der
- * Status „Gemeldet“ gesetzt; Notiz, Versuche und Selbsteinschätzung werden
- * zusammen mit dem Video als Nachweis gespeichert.
+ * „<Trick> melden“ für Athlet*innen: Video aufnehmen oder aus der Galerie
+ * wählen (MP4/MOV, max. 60 Sekunden, max. 50 MB) und/oder eine Notiz.
+ * Das Video geht direkt in den privaten Speicher und wird nach 14 Tagen gelöscht.
  */
 export function ReportSheet({
   trickName,
@@ -68,154 +71,160 @@ export function ReportSheet({
 }: {
   trickName: string;
   busy: boolean;
-  onSubmit: (input: ReportInput) => void;
+  onSubmit: (input: ReportInput) => Promise<boolean>;
   onClose: () => void;
 }) {
-  const [url, setUrl] = useState("");
-  const [videoId, setVideoId] = useState("");
-  const [error, setError] = useState("");
+  const [upload, setUpload] = useState<UploadState>({ phase: "idle" });
   const [note, setNote] = useState("");
-  const [attempts, setAttempts] = useState("");
-  const [rating, setRating] = useState(3);
   const noteId = useId();
-  const attemptsId = useId();
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const galleryInput = useRef<HTMLInputElement>(null);
+  const abort = useRef<AbortController | null>(null);
   const w = words();
 
-  function linkVideo() {
-    const parsed = parseYoutubeVideoUrl(url);
-    if (!parsed.ok) {
-      setError(parsed.error);
+  async function pick(file: File | undefined) {
+    if (!file) return;
+    const check = await checkVideo(file);
+    if (!check.ok) {
+      setUpload({ phase: "idle", error: check.error });
       return;
     }
-    setError("");
-    setVideoId(parsed.videoId);
+    const controller = new AbortController();
+    abort.current = controller;
+    setUpload({ phase: "uploading", fileName: file.name, percent: 0 });
+    try {
+      const video = await uploadVideo(file, check.extension, check.seconds, (percent) =>
+        setUpload({ phase: "uploading", fileName: file.name, percent }),
+        controller.signal,
+      );
+      setUpload({ phase: "done", video });
+    } catch (error) {
+      const aborted = (error as Error).name === "AbortError";
+      setUpload({ phase: "idle", error: aborted ? undefined : (error as Error).message });
+    } finally {
+      abort.current = null;
+    }
   }
 
-  const attemptCount = Number(attempts);
-  const videoReady = Boolean(videoId);
-  const canSend = !busy && (!videoReady || (Number.isInteger(attemptCount) && attemptCount > 0));
+  function discard() {
+    abort.current?.abort();
+    if (upload.phase === "done") void removeVideo(upload.video.storagePath);
+    setUpload({ phase: "idle" });
+  }
+
+  // Schließen ohne Melden räumt ein bereits hochgeladenes Video wieder weg.
+  function close() {
+    discard();
+    onClose();
+  }
+
+  const video = upload.phase === "done" ? upload.video : null;
+  const canSend = !busy && upload.phase !== "uploading" && (Boolean(video) || note.trim().length > 0);
 
   return (
-    <Sheet label={`${trickName} melden`} onClose={onClose}>
+    <Sheet label={`${trickName} melden`} onClose={close}>
       <h2 className={styles.sheetTitle}>{trickName} melden</h2>
       <p className={styles.sheetLead}>Zeig {w.dat}, dass du ihn kannst.</p>
 
-      {videoReady ? (
+      <input
+        ref={cameraInput}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        hidden
+        onChange={(event) => {
+          void pick(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+      <input
+        ref={galleryInput}
+        type="file"
+        accept="video/mp4,video/quicktime,.mp4,.mov"
+        hidden
+        onChange={(event) => {
+          void pick(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+
+      {upload.phase === "done" ? (
         <div className={styles.videoDone}>
           <span className={styles.videoThumb}>
-            <Play size={14} fill="currentColor" aria-hidden="true" />
+            <Play size={14} fill="currentColor" aria-hidden="true" /> {formatClip(upload.video.durationSeconds)}
           </span>
           <div>
             <strong>
-              <Check size={16} aria-hidden="true" /> Video verknüpft
+              <Check size={16} aria-hidden="true" /> Video hochgeladen
             </strong>
-            <small>youtu.be/{videoId}</small>
+            <small>{upload.video.fileName}</small>
           </div>
-          <button
-            type="button"
-            className={styles.textDanger}
-            onClick={() => {
-              setVideoId("");
-              setUrl("");
-            }}
-          >
+          <button type="button" className={styles.textDanger} onClick={discard}>
             Entfernen
           </button>
         </div>
-      ) : (
-        <div className={styles.field}>
-          <label htmlFor={`${noteId}-url`}>
-            Video-Link <span>· optional</span>
-          </label>
-          <div className={styles.inlineInput}>
-            <input
-              id={`${noteId}-url`}
-              type="url"
-              inputMode="url"
-              placeholder="https://youtu.be/…"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  linkVideo();
-                }
-              }}
-            />
-            <Button variant="secondary" onClick={linkVideo} disabled={!url.trim()}>
-              <Link2 size={16} aria-hidden="true" /> Verknüpfen
-            </Button>
+      ) : upload.phase === "uploading" ? (
+        <div className={styles.uploadBox}>
+          <div className={styles.rowBetween}>
+            <strong>{upload.fileName}</strong>
+            <span>{upload.percent} %</span>
           </div>
-          <small className={error ? styles.fieldError : styles.fieldHint}>
-            {error || "Video bei YouTube als „Nicht gelistet“ hochladen und den Link einfügen."}
-          </small>
+          <span className={styles.uploadTrack}>
+            <span style={{ width: `${upload.percent}%` }} />
+          </span>
+          <button type="button" className={styles.linkButton} onClick={discard}>
+            Abbrechen
+          </button>
         </div>
+      ) : (
+        <>
+          <div className={styles.pickGrid}>
+            <button type="button" className={styles.pickTile} onClick={() => cameraInput.current?.click()}>
+              <span className={styles.recordIcon} aria-hidden="true" />
+              Video aufnehmen
+            </button>
+            <button type="button" className={styles.pickTile} onClick={() => galleryInput.current?.click()}>
+              <Upload size={30} className={styles.textBlue} aria-hidden="true" />
+              Aus Galerie
+            </button>
+          </div>
+          <small className={upload.error ? styles.fieldError : styles.fieldHint}>
+            {upload.error || "MP4 oder MOV · max. 60 Sek. · max. 50 MB · optional"}
+          </small>
+        </>
       )}
 
-      {videoReady ? (
-        <>
-          <div className={styles.twoFields}>
-            <div className={styles.field}>
-              <label htmlFor={attemptsId}>Wie oft probiert?</label>
-              <input
-                id={attemptsId}
-                type="number"
-                min={1}
-                max={100000}
-                inputMode="numeric"
-                placeholder="z. B. 5"
-                value={attempts}
-                onChange={(event) => setAttempts(event.target.value)}
-              />
-            </div>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Wie sicher?</span>
-              <div className={styles.segmented} role="radiogroup" aria-label="Selbsteinschätzung">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={rating === value}
-                    className={rating === value ? styles.segmentOn : undefined}
-                    onClick={() => setRating(value)}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className={styles.field}>
-            <label htmlFor={noteId}>
-              Notiz <span>· optional</span>
-            </label>
-            <input
-              id={noteId}
-              maxLength={2000}
-              placeholder="z. B. 4 von 5 sauber gelandet"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </div>
-        </>
-      ) : null}
+      <div className={styles.field}>
+        <label htmlFor={noteId}>
+          Notiz <span>· optional</span>
+        </label>
+        <input
+          id={noteId}
+          maxLength={2000}
+          placeholder="z. B. 4 von 5 sauber gelandet"
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
+      </div>
 
       <Button
         size="lg"
         className={styles.sheetSubmit}
         disabled={!canSend}
-        onClick={() =>
-          onSubmit({
-            youtubeUrl: videoReady ? `https://youtu.be/${videoId}` : "",
+        onClick={async () => {
+          const sent = await onSubmit({
             note: note.trim(),
-            attempts: attemptCount,
-            rating,
-          })
-        }
+            video: video ? { storagePath: video.storagePath, durationSeconds: video.durationSeconds } : null,
+          });
+          // Gemeldete Videos gehören jetzt zum Nachweis und bleiben erhalten.
+          if (sent) setUpload({ phase: "idle" });
+        }}
       >
-        {busy ? "Wird gesendet …" : videoReady ? "Mit Video melden" : "Ohne Video melden"}
+        {busy ? "Wird gesendet …" : video ? "Mit Video melden" : "Melden"}
       </Button>
+      <small className={styles.fieldHint}>
+        Nur du und {w.nom} sehen das Video. Es wird nach {videoLimits.retentionDays} Tagen automatisch gelöscht.
+      </small>
     </Sheet>
   );
 }
@@ -238,7 +247,7 @@ export function ReviewSheet({
   const feedbackId = useId();
   const { assignment, trick, evidence } = report;
   const name = shortName(assignment.athleteName);
-  const videoId = evidence && isYoutubeVideoId(evidence.videoId) ? evidence.videoId : null;
+  const youtubeId = evidence?.provider === "youtube" && evidence.videoId && isYoutubeVideoId(evidence.videoId) ? evidence.videoId : null;
 
   return (
     <Sheet label={`${name} · ${trick.name}`} onClose={onClose}>
@@ -252,10 +261,14 @@ export function ReviewSheet({
         </div>
       </div>
 
-      {videoId ? (
+      {evidence?.provider === "upload" && evidence.videoUrl ? (
+        <div className={styles.videoFrame}>
+          <video src={evidence.videoUrl} controls playsInline preload="metadata" />
+        </div>
+      ) : youtubeId ? (
         <div className={styles.videoFrame}>
           <iframe
-            src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+            src={`https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`}
             title={`Video: ${name} · ${trick.name}`}
             allow="encrypted-media; picture-in-picture"
             allowFullScreen
@@ -265,7 +278,13 @@ export function ReviewSheet({
         </div>
       ) : (
         <div className={`${styles.videoFrame} ${styles.videoEmpty}`}>
-          <span>Ohne Video gemeldet</span>
+          <span>
+            {evidence?.videoRemovedAt
+              ? `Video nach ${videoLimits.retentionDays} Tagen automatisch gelöscht`
+              : evidence?.provider === "upload"
+                ? "Video nicht verfügbar"
+                : "Ohne Video gemeldet"}
+          </span>
         </div>
       )}
 
@@ -274,10 +293,12 @@ export function ReviewSheet({
           <p className={styles.quote}>
             {evidence.athleteComment ? `„${evidence.athleteComment}“` : "Keine Notiz"}
           </p>
-          <p className={styles.meta}>
-            {evidence.attemptCount} {evidence.attemptCount === 1 ? "Versuch" : "Versuche"} · Selbsteinschätzung{" "}
-            {evidence.selfRating}/5
-          </p>
+          {evidence.attemptCount ? (
+            <p className={styles.meta}>
+              {evidence.attemptCount} {evidence.attemptCount === 1 ? "Versuch" : "Versuche"}
+              {evidence.selfRating ? ` · Selbsteinschätzung ${evidence.selfRating}/5` : ""}
+            </p>
+          ) : null}
         </>
       ) : null}
 

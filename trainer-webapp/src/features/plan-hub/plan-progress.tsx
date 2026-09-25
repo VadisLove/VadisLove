@@ -17,6 +17,7 @@ import {
 } from "./plan-hub-model";
 import type { HubActions } from "./plan-hub";
 import styles from "./plan-hub.module.css";
+import { formatClip } from "./video-upload";
 
 const cellTone = ["cellOpen", "cellPracticed", "cellReported", "cellConfirmed"] as const;
 
@@ -200,9 +201,13 @@ function QueueCard({ report, actions }: { report: WaitingReport; actions: HubAct
   return (
     <article className={styles.queueCard}>
       <button type="button" className={styles.queueHead} onClick={() => actions.openReview(plan, assignment, trick)}>
-        <span className={`${styles.thumb} ${evidence ? "" : styles.thumbNote}`}>
-          {evidence ? <Play size={14} fill="currentColor" aria-label="Video ansehen" /> : "Notiz"}
-        </span>
+        {evidence && evidence.provider !== "note" && !evidence.videoRemovedAt ? (
+          <span className={styles.thumb}>
+            <Play size={12} fill="currentColor" aria-label="Video ansehen" /> {formatClip(evidence.durationSeconds)}
+          </span>
+        ) : (
+          <span className={`${styles.thumb} ${styles.thumbNote}`}>Notiz</span>
+        )}
         <span>
           <strong>
             {shortName(assignment.athleteName)} · {trick.name}
@@ -321,7 +326,8 @@ export function AthleteProgress({
               </li>
             ))}
             {evidence.map((item) => {
-              const url = buildYoutubeVideoUrl(item.videoId);
+              // Eigene Uploads über den signierten Link, ältere Meldungen über YouTube.
+              const url = item.provider === "upload" ? item.videoUrl : item.provider === "youtube" ? buildYoutubeVideoUrl(item.videoId ?? "") : null;
               const status =
                 item.reviewStatus === "approved"
                   ? { label: "Bestätigt", tone: styles.pillGood, when: `Bestätigt ${formatDay(item.reviewedAt ?? item.submittedAt)}` }
@@ -335,7 +341,9 @@ export function AthleteProgress({
                       <Play size={14} fill="currentColor" />
                     </a>
                   ) : (
-                    <span className={styles.thumb} />
+                    <span className={`${styles.thumb} ${styles.thumbNote}`}>
+                      {item.videoRemovedAt ? "–" : "Notiz"}
+                    </span>
                   )}
                   <div>
                     <strong>{trickName(item.planId, item.trickId)}</strong>

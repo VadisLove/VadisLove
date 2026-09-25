@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, History, Play, Plus } from "lucide-react";
 import {
   reviewTrainingVideoEvidence,
   shareTrainingPlanSnapshot,
-  submitTrainingVideoEvidence,
+  submitTrainingReport,
   updateSharedTrickProgress,
 } from "@/app/trainingsplaene/actions";
 import type { TrainingPlan, TrainingVideoEvidence, TrickProgressStatus } from "@/domain/models";
@@ -168,7 +168,14 @@ export function PlanHub({
 
   const evidenceMap = useMemo(() => pendingEvidenceMap(evidence), [evidence]);
   const reports = useMemo(() => (staff ? waitingReports(plans, evidenceMap) : []), [staff, plans, evidenceMap]);
-  const hasEvidence = useCallback((key: string) => evidenceMap.has(key), [evidenceMap]);
+  // „mit Video“ (▶) nur bei echten Videos, reine Notizen zählen als „!“.
+  const hasEvidence = useCallback(
+    (key: string) => {
+      const entry = evidenceMap.get(key);
+      return Boolean(entry && entry.provider !== "note");
+    },
+    [evidenceMap],
+  );
 
   const findPlan = useCallback(
     (key: string | null) =>
@@ -289,34 +296,30 @@ export function PlanHub({
     }
   }
 
-  async function submitReport(plan: HubPlan, assignment: HubAssignment, trick: HubTrick, input: ReportInput) {
-    const success = `Gemeldet – ${words().nom} wurde benachrichtigt`;
-    if (!input.youtubeUrl) {
-      if (await changeStep(assignment, trick, "awaiting_confirmation", success)) setSheet(null);
-      return;
-    }
+  /** Meldung mit hochgeladenem Video oder nur Notiz; `true`, wenn gespeichert. */
+  async function submitReport(assignment: HubAssignment, trick: HubTrick, input: ReportInput) {
     const key = cellKey(assignment.shareId, trick.id);
     setBusyKey(key);
     try {
-      const result = await submitTrainingVideoEvidence({
+      const result = await submitTrainingReport({
         planId: assignment.shareId,
         trickId: trick.id,
-        youtubeUrl: input.youtubeUrl,
-        athleteComment: input.note,
-        attemptCount: input.attempts,
-        selfRating: input.rating,
+        note: input.note,
+        video: input.video,
       });
       if (result.status === "error") {
         setToast(result.message);
-        return;
+        return false;
       }
       if (result.evidence) setEvidence((current) => [result.evidence!, ...current]);
       setOverrides((current) => ({ ...current, [key]: 2 }));
       setSheet(null);
-      setToast(success);
+      setToast(`Gemeldet – ${words().nom} wurde benachrichtigt`);
       router.refresh();
+      return true;
     } catch {
       setToast("Nicht gespeichert. Bitte erneut versuchen.");
+      return false;
     } finally {
       setBusyKey("");
     }
@@ -612,7 +615,7 @@ export function PlanHub({
           trickName={sheet.trick.name}
           busy={busyKey === cellKey(sheet.assignment.shareId, sheet.trick.id)}
           onClose={() => setSheet(null)}
-          onSubmit={(input) => void submitReport(sheet.plan, sheet.assignment, sheet.trick, input)}
+          onSubmit={(input) => submitReport(sheet.assignment, sheet.trick, input)}
         />
       ) : null}
       {sheet?.type === "review" ? (

@@ -340,7 +340,7 @@ export function PlansView({
   const videoEvidenceItems = videoEvidence.filter(
     (evidence) => evidence.provider === "youtube"
       && (!focusAthleteId || evidence.athleteId === focusAthleteId)
-      && buildYoutubeVideoUrl(evidence.videoId) !== null,
+      && buildYoutubeVideoUrl(evidence.videoId ?? "") !== null,
   );
   const selectedVideoEvidence = videoEvidenceItems.filter(
     (evidence) => evidence.planId === selectedPlan?.id
@@ -1248,7 +1248,7 @@ export function PlansView({
                     const trick = displayedTricks.find(
                       (entry) => entry.id === evidence.trickId,
                     );
-                    const youtubeUrl = buildYoutubeVideoUrl(evidence.videoId);
+                    const youtubeUrl = buildYoutubeVideoUrl(evidence.videoId ?? "");
                     return (
                       <article className={styles.evidenceCard} key={evidence.id}>
                         <header>

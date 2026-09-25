@@ -27,11 +27,14 @@ interface TrainingVideoEvidenceRow {
   snapshot_share_id: string;
   trick_id: string;
   athlete_id: string;
-  provider: "youtube";
-  video_id: string;
+  provider: "youtube" | "upload" | "note";
+  video_id: string | null;
+  storage_path: string | null;
+  video_duration_seconds: number | null;
+  video_removed_at: string | null;
   athlete_comment: string;
-  attempt_count: number;
-  self_rating: 1 | 2 | 3 | 4 | 5;
+  attempt_count: number | null;
+  self_rating: 1 | 2 | 3 | 4 | 5 | null;
   submitted_at: string;
   review_status: "pending" | "approved" | "changes_requested";
   trainer_feedback: string;
@@ -178,7 +181,7 @@ export async function getTrainingVideoEvidence(): Promise<TrainingVideoEvidence[
   const { data, error } = await supabase
     .from("training_video_evidence")
     .select(
-      "id, snapshot_share_id, trick_id, athlete_id, provider, video_id, athlete_comment, attempt_count, self_rating, submitted_at, review_status, trainer_feedback, reviewed_by, reviewed_at",
+      "id, snapshot_share_id, trick_id, athlete_id, provider, video_id, storage_path, video_duration_seconds, video_removed_at, athlete_comment, attempt_count, self_rating, submitted_at, review_status, trainer_feedback, reviewed_by, reviewed_at",
     )
     .order("submitted_at", { ascending: false });
 
@@ -187,13 +190,31 @@ export async function getTrainingVideoEvidence(): Promise<TrainingVideoEvidence[
     throw new Error(`Videonachweise konnten nicht geladen werden: ${error.message}`);
   }
 
-  return ((data || []) as TrainingVideoEvidenceRow[]).map((evidence) => ({
+  const rows = (data || []) as TrainingVideoEvidenceRow[];
+  // Eigene Uploads sind privat: Abspiel-Links gelten eine Stunde und werden nur
+  // erzeugt, wenn die Storage-Policy (Athlet*in oder zugeordnete Trainer*in) es erlaubt.
+  const paths = rows.flatMap((row) => (row.storage_path ? [row.storage_path] : []));
+  const signed = new Map<string, string>();
+  if (paths.length) {
+    const { data: urls } = await supabase.storage
+      .from("training-evidence-videos")
+      .createSignedUrls(paths, 60 * 60);
+    for (const entry of urls || []) {
+      if (entry.path && entry.signedUrl) signed.set(entry.path, entry.signedUrl);
+    }
+  }
+
+  return rows.map((evidence) => ({
     id: evidence.id,
     planId: `shared-${evidence.snapshot_share_id}`,
     trickId: evidence.trick_id,
     athleteId: evidence.athlete_id,
     provider: evidence.provider,
     videoId: evidence.video_id,
+    storagePath: evidence.storage_path || undefined,
+    videoUrl: evidence.storage_path ? signed.get(evidence.storage_path) : undefined,
+    durationSeconds: evidence.video_duration_seconds || undefined,
+    videoRemovedAt: evidence.video_removed_at || undefined,
     athleteComment: evidence.athlete_comment,
     attemptCount: evidence.attempt_count,
     selfRating: evidence.self_rating,
