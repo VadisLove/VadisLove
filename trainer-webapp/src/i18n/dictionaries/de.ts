@@ -10,7 +10,7 @@ export const de = {
     organization_staff: "Vereins- oder Verbandsverwaltung",
   },
   navigation: {
-    dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne", parks: "Skateparks", evaluations: "Auswertung",
+    dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne", plansShort: "Pläne", createPlan: "Plan erstellen", parks: "Skateparks", evaluations: "Auswertung",
     people: "Personen", inbox: "Postfach", organization: "Organisation", profile: "Profil", createEvent: "Event erstellen",
     settings: "Einstellungen", logout: "Abmelden", main: "Hauptnavigation",
     open: "Navigation öffnen", close: "Navigation schließen",

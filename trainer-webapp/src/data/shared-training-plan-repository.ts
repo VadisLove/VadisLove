@@ -152,6 +152,10 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
       ...normalizedPlan,
       id: `shared-${row.id}`,
       sourcePlanId: normalizedPlan.id,
+      shareDirection: direction === "empfangen" ? "received" as const : "sent" as const,
+      recipientUserId: row.recipient_user_id,
+      sharedById: row.shared_by,
+      sharedAt: row.created_at,
       author: `${normalizedPlan.author} · ${direction}`,
       assignedAthletes: progressAthleteIds.length > 0
         ? progressAthleteIds

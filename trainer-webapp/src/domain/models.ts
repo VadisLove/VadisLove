@@ -230,6 +230,16 @@ export interface TrainingPlan {
   sharedTrainers: string[];
   goals: TrainingGoal[];
   tricks: TrainingTrick[];
+  /** Niveau aus dem Erstellen-Flow (Einsteiger, Fortgeschritten, Profi). */
+  level?: string;
+  /**
+   * Nur bei geladenen Freigaben gesetzt, nie im Snapshot gespeichert:
+   * Richtung, Empfänger und Zeitpunkt der persönlichen Freigabe.
+   */
+  shareDirection?: "received" | "sent";
+  recipientUserId?: string;
+  sharedById?: string;
+  sharedAt?: string;
 }
 
 export type GoalCadence = "daily" | "weekly" | "monthly" | "yearly";
