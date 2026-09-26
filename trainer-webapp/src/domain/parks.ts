@@ -16,7 +16,12 @@ export const OBSTACLE_TYPES = [
   "manual_pad",
   "wall",
 ] as const;
-export type ObstacleType = (typeof OBSTACLE_TYPES)[number];
+/**
+ * Zusätzliche Typen aus Schritt 7b: „Bereich“ markiert ein Gelände-Element (z. B. eine
+ * Bowl im amtlichen Höhenmodell), „Eigenes Modell“ ist ein hochgeladenes 3D-Obstacle.
+ */
+export type ObstacleType = (typeof OBSTACLE_TYPES)[number] | "zone" | "custom";
+export type ModelFormat = "glb" | "gltf" | "obj";
 
 export interface Obstacle {
   /** Stabile ID; bleibt über alle Parkversionen erhalten und wird von Runs referenziert. */
@@ -30,6 +35,13 @@ export interface Obstacle {
   length: number;
   height: number;
   label?: string;
+  /** Höhenversatz der Unterkante gegenüber dem Gelände (Meter, Schritt 7b). */
+  elevation?: number;
+  /** Nur bei `custom`: Datei im Speicher `skatepark-models`. */
+  modelPath?: string;
+  modelFormat?: ModelFormat;
+  /** Hochachse der Datei; CAD-Programme exportieren oft mit Z nach oben. */
+  upAxis?: "y" | "z";
 }
 
 export interface AerialImage {
@@ -45,12 +57,53 @@ export interface AerialImage {
   opacity: number;
   /** Der hochladende Nutzer bestätigt, das Bild verwenden zu dürfen (Pflicht zum Speichern). */
   rightsConfirmed: boolean;
+  /** Quellenangabe bei amtlichen Luftbildern (Lizenzpflicht). */
+  attribution?: string;
+}
+
+/** Amtliches Höhenraster (Float32, zeilenweise Nord → Süd), zentriert auf den Park. */
+export interface TerrainGround {
+  kind: "terrain";
+  path: string;
+  cols: number;
+  rows: number;
+  width: number;
+  length: number;
+  minHeight: number;
+  maxHeight: number;
+  attribution: string;
+  stand?: string | null;
+}
+
+/** Hochgeladenes 3D-Modell des ganzen Parks als Untergrund. */
+export interface ModelGround {
+  kind: "model";
+  path: string;
+  format: ModelFormat;
+  upAxis?: "y" | "z";
+  /** Meter je Modelleinheit (z. B. 0.001 für Millimeter). */
+  scale: number;
+  rotation: number;
+  offsetX: number;
+  offsetY: number;
+  offsetZ: number;
+}
+
+/** Georeferenz des Parkmittelpunkts bei amtlichen Daten. */
+export interface GeoReference {
+  state: "BY" | "SN";
+  lat: number;
+  lon: number;
+  x: number;
+  y: number;
 }
 
 export interface ParkContent {
   size: { width: number; length: number };
   obstacles: Obstacle[];
   aerial?: AerialImage | null;
+  ground?: TerrainGround | ModelGround | null;
+  geo?: GeoReference | null;
 }
 
 export interface ParkVersion {
@@ -154,8 +207,8 @@ export interface ParkDetail {
   runs: ParkRun[];
   tricks: Trick[];
   events: CalendarEventOption[];
-  /** Kurzlebige, serverseitig signierte Bild-URLs je Storage-Pfad. */
-  aerialUrls: Record<string, string>;
+  /** Kurzlebige, serverseitig signierte URLs je Storage-Pfad (Luftbilder, Modelle, Raster). */
+  assetUrls: Record<string, string>;
   /** Athleten, für die der Nutzer Runs anlegen darf (er selbst zuerst). */
   athletes: { id: string; name: string }[];
   user: { id: string; displayName: string };
@@ -175,6 +228,8 @@ export const OBSTACLE_LIBRARY: Record<
   rail: { label: "Rail", width: 4, length: 0.3, height: 0.4 },
   manual_pad: { label: "Manual Pad", width: 3.5, length: 1.5, height: 0.2 },
   wall: { label: "Wall", width: 4, length: 0.4, height: 2 },
+  zone: { label: "Bereich", width: 10, length: 6, height: 0.3 },
+  custom: { label: "Eigenes Modell", width: 2, length: 2, height: 1 },
 };
 
 export const STANCE_LABELS: Record<Stance, string> = {

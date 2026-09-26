@@ -12,6 +12,8 @@ import {
   type ParkContent,
 } from "@/domain/parks";
 import { uploadAerialImage } from "./aerial-upload";
+import { GroundPanel } from "./ground-panel";
+import { MODEL_UNITS, checkModelFile, uploadModelFile, type ModelCheck, type ModelUnit } from "./model-assets";
 import styles from "./parks.module.css";
 
 export interface ParkDraft {
@@ -76,7 +78,7 @@ export function ParkEditorPanel({
   onChange,
   onAdd,
   onSelect,
-  onAerialPreview,
+  onAssetPreview,
   onSave,
   onCancel,
 }: {
@@ -86,15 +88,23 @@ export function ParkEditorPanel({
   usedObstacleIds: Set<string>;
   busy: boolean;
   onChange: (draft: ParkDraft) => void;
-  onAdd: (type: Obstacle["type"]) => void;
+  /** Neues Obstacle; `patch` überschreibt Standardwerte (z. B. Maße eines eigenen Modells). */
+  onAdd: (type: Obstacle["type"], patch?: Partial<Obstacle>) => void;
   onSelect: (id: string | null) => void;
-  onAerialPreview: (path: string, url: string) => void;
+  onAssetPreview: (urls: Record<string, string>) => void;
   onSave: () => void;
   onCancel: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const customInput = useRef<HTMLInputElement>(null);
+  const [customFile, setCustomFile] = useState<File | null>(null);
+  const [customCheck, setCustomCheck] = useState<ModelCheck | null>(null);
+  const [customUnit, setCustomUnit] = useState<ModelUnit>("m");
+  const [customAxis, setCustomAxis] = useState<"y" | "z">("y");
+  const [customBusy, setCustomBusy] = useState(false);
+  const [customError, setCustomError] = useState("");
   const { content } = draft;
   const selected = content.obstacles.find((o) => o.id === selectedId) ?? null;
   const setContent = (next: Partial<ParkContent>) =>
@@ -110,12 +120,59 @@ export function ParkEditorPanel({
   const setAerial = (patch: Partial<NonNullable<ParkContent["aerial"]>>) =>
     aerial && setContent({ aerial: { ...aerial, ...patch } });
 
+  /** Eigenes Modell lokal prüfen (Größe, Dreiecke, Maße) und Einheit vorschlagen. */
+  async function inspectCustom(file: File, axis: "y" | "z") {
+    setCustomBusy(true);
+    setCustomError("");
+    try {
+      const check = await checkModelFile(file, "obstacle", axis);
+      setCustomFile(file);
+      setCustomCheck(check);
+      setCustomAxis(axis);
+      setCustomUnit(check.suggestedUnit);
+    } catch (error) {
+      setCustomFile(null);
+      setCustomCheck(null);
+      setCustomError(error instanceof Error ? error.message : "Die Datei konnte nicht geprüft werden.");
+    } finally {
+      setCustomBusy(false);
+      if (customInput.current) customInput.current.value = "";
+    }
+  }
+
+  async function addCustom() {
+    if (!customFile || !customCheck) return;
+    setCustomBusy(true);
+    try {
+      const { path, previewUrl } = await uploadModelFile(customFile, userId, customCheck.format);
+      onAssetPreview({ [path]: previewUrl });
+      const s = MODEL_UNITS[customUnit].scale;
+      // Maße aus der Datei übernehmen und in die gültigen Grenzen legen.
+      const dim = (v: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(v * s * 100) / 100));
+      onAdd("custom", {
+        label: customFile.name.replace(/\.[^.]+$/, "").slice(0, 60),
+        width: dim(customCheck.size.x, 0.1, 60),
+        length: dim(customCheck.size.z, 0.1, 60),
+        height: dim(customCheck.size.y, 0.05, 10),
+        modelPath: path,
+        modelFormat: customCheck.format,
+        upAxis: customAxis,
+      });
+      setCustomFile(null);
+      setCustomCheck(null);
+    } catch (error) {
+      setCustomError(error instanceof Error ? error.message : "Hochladen fehlgeschlagen.");
+    } finally {
+      setCustomBusy(false);
+    }
+  }
+
   async function upload(file: File) {
     setUploading(true);
     setUploadError("");
     try {
       const result = await uploadAerialImage(file, userId);
-      onAerialPreview(result.path, result.previewUrl);
+      onAssetPreview({ [result.path]: result.previewUrl });
       setContent({
         aerial: {
           path: result.path,
@@ -176,7 +233,57 @@ export function ParkEditorPanel({
               {OBSTACLE_LIBRARY[type].label}
             </button>
           ))}
+          {/* Schritt 7b: Bereich für Gelände-Elemente, eigenes Modell als Datei. */}
+          <button type="button" onClick={() => onAdd("zone")}>
+            {OBSTACLE_LIBRARY.zone.label}
+          </button>
+          <button type="button" onClick={() => customInput.current?.click()} disabled={customBusy}>
+            {customBusy ? "Prüft …" : "Eigenes Modell"}
+          </button>
         </div>
+        <input
+          ref={customInput}
+          type="file"
+          accept=".glb,.gltf,.obj"
+          hidden
+          onChange={(e) => e.target.files?.[0] && inspectCustom(e.target.files[0], "y")}
+        />
+        {customFile && customCheck ? (
+          <div className={styles.card} style={{ marginTop: 8 }}>
+            <p className={styles.muted}>
+              {customFile.name} · {customCheck.triangles.toLocaleString("de-DE")} Dreiecke · ca.{" "}
+              {(customCheck.size.x * MODEL_UNITS[customUnit].scale).toFixed(2)} ×{" "}
+              {(customCheck.size.z * MODEL_UNITS[customUnit].scale).toFixed(2)} m, Höhe{" "}
+              {(customCheck.size.y * MODEL_UNITS[customUnit].scale).toFixed(2)} m
+            </p>
+            <div className={styles.twoCols}>
+              <label className={styles.field}>
+                Einheit
+                <select value={customUnit} onChange={(e) => setCustomUnit(e.target.value as ModelUnit)}>
+                  {Object.entries(MODEL_UNITS).map(([key, u]) => (
+                    <option key={key} value={key}>{u.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.field}>
+                Hochachse
+                <select value={customAxis} onChange={(e) => inspectCustom(customFile, e.target.value as "y" | "z")}>
+                  <option value="y">Y</option>
+                  <option value="z">Z (CAD)</option>
+                </select>
+              </label>
+            </div>
+            <div className={styles.row} style={{ marginTop: 8 }}>
+              <button type="button" className={styles.button} onClick={() => { setCustomFile(null); setCustomCheck(null); }}>
+                Abbrechen
+              </button>
+              <button type="button" className={styles.primary} disabled={customBusy} onClick={addCustom}>
+                Als Obstacle hinzufügen
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {customError ? <p className={styles.message} style={{ marginTop: 8 }}>{customError}</p> : null}
       </section>
 
       {selected ? (
@@ -226,6 +333,29 @@ export function ParkEditorPanel({
               <NumberField label="Z m" value={selected.z} min={-200} max={200} onChange={(z) => updateObstacle({ z })} />
               <NumberField label="Drehung °" value={selected.rotation} min={-360} max={360} step={5} onChange={(rotation) => updateObstacle({ rotation: normalizeRotation(rotation) })} />
             </div>
+            <NumberField
+              label={content.ground ? "Höhenversatz zum Gelände m" : "Höhenversatz m"}
+              value={selected.elevation ?? 0}
+              min={-20}
+              max={20}
+              step={0.05}
+              onChange={(elevation) => updateObstacle({ elevation: elevation || undefined })}
+            />
+            {selected.type === "zone" ? (
+              <p className={styles.muted}>
+                Ein Bereich markiert ein Gelände-Element (z. B. Bowl oder Snake Run), an das
+                Tricks angepinnt werden können.
+              </p>
+            ) : null}
+            {selected.type === "custom" ? (
+              <label className={styles.field}>
+                Hochachse der Datei
+                <select value={selected.upAxis ?? "y"} onChange={(e) => updateObstacle({ upAxis: e.target.value as "y" | "z" })}>
+                  <option value="y">Y</option>
+                  <option value="z">Z (CAD)</option>
+                </select>
+              </label>
+            ) : null}
             {usedObstacleIds.has(selected.id) ? (
               <p className={styles.hint}>
                 Wird in Runs verwendet. Diese bleiben auf ihrer bisherigen Parkversion.
@@ -252,6 +382,13 @@ export function ParkEditorPanel({
           <NumberField label="Tiefe m" value={content.size.length} min={10} max={300} step={1} onChange={(length) => setContent({ size: { ...content.size, length } })} />
         </div>
       </section>
+
+      <GroundPanel
+        content={content}
+        userId={userId}
+        onChange={(next) => setContent(next)}
+        onAssetPreview={onAssetPreview}
+      />
 
       <section className={styles.form}>
         <h3>Luftbild</h3>

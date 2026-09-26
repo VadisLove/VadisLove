@@ -42,6 +42,9 @@ Familienübersicht, Offline und Videos bleiben als spätere Schritte 11–13 gep
   lokal geprüft und auf Wunsch des Nutzers produktiv veröffentlicht (App bisher nur für
   den Nutzer selbst im Einsatz). [Umfang](park-run-planner-step-7.md),
   [Nachweis und Praxisprüfliste](park-run-planner-step-7-release.md). Praxisabnahme offen.
+- **Schritt 7b (26.09.2026):** Park-Untergrund aus amtlichen Daten (Bayern, Sachsen)
+  und Upload eigener 3D-Modelle (OBJ, glTF/GLB). Implementiert und lokal geprüft,
+  nicht veröffentlicht. [Umfang und Nachweis](park-ground-step-7b.md).
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
   bleiben bestehen. Sie ändern die vereinbarte Produktreihenfolge nicht.

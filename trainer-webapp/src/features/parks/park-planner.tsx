@@ -98,7 +98,7 @@ export function ParkPlannerView({
     () => new Map(detail.versions.map((v) => [v.id, v])),
     [detail.versions],
   );
-  const aerialUrls = { ...detail.aerialUrls, ...previews };
+  const assetUrls = { ...detail.assetUrls, ...previews };
 
   // Welche Parkversion wird gerade gezeigt?
   const content =
@@ -337,6 +337,10 @@ export function ParkPlannerView({
         ? { start: selectedRun.start_point, end: selectedRun.end_point, steps: selectedRun.steps }
         : null;
 
+  const attribution =
+    (content.ground?.kind === "terrain" ? content.ground.attribution : null) ??
+    content.aerial?.attribution ??
+    null;
   const stageHint =
     mode === "run"
       ? placing
@@ -382,7 +386,7 @@ export function ParkPlannerView({
           </div>
           <ParkScene
             content={content}
-            aerialUrl={content.aerial ? aerialUrls[content.aerial.path] : null}
+            assetUrls={assetUrls}
             topView={topView}
             editable={mode === "park"}
             selectedObstacleId={mode === "park" ? selectedObstacle : null}
@@ -398,6 +402,8 @@ export function ParkPlannerView({
             label={`3D-Modell des Parks ${detail.park.name}`}
           />
           {stageHint ? <div className={styles.stageHint}>{stageHint}</div> : null}
+          {/* Lizenzpflichtige Quellenangabe amtlicher Daten (Schritt 7b). */}
+          {attribution ? <div className={styles.attribution}>{attribution}</div> : null}
         </div>
 
         <aside className={styles.panel} aria-live="polite">
@@ -424,8 +430,8 @@ export function ParkPlannerView({
               usedObstacleIds={usedObstacleIds}
               busy={command.busy}
               onChange={updateParkDraft}
-              onAdd={(type) => {
-                const obstacle = createObstacle(type, { x: 0, z: 0 }, crypto.randomUUID());
+              onAdd={(type, patch) => {
+                const obstacle = { ...createObstacle(type, { x: 0, z: 0 }, crypto.randomUUID()), ...patch };
                 updateParkDraft({
                   ...parkDraft,
                   content: { ...parkDraft.content, obstacles: [...parkDraft.content.obstacles, obstacle] },
@@ -433,7 +439,7 @@ export function ParkPlannerView({
                 setSelectedObstacle(obstacle.id);
               }}
               onSelect={setSelectedObstacle}
-              onAerialPreview={(path, url) => setPreviews((p) => ({ ...p, [path]: url }))}
+              onAssetPreview={(urls) => setPreviews((p) => ({ ...p, ...urls }))}
               onSave={saveParkDraft}
               onCancel={leaveEditing}
             />

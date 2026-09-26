@@ -4,6 +4,7 @@ import { getPeopleDirectory } from "@/data/supabase-people-repository";
 import type { ParkDetail, ParkDirectory, ParkVersion } from "@/domain/parks";
 
 export const AERIAL_BUCKET = "skatepark-aerials";
+export const MODEL_BUCKET = "skatepark-models";
 
 /** Parkliste, sichtbare Runs und offene Trick-Vorschläge (nur für Prüfer gefüllt). */
 export async function getParkDirectory(): Promise<ParkDirectory> {
@@ -32,23 +33,33 @@ export async function getParkDetail(parkId: string): Promise<ParkDetail | null> 
   if (detail.error)
     throw new Error("Park konnte nicht geladen werden. Bitte erneut versuchen.");
   if (!detail.data) return null;
-  const raw = detail.data as Omit<ParkDetail, "aerialUrls" | "athletes" | "user">;
+  const raw = detail.data as Omit<ParkDetail, "assetUrls" | "athletes" | "user">;
 
-  const paths = [
-    ...new Set(
-      raw.versions
-        .map((v: ParkVersion) => v.content.aerial?.path)
-        .filter((p): p is string => Boolean(p)),
-    ),
-  ];
-  const aerialUrls: Record<string, string> = {};
-  if (paths.length) {
-    const { data } = await supabase.storage
-      .from(AERIAL_BUCKET)
-      .createSignedUrls(paths, 60 * 60);
-    for (const entry of data ?? [])
-      if (entry.path && entry.signedUrl) aerialUrls[entry.path] = entry.signedUrl;
-  }
+  // Luftbilder liegen im Bucket `skatepark-aerials`, Modelle und Höhenraster (7b)
+  // in `skatepark-models`. Beide sind privat; die Seite erhält signierte URLs.
+  const unique = (list: (string | undefined)[]) =>
+    [...new Set(list.filter((p): p is string => Boolean(p)))];
+  const aerialPaths = unique(raw.versions.map((v: ParkVersion) => v.content.aerial?.path));
+  const modelPaths = unique(
+    raw.versions.flatMap((v: ParkVersion) => [
+      v.content.ground?.path,
+      ...v.content.obstacles.map((o) => o.modelPath),
+    ]),
+  );
+  const assetUrls: Record<string, string> = {};
+  await Promise.all(
+    (
+      [
+        [AERIAL_BUCKET, aerialPaths],
+        [MODEL_BUCKET, modelPaths],
+      ] as const
+    ).map(async ([bucket, paths]) => {
+      if (!paths.length) return;
+      const { data } = await supabase.storage.from(bucket).createSignedUrls(paths, 60 * 60);
+      for (const entry of data ?? [])
+        if (entry.path && entry.signedUrl) assetUrls[entry.path] = entry.signedUrl;
+    }),
+  );
 
   // Auswahl für neue Runs: man selbst und aktiv zugeordnete Athleten.
   // Die Datenbank prüft die Beziehung beim Speichern erneut.
@@ -66,7 +77,7 @@ export async function getParkDetail(parkId: string): Promise<ParkDetail | null> 
 
   return {
     ...raw,
-    aerialUrls,
+    assetUrls,
     athletes,
     user: { id: user.id, displayName: user.displayName },
   };

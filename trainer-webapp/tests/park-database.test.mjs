@@ -29,6 +29,10 @@ before(async () => {
       "../supabase/migrations/20260924135627_step_7_park_run_planner.sql",
     ),
   );
+  // Schritt 7b erweitert dieselben Verträge; alle Tests laufen mit beiden Migrationen.
+  await db.exec(
+    await read("../supabase/migrations/20260926120000_step_7b_park_ground.sql"),
+  );
   await db.query(
     "insert into public.profiles values($1,'Alex','athlete'),($2,'Kim','athlete'),($3,'Trainer','trainer'),($4,'Mama','guardian'),($5,'Vorstand','athlete'),($6,'Gesperrt','athlete')",
     [A, B, T, G, S, X],
@@ -425,4 +429,94 @@ test("Luftbild-Bucket erlaubt Uploads nur in den eigenen Ordner", async () => {
     ).rows[0].n,
     1,
   );
+});
+
+// ---------------------------------------------------------------------------
+// Schritt 7b: Untergrund, Georeferenz, Bereiche und eigene Modelle
+// ---------------------------------------------------------------------------
+
+const asset = (owner, ext) => `${owner}/${randomUUID()}.${ext}`;
+const terrain = (owner) => ({
+  kind: "terrain",
+  path: asset(owner, "bin"),
+  cols: 80,
+  rows: 60,
+  width: 80,
+  length: 60,
+  minHeight: -1.3,
+  maxHeight: 2.9,
+  attribution: "Quelle: GeoSN, dl-de/by-2-0",
+  stand: "2023-01-09",
+});
+
+test("7b: amtlicher Untergrund, Georeferenz, Bereich und eigenes Modell werden gespeichert", async () => {
+  const content7b = {
+    ...content(["ledge-1"]),
+    obstacles: [
+      ...content(["ledge-1"]).obstacles,
+      { id: "bowl-zone", type: "zone", x: -5, z: 3, rotation: 10, width: 18, length: 9, height: 0.3, label: "Bowl", elevation: -1.2 },
+      { id: "kicker", type: "custom", x: 6, z: 0, rotation: 0, width: 2, length: 1.5, height: 0.8, modelPath: asset(A, "glb"), modelFormat: "glb", upAxis: "y" },
+    ],
+    ground: terrain(A),
+    geo: { state: "SN", lat: 51.32, lon: 12.3, x: 311769, y: 5688926 },
+    aerial: { path: asset(A, "jpg"), width: 80, aspect: 0.75, rotation: 0, offsetX: 0, offsetZ: 0, opacity: 1, rightsConfirmed: true, attribution: "Quelle: GeoSN, dl-de/by-2-0" },
+  };
+  const p = await park(A, { content: content7b });
+  const detail = await rpc(A, "select public.park_detail($1) data", [p.id]);
+  assert.equal(detail.versions[0].content.ground.kind, "terrain");
+  assert.equal(detail.versions[0].content.obstacles.length, 3);
+  // Tricks lassen sich an einen Bereich pinnen.
+  await cmd(A, "run_save", await runPayload(p, A, { steps: [{ obstacle_id: "bowl-zone", trick_id: await trickId("Rock to Fakie") }] }));
+  // Park-Modell als Untergrund ist ebenfalls gültig.
+  await cmd(A, "park_save", {
+    park_id: p.id,
+    revision: 1,
+    name: "Mit Modell",
+    content: { ...content7b, ground: { kind: "model", path: asset(A, "obj"), format: "obj", upAxis: "z", scale: 0.001, rotation: 0, offsetX: 0, offsetY: 0, offsetZ: 0 } },
+  });
+});
+
+test("7b: ungültige Untergründe, Modelle und Georeferenzen werden abgelehnt", async () => {
+  const bad = [
+    { ground: { ...terrain(A), cols: 9999 } },
+    { ground: { ...terrain(A), attribution: "" } },
+    { ground: { ...terrain(A), path: asset(A, "exe") } },
+    { ground: { kind: "heightfield" } },
+    { ground: { kind: "model", path: asset(A, "fbx"), format: "fbx", scale: 1, rotation: 0, offsetX: 0, offsetY: 0, offsetZ: 0 } },
+    { geo: { state: "NW", lat: 51, lon: 7, x: 400000, y: 5700000 } },
+    { obstacles: [{ id: "c", type: "custom", x: 0, z: 0, rotation: 0, width: 1, length: 1, height: 1, modelPath: asset(A, "glb"), modelFormat: "stl" }] },
+    { obstacles: [{ id: "l", type: "ledge", x: 0, z: 0, rotation: 0, width: 1, length: 1, height: 1, modelPath: asset(A, "glb") }] },
+    { obstacles: [{ id: "z", type: "zone", x: 0, z: 0, rotation: 0, width: 1, length: 1, height: 1, elevation: 99 }] },
+  ];
+  for (const patch of bad)
+    await assert.rejects(park(A, { content: { ...content(), ...patch } }), /PARK_INVALID|invalid input/, JSON.stringify(patch));
+});
+
+test("7b: fremde Modell- und Rasterdateien nur unverändert übernehmbar", async () => {
+  // Kim darf keine Dateien aus Alex' Ordner in einen neuen Park einbinden.
+  await assert.rejects(park(B, { content: { ...content(), ground: terrain(A) } }), /PARK_FORBIDDEN/);
+  await assert.rejects(
+    park(B, { content: { ...content(), obstacles: [{ id: "c", type: "custom", x: 0, z: 0, rotation: 0, width: 1, length: 1, height: 1, modelPath: asset(A, "glb"), modelFormat: "glb" }] } }),
+    /PARK_FORBIDDEN/,
+  );
+  // Ein Trainer übernimmt Alex' Untergrund unverändert, darf ihn aber nicht gegen eine fremde Datei tauschen.
+  const ground = terrain(A);
+  const p = await park(A, { content: { ...content(), ground } });
+  await cmd(T, "park_save", { park_id: p.id, revision: 1, name: "Trainer", content: { ...content(), ground } });
+  await assert.rejects(
+    cmd(T, "park_save", { park_id: p.id, revision: 2, name: "Tausch", content: { ...content(), ground: terrain(B) } }),
+    /PARK_FORBIDDEN/,
+  );
+  await cmd(T, "park_save", { park_id: p.id, revision: 2, name: "Eigenes", content: { ...content(), ground: terrain(T) } });
+});
+
+test("7b: Modell-Speicher erlaubt Uploads nur in den eigenen Ordner", async () => {
+  const upload = (actor, owner, ext) =>
+    user(actor, (tx) =>
+      tx.query("insert into storage.objects(bucket_id,name,owner_id) values('skatepark-models',$1,$2)", [asset(owner, ext), actor]),
+    );
+  await upload(A, A, "glb");
+  await upload(A, A, "bin");
+  await assert.rejects(upload(A, B, "glb"), /row-level security/);
+  await assert.rejects(upload(A, A, "exe"), /row-level security/);
 });

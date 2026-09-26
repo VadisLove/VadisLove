@@ -14,6 +14,7 @@ await db.exec(await read("../fixtures/training-base.sql"));
 await db.exec(await read("../../supabase/migrations/20260923202413_step_5_training_sessions.sql"));
 await db.exec(await read("../fixtures/park-base.sql"));
 await db.exec(await read("../../supabase/migrations/20260924135627_step_7_park_run_planner.sql"));
+await db.exec(await read("../../supabase/migrations/20260926120000_step_7b_park_ground.sql"));
 
 const users = [
   ["athlete", "00000000-0000-4000-8000-000000000001", "Alex", "athlete"],
@@ -60,17 +61,30 @@ const asUser = (id, fn) =>
   });
 const files = new Map();
 
-/** Extrahiert die Bilddaten aus dem Multipart-Upload von supabase-js. */
-function imageFromMultipart(buffer) {
-  for (const magic of ["RIFF", "\x89PNG", "\xff\xd8\xff"]) {
-    const index = buffer.indexOf(Buffer.from(magic, "latin1"));
-    if (index >= 0) {
-      const end = buffer.lastIndexOf(Buffer.from("\r\n--", "latin1"));
-      return buffer.subarray(index, end > index ? end : buffer.length);
-    }
+/**
+ * Liefert den Dateiinhalt eines Uploads: supabase-js sendet im Browser Multipart,
+ * serverseitig (Buffer) den Rohinhalt.
+ */
+function uploadBody(req, buffer) {
+  const match = /boundary=(.+)$/.exec(req.headers["content-type"] ?? "");
+  if (!match) return buffer;
+  const boundary = Buffer.from(`--${match[1]}`, "latin1");
+  let start = 0;
+  let last = buffer;
+  while ((start = buffer.indexOf(boundary, start)) >= 0) {
+    const next = buffer.indexOf(boundary, start + boundary.length);
+    if (next < 0) break;
+    const part = buffer.subarray(start + boundary.length, next);
+    const headerEnd = part.indexOf("\r\n\r\n");
+    const headers = part.subarray(0, headerEnd).toString("latin1");
+    const body = part.subarray(headerEnd + 4, part.length - 2);
+    if (/filename=|name=""/.test(headers) || body.length > 64) last = body;
+    start = next;
   }
-  return buffer;
+  return last;
 }
+const TYPES = { webp: "image/webp", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", glb: "model/gltf-binary", gltf: "model/gltf+json", obj: "model/obj", bin: "application/octet-stream" };
+const BUCKETS = "(skatepark-aerials|skatepark-models)";
 
 createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
@@ -92,12 +106,13 @@ createServer(async (req, res) => {
       res.writeHead(302, { Location: `${APP}/skateparks` });
       return res.end();
     }
-    // Signierte Bild-URLs sind ohne Login abrufbar, wie bei Supabase.
-    const signed = url.pathname.match(/^\/storage\/v1\/object\/sign\/skatepark-aerials\/(.+)$/);
+    // Signierte URLs sind ohne Login abrufbar, wie bei Supabase.
+    const signed = url.pathname.match(new RegExp(`^/storage/v1/object/sign/${BUCKETS}/(.+)$`));
     if (signed && req.method === "GET" && url.searchParams.get("token")) {
-      const file = files.get(decodeURIComponent(signed[1]));
+      const path = decodeURIComponent(signed[2]);
+      const file = files.get(`${signed[1]}/${path}`);
       res.statusCode = file ? 200 : 404;
-      res.setHeader("Content-Type", "image/webp");
+      res.setHeader("Content-Type", TYPES[path.split(".").pop()] ?? "application/octet-stream");
       return res.end(file ?? "");
     }
     res.setHeader("Content-Type", "application/json");
@@ -110,26 +125,24 @@ createServer(async (req, res) => {
       res.statusCode = 401;
       return res.end("{}");
     }
-    const upload = url.pathname.match(/^\/storage\/v1\/object\/skatepark-aerials\/(.+)$/);
-    if (upload && req.method === "POST") {
-      const path = decodeURIComponent(upload[1]);
-      await asUser(user.id, (tx) =>
-        tx.query("insert into storage.objects(bucket_id,name,owner_id) values('skatepark-aerials',$1,$2)", [path, user.id]),
-      );
-      files.set(path, imageFromMultipart(raw));
-      return res.end(JSON.stringify({ Key: `skatepark-aerials/${path}`, Id: path }));
-    }
-    if (url.pathname === "/storage/v1/object/sign/skatepark-aerials" && req.method === "POST") {
+    const signedUrl = (bucket, path) => `/object/sign/${bucket}/${path}?token=local`;
+    const batch = url.pathname.match(new RegExp(`^/storage/v1/object/sign/${BUCKETS}$`));
+    if (batch && req.method === "POST") {
       const { paths } = JSON.parse(raw.toString() || "{}");
-      return res.end(
-        JSON.stringify(
-          (paths ?? []).map((path) => ({
-            path,
-            error: null,
-            signedURL: `/object/sign/skatepark-aerials/${encodeURIComponent(path)}?token=local`,
-          })),
-        ),
+      return res.end(JSON.stringify((paths ?? []).map((path) => ({ path, error: null, signedURL: signedUrl(batch[1], path) }))));
+    }
+    const single = url.pathname.match(new RegExp(`^/storage/v1/object/sign/${BUCKETS}/(.+)$`));
+    if (single && req.method === "POST")
+      return res.end(JSON.stringify({ signedURL: signedUrl(single[1], decodeURIComponent(single[2])) }));
+    const upload = url.pathname.match(new RegExp(`^/storage/v1/object/${BUCKETS}/(.+)$`));
+    if (upload && req.method === "POST") {
+      const [, bucket, encoded] = upload;
+      const path = decodeURIComponent(encoded);
+      await asUser(user.id, (tx) =>
+        tx.query("insert into storage.objects(bucket_id,name,owner_id) values($1,$2,$3)", [bucket, path, user.id]),
       );
+      files.set(`${bucket}/${path}`, uploadBody(req, raw));
+      return res.end(JSON.stringify({ Key: `${bucket}/${path}`, Id: path }));
     }
     const payload = raw.length ? JSON.parse(raw.toString()) : {};
     if (url.pathname === "/rest/v1/rpc/park_command") {
