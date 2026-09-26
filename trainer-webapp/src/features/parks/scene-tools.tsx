@@ -648,6 +648,85 @@ function HandleSprite({
 }
 
 /**
+ * Ziehbarer Punkt mit konstanter Bildschirmgröße (Zwischenpunkte der Fahrlinie, Start/Ziel).
+ * `onDragStart` läuft beim Drücken (z. B. Punkt einfügen), `onDrag` meldet Vorschau/Bestätigung.
+ */
+export function DragHandle({
+  position,
+  size = 0.036,
+  color = TOOL_COLOR,
+  hollow = false,
+  pick,
+  consumed,
+  controlsRef,
+  onDragStart,
+  onDrag,
+  onRemove,
+}: {
+  position: THREE.Vector3;
+  size?: number;
+  color?: string;
+  hollow?: boolean;
+  pick: (clientX: number, clientY: number) => { x: number; y: number; z: number } | null;
+  consumed: WeakSet<Event>;
+  controlsRef: React.MutableRefObject<OrbitControls | null>;
+  onDragStart?: () => void;
+  onDrag: (point: Point, phase: EditPhase) => void;
+  /** Doppelklick bzw. Alt-Klick entfernt den Punkt. */
+  onRemove?: () => void;
+}) {
+  const drag = useRef<{ dx: number; dz: number; moved: boolean } | null>(null);
+  const mark = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    consumed.add(e.nativeEvent);
+  };
+  return (
+    <HandleSprite
+      position={position}
+      size={size}
+      color={color}
+      hollow={hollow}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        consumed.add(e.nativeEvent);
+        if (e.nativeEvent.altKey && onRemove) return onRemove();
+        const ground = pick(e.nativeEvent.clientX, e.nativeEvent.clientY);
+        if (controlsRef.current) controlsRef.current.enabled = false;
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+        drag.current = {
+          dx: ground ? position.x - ground.x : 0,
+          dz: ground ? position.z - ground.z : 0,
+          moved: Boolean(onDragStart),
+        };
+        onDragStart?.();
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d) return;
+        e.stopPropagation();
+        const ground = pick(e.nativeEvent.clientX, e.nativeEvent.clientY);
+        if (!ground) return;
+        d.moved = true;
+        onDrag({ x: ground.x + d.dx, z: ground.z + d.dz }, "preview");
+      }}
+      onPointerUp={(e) => {
+        const d = drag.current;
+        if (!d) return;
+        drag.current = null;
+        (e.target as Element).releasePointerCapture?.(e.pointerId);
+        if (controlsRef.current) controlsRef.current.enabled = true;
+        onDrag({ x: position.x, z: position.z }, d.moved ? "commit" : "cancel");
+      }}
+      onClick={mark}
+      onDoubleClick={(e) => {
+        mark(e);
+        onRemove?.();
+      }}
+    />
+  );
+}
+
+/**
  * Eckpunkte eines gewählten Bereichs wie in Illustrator: Punkte ziehen, auf die Mitte
  * einer Kante ziehen fügt einen Punkt ein, Doppelklick bzw. Alt-Klick entfernt ihn.
  */

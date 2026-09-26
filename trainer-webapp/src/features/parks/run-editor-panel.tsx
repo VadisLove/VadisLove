@@ -15,6 +15,7 @@ import {
   type Trick,
   type TrickCategory,
 } from "@/domain/parks";
+import type { Waypoint } from "@/domain/run-path";
 import type { ScenePlacement } from "./park-scene";
 import styles from "./parks.module.css";
 
@@ -37,6 +38,8 @@ export interface RunDraft {
   title: string;
   event_id: string | null;
   start: Point;
+  /** Zwischenpunkte der Fahrlinie (kurvige Linie). */
+  via: Waypoint[];
   end: Point;
   target_score: string;
   actual_score: string;
@@ -256,6 +259,19 @@ export function RunEditorPanel({
             </button>
           ))}
         </div>
+        <p className={styles.muted}>
+          S und Z lassen sich in der Ansicht auch direkt ziehen. Ziehe an einem hohlen Punkt
+          auf der Linie, um sie zu biegen ({draft.via.length} {draft.via.length === 1 ? "Kurvenpunkt" : "Kurvenpunkte"}); Doppelklick
+          entfernt einen Kurvenpunkt.
+          {draft.via.length ? (
+            <>
+              {" "}
+              <button type="button" className={styles.linkButton} onClick={() => onChange({ ...draft, via: [] })}>
+                Linie begradigen
+              </button>
+            </>
+          ) : null}
+        </p>
       </section>
 
       <section className={styles.form}>

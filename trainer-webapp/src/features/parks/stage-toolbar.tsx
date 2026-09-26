@@ -8,6 +8,8 @@ import {
   Keyboard,
   Move,
   PenTool,
+  Play,
+  Square,
   Redo2,
   RotateCw,
   Scaling,
@@ -48,6 +50,9 @@ export function StageToolbar({
   onRedo,
   onDuplicate,
   onDelete,
+  canPlay,
+  playing,
+  onPlay,
 }: {
   mode: "view" | "park" | "run";
   topView: boolean;
@@ -67,6 +72,10 @@ export function StageToolbar({
   onRedo: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** Run-Animation (nur wenn ein Run mit Tricks angezeigt wird). */
+  canPlay: boolean;
+  playing: boolean;
+  onPlay: () => void;
 }) {
   return (
     <>
@@ -138,6 +147,12 @@ export function StageToolbar({
         </div>
       ) : null}
       <div className={styles.stageTools}>
+        {canPlay ? (
+          <button type="button" className={styles.button} aria-pressed={playing} onClick={onPlay} title="Run abspielen (Leertaste)">
+            {playing ? <Square size={14} /> : <Play size={14} />}
+            {playing ? "Stopp" : "Abspielen"}
+          </button>
+        ) : null}
         <button type="button" className={styles.button} aria-pressed={topView} onClick={() => onTopView(!topView)} title="Draufsicht umschalten (7)">
           {topView ? "3D" : "Draufsicht"}
         </button>

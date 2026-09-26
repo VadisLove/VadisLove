@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { zoneFromPolygon } from "@/domain/park-geometry";
+import { normalizeWaypoints, runControls } from "@/domain/run-path";
 import {
   clampToPark,
   createObstacle,
@@ -22,7 +23,7 @@ import {
   type TrickCategory,
 } from "@/domain/parks";
 import { ParkEditorPanel, type ParkDraft } from "./park-editor-panel";
-import type { ScenePlacement } from "./park-scene";
+import type { RunPathEdit, ScenePlacement } from "./park-scene";
 import { RunEditorPanel, type RunDraft } from "./run-editor-panel";
 import { makeCommand, type EditPhase, type SceneCommand, type SceneCommandInput, type TransformState } from "./scene-commands";
 import { StageToolbar, ShortcutHelp } from "./stage-toolbar";
@@ -46,7 +47,8 @@ function runToDraft(run: ParkRun): RunDraft {
     athlete_user_id: run.athlete.user_id ?? "",
     title: run.title,
     event_id: run.event_id,
-    start: run.start_point,
+    start: { x: run.start_point.x, z: run.start_point.z },
+    via: run.start_point.path ?? [],
     end: run.end_point,
     target_score: run.target_score === null ? "" : String(run.target_score).replace(".", ","),
     actual_score: run.actual_score === null ? "" : String(run.actual_score).replace(".", ","),
@@ -110,6 +112,9 @@ export function ParkPlannerView({
   const [drawing, setDrawing] = useState<Point[] | null>(null);
   const [sceneCommand, setSceneCommand] = useState<SceneCommand | null>(null);
   const [transform, setTransform] = useState<TransformState | null>(null);
+  // Run-Animation: Zähler startet neu, `playStep` ist der gerade gezeigte Trick.
+  const [play, setPlay] = useState<number | null>(null);
+  const [playStep, setPlayStep] = useState<number | null>(null);
   const sendCommand = (c: SceneCommandInput) => setSceneCommand(makeCommand(c));
   // Rückgängig/Wiederholen für den Park-Entwurf. `previewBase` hält den Stand vor einer
   // laufenden Vorschau (Ziehen, G/R/S), damit die ganze Bewegung ein Schritt ist.
@@ -144,6 +149,8 @@ export function ParkPlannerView({
 
   function selectRun(id: string | null) {
     setSelectedRunId(id);
+    setPlay(null);
+    setPlayStep(null);
     const url = new URL(window.location.href);
     if (id) url.searchParams.set("run", id);
     else url.searchParams.delete("run");
@@ -317,6 +324,8 @@ export function ParkPlannerView({
 
   // ----- Runs -----
   function startRun() {
+    setPlay(null);
+    setPlayStep(null);
     const points = defaultRunPoints(latest.content.size);
     setRunDraft({
       run_id: crypto.randomUUID(),
@@ -326,6 +335,7 @@ export function ParkPlannerView({
       title: `Run ${detail.runs.length + 1}`,
       event_id: null,
       start: points.start,
+      via: [],
       end: points.end,
       target_score: "",
       actual_score: "",
@@ -338,6 +348,8 @@ export function ParkPlannerView({
     setMode("run");
   }
   function editRun(run: ParkRun) {
+    setPlay(null);
+    setPlayStep(null);
     setRunDraft(runToDraft(run));
     setActiveStep(null);
     setPlacing(null);
@@ -364,6 +376,23 @@ export function ParkPlannerView({
     const p = clampToPark({ x: snap(point.x, 0.1), z: snap(point.z, 0.1) }, content.size);
     updateRunDraft({ ...runDraft, [placing]: p });
     setPlacing(null);
+  }
+  /** Start, Ziel oder Zwischenpunkte direkt in der Szene gezogen. */
+  function editRunPath(patch: RunPathEdit, phase: EditPhase) {
+    if (!runDraft || phase === "cancel") return;
+    const clampPoint = (p: Point) => clampToPark({ x: p.x, z: p.z }, content.size);
+    updateRunDraft({
+      ...runDraft,
+      ...(patch.start ? { start: clampPoint(patch.start) } : {}),
+      ...(patch.end ? { end: clampPoint(patch.end) } : {}),
+      ...(patch.via ? { via: patch.via.map((w) => ({ ...w, ...clampPoint(w) })) } : {}),
+    });
+  }
+  function togglePlay() {
+    if (play !== null) {
+      setPlay(null);
+      setPlayStep(null);
+    } else setPlay(Date.now());
   }
   async function suggestTrick(index: number, name: string, category: TrickCategory) {
     const outcome = await command.run("trick_suggest", { name, category }, detail.park.id);
@@ -398,7 +427,16 @@ export function ParkPlannerView({
         athlete_user_id: runDraft.athlete_user_id,
         title: runDraft.title.trim(),
         event_id: runDraft.event_id,
-        start: runDraft.start,
+        // Zwischenpunkte reisen im Startpunkt mit (keine Schemaänderung nötig).
+        start: runDraft.via.length
+          ? {
+              ...runDraft.start,
+              path: normalizeWaypoints(
+                runDraft.via,
+                runControls(runDraft.start, runDraft.end, runDraft.steps, content.obstacles).at(-1)!.seg,
+              ),
+            }
+          : runDraft.start,
         end: runDraft.end,
         target_score: target,
         actual_score: actual,
@@ -436,6 +474,18 @@ export function ParkPlannerView({
     }
   }
 
+  const sceneRun =
+    mode === "run" && runDraft
+      ? { start: runDraft.start, end: runDraft.end, steps: runDraft.steps, via: runDraft.via }
+      : mode === "view" && selectedRun
+        ? {
+            start: selectedRun.start_point,
+            end: selectedRun.end_point,
+            steps: selectedRun.steps,
+            via: selectedRun.start_point.path ?? [],
+          }
+        : null;
+
   // Tastenkürzel des Planers (G/R/S, Ansichten und Achsen verarbeitet die Szene selbst).
   const keyHandler = useRef<(e: KeyboardEvent) => void>(() => {});
   const handleKey = (e: KeyboardEvent) => {
@@ -448,6 +498,11 @@ export function ParkPlannerView({
       return setHelpOpen((v) => !v);
     }
     if (key === "#" || (e.code === "Backquote" && e.shiftKey)) return setShowGrid((v) => !v);
+    // Leertaste spielt den angezeigten Run ab (außerhalb der Park-Bearbeitung).
+    if (e.code === "Space" && mode !== "park" && sceneRun?.steps.length) {
+      e.preventDefault();
+      return togglePlay();
+    }
     if (mode === "run") {
       if (e.key === "Escape" && placing) setPlacing(null);
       return;
@@ -501,13 +556,6 @@ export function ParkPlannerView({
     () => new Set(detail.runs.flatMap((r) => r.steps.map((s) => s.obstacle_id))),
     [detail.runs],
   );
-
-  const sceneRun =
-    mode === "run" && runDraft
-      ? { start: runDraft.start, end: runDraft.end, steps: runDraft.steps }
-      : mode === "view" && selectedRun
-        ? { start: selectedRun.start_point, end: selectedRun.end_point, steps: selectedRun.steps }
-        : null;
 
   const attribution =
     (content.ground?.kind === "terrain" ? content.ground.attribution : null) ??
@@ -578,6 +626,9 @@ export function ParkPlannerView({
             onRedo={redo}
             onDuplicate={duplicateSelected}
             onDelete={removeSelected}
+            canPlay={Boolean(sceneRun && sceneRun.steps.length)}
+            playing={play !== null}
+            onPlay={togglePlay}
           />
           {helpOpen ? <ShortcutHelp onClose={() => setHelpOpen(false)} /> : null}
           <ParkScene
@@ -610,7 +661,14 @@ export function ParkPlannerView({
                   : undefined
             }
             run={sceneRun}
-            activeStep={mode === "run" ? activeStep : null}
+            activeStep={playStep ?? (mode === "run" ? activeStep : null)}
+            onRunPathEdit={mode === "run" && !placing ? editRunPath : undefined}
+            play={play}
+            onPlayStep={setPlayStep}
+            onPlayEnd={() => {
+              setPlay(null);
+              setPlayStep(null);
+            }}
             label={`3D-Modell des Parks ${detail.park.name}`}
           />
           {stageHint ? <div className={styles.stageHint}>{stageHint}</div> : null}
@@ -746,7 +804,12 @@ export function ParkPlannerView({
                     {selectedRun.steps.map((s, i) => {
                       const o = content.obstacles.find((x) => x.id === s.obstacle_id);
                       return (
-                        <li key={s.id ?? i} className={styles.stepHead}>
+                        <li
+                          key={s.id ?? i}
+                          className={styles.stepHead}
+                          // Während der Animation den gerade gezeigten Trick hervorheben.
+                          style={playStep === i ? { background: "var(--color-blue-soft, #e6f2fe)", borderRadius: 8 } : undefined}
+                        >
                           <span className={styles.number}>{i + 1}</span>
                           <span>
                             <strong>{stepLabel(s)}</strong>

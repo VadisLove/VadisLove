@@ -33,6 +33,8 @@ before(async () => {
   await db.exec(
     await read("../supabase/migrations/20260926002019_step_7b_park_ground.sql"),
   );
+  // Zwischenpunkte der Fahrlinie (start_point.path).
+  await db.exec(await read("../supabase/migrations/20260926225228_park_run_path.sql"));
   await db.query(
     "insert into public.profiles values($1,'Alex','athlete'),($2,'Kim','athlete'),($3,'Trainer','trainer'),($4,'Mama','guardian'),($5,'Vorstand','athlete'),($6,'Gesperrt','athlete')",
     [A, B, T, G, S, X],
@@ -519,4 +521,27 @@ test("7b: Modell-Speicher erlaubt Uploads nur in den eigenen Ordner", async () =
   await upload(A, A, "bin");
   await assert.rejects(upload(A, B, "glb"), /row-level security/);
   await assert.rejects(upload(A, A, "exe"), /row-level security/);
+});
+
+test("Zwischenpunkte der Fahrlinie werden gespeichert und begrenzt", async () => {
+  const p = await park(A);
+  const payload = await runPayload(p);
+  const path = [
+    { x: -5, z: 3, seg: 0 },
+    { x: 2.5, z: -1, seg: 1 },
+  ];
+  await cmd(A, "run_save", { ...payload, start: { ...payload.start, path } });
+  const detail = await rpc(A, "select public.park_detail($1) data", [p.id]);
+  assert.deepEqual(detail.runs.find((r) => r.id === payload.run_id).start_point.path, path);
+  // Ungültige Punkte, fehlender Abschnitt oder zu viele Punkte werden abgelehnt.
+  for (const bad of [
+    [{ x: 500, z: 0, seg: 0 }],
+    [{ x: 1, z: 1 }],
+    [{ x: 1, z: 1, seg: 0.5 }],
+    Array.from({ length: 41 }, () => ({ x: 0, z: 0, seg: 0 })),
+  ]) {
+    await assert.rejects(
+      cmd(A, "run_save", { ...payload, run_id: randomUUID(), start: { ...payload.start, path: bad } }),
+    );
+  }
 });

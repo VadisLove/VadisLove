@@ -173,7 +173,8 @@ export interface ParkRun {
   title: string;
   event: CalendarEventOption | null;
   event_id: string | null;
-  start_point: Point;
+  /** Startpunkt; `path` enthält optionale Zwischenpunkte der Fahrlinie (siehe run-path.ts). */
+  start_point: Point & { path?: { x: number; z: number; seg: number }[] };
   end_point: Point;
   target_score: number | string | null;
   actual_score: number | string | null;

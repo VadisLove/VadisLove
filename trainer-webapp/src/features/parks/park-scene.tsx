@@ -1,14 +1,12 @@
 "use client";
 
-import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import {
   clampToPark,
-  pathArrows,
   pinLayout,
-  runPath,
   snap,
   type Obstacle,
   type ParkContent,
@@ -25,12 +23,23 @@ import {
   type TerrainGrid,
 } from "@/domain/geodata";
 import { zoneOutline } from "@/domain/park-geometry";
+import {
+  insertWaypoint,
+  moveWaypoint,
+  playSchedule,
+  playState,
+  removeWaypoint,
+  runControls,
+  type RunControl,
+  type Waypoint,
+} from "@/domain/run-path";
 import { obstacleParts } from "./obstacle-geometry";
 import { applyUpAxis, loadModel, loadTerrain } from "./model-assets";
 import {
   AxisGizmo,
   CameraBridge,
   CameraRig,
+  DragHandle,
   GroundMarker,
   GroundPicker,
   PolygonDraft,
@@ -90,7 +99,13 @@ export interface ParkSceneProps {
   showGrid?: boolean;
   command?: SceneCommand | null;
   onTransformState?: (state: TransformState | null) => void;
-  run?: { start: Point; end: Point; steps: Pick<RunStep, "obstacle_id">[] } | null;
+  run?: { start: Point; end: Point; steps: Pick<RunStep, "obstacle_id">[]; via?: Waypoint[] } | null;
+  /** Start, Ziel und Zwischenpunkte der Fahrlinie ziehbar machen (Run planen). */
+  onRunPathEdit?: (patch: RunPathEdit, phase: EditPhase) => void;
+  /** Run-Animation: jede neue Zahl startet sie neu, null = aus. */
+  play?: number | null;
+  onPlayStep?: (step: number | null) => void;
+  onPlayEnd?: () => void;
   activeStep?: number | null;
   label: string;
 }
@@ -577,25 +592,103 @@ function ObstacleMesh({
   );
 }
 
-/** Flaches Band zwischen zwei Punkten; dicker und besser sichtbar als eine 1-px-Linie. */
-function Segment({ a, b, unit }: { a: THREE.Vector3; b: THREE.Vector3; unit: number }) {
-  const { position, quaternion, length } = useMemo(() => {
-    const dir = new THREE.Vector3().subVectors(b, a);
-    const q = new THREE.Quaternion().setFromUnitVectors(
-      new THREE.Vector3(0, 0, 1),
-      dir.clone().normalize(),
-    );
-    return {
-      position: new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5),
-      quaternion: q,
-      length: dir.length(),
-    };
-  }, [a, b]);
+/** Flaches Band entlang abgetasteter Punkte (eine Geometrie statt vieler Einzelteile). */
+function Ribbon({ points, width }: { points: THREE.Vector3[]; width: number }) {
+  const geometry = useMemo(() => {
+    const positions: number[] = [];
+    const index: number[] = [];
+    const side = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0);
+    points.forEach((p, i) => {
+      const a = points[Math.max(0, i - 1)];
+      const b = points[Math.min(points.length - 1, i + 1)];
+      side.subVectors(b, a).setY(0).normalize().cross(up).multiplyScalar(width / 2);
+      positions.push(p.x - side.x, p.y, p.z - side.z, p.x + side.x, p.y, p.z + side.z);
+      if (i > 0) {
+        const k = i * 2;
+        index.push(k - 2, k - 1, k, k - 1, k + 1, k);
+      }
+    });
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    g.setIndex(index);
+    return g;
+  }, [points, width]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh position={position} quaternion={quaternion} renderOrder={5}>
-      <boxGeometry args={[0.16 * unit, 0.04 * unit, length]} />
-      <meshBasicMaterial color={COLORS.path} transparent opacity={0.85} depthTest={false} />
+    <mesh geometry={geometry} renderOrder={5}>
+      <meshBasicMaterial color={COLORS.path} transparent opacity={0.85} depthTest={false} side={THREE.DoubleSide} />
     </mesh>
+  );
+}
+
+export interface RunPathEdit {
+  start?: Point;
+  end?: Point;
+  via?: Waypoint[];
+}
+
+/** Fahrender Punkt der Run-Animation; meldet den gerade gezeigten Trick. */
+function PlayMarker({
+  curve,
+  stops,
+  length,
+  groundAt,
+  unit,
+  play,
+  onStep,
+  onEnd,
+}: {
+  curve: THREE.Curve<THREE.Vector3>;
+  stops: { at: number; steps: number[] }[];
+  length: number;
+  groundAt: (p: Point) => number;
+  unit: number;
+  play: number;
+  onStep?: (step: number | null) => void;
+  onEnd?: () => void;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const started = useRef(0);
+  const lastStep = useRef<number | null>(null);
+  const finished = useRef(false);
+  const schedule = useMemo(() => playSchedule(length, stops), [length, stops]);
+  const invalidate = useThree((s) => s.invalidate);
+  const callbacks = useRef({ onStep, onEnd });
+  useLayoutEffect(() => {
+    callbacks.current = { onStep, onEnd };
+  });
+  useEffect(() => {
+    started.current = performance.now();
+    lastStep.current = null;
+    finished.current = false;
+    invalidate();
+  }, [play, schedule, invalidate]);
+  useFrame(() => {
+    if (finished.current || !ref.current) return;
+    const state = playState(schedule, (performance.now() - started.current) / 1000);
+    const p = curve.getPointAt(Math.min(1, Math.max(0, state.at)));
+    ref.current.position.set(p.x, Math.max(p.y, groundAt({ x: p.x, z: p.z }) + 0.06), p.z);
+    if (state.step !== lastStep.current) {
+      lastStep.current = state.step;
+      callbacks.current.onStep?.(state.step);
+    }
+    if (state.done) {
+      finished.current = true;
+      callbacks.current.onEnd?.();
+    } else invalidate();
+  });
+  return (
+    <group ref={ref} renderOrder={11}>
+      <mesh position={[0, 0.4 * unit, 0]}>
+        <sphereGeometry args={[0.45 * unit, 20, 12]} />
+        <meshBasicMaterial color="#f59f00" depthTest={false} transparent />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <ringGeometry args={[0.55 * unit, 0.75 * unit, 28]} />
+        <meshBasicMaterial color="#f59f00" depthTest={false} transparent opacity={0.8} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
   );
 }
 
@@ -606,6 +699,10 @@ function RunOverlay({
   baseOf,
   groundAt,
   unit,
+  editing,
+  play,
+  onPlayStep,
+  onPlayEnd,
 }: {
   run: NonNullable<ParkSceneProps["run"]>;
   obstacles: Obstacle[];
@@ -614,40 +711,79 @@ function RunOverlay({
   groundAt: (p: Point) => number;
   /** Maßstab für Pins, Linie und Pfeile, damit sie auch in großen Parks lesbar bleiben. */
   unit: number;
+  /** Griffe für Start, Ziel und Zwischenpunkte (nur beim Planen eines Runs). */
+  editing: {
+    pick: (clientX: number, clientY: number) => { x: number; y: number; z: number } | null;
+    consumed: WeakSet<Event>;
+    controlsRef: React.MutableRefObject<OrbitControls | null>;
+    onEdit: (patch: RunPathEdit, phase: EditPhase) => void;
+  } | null;
+  play: number | null;
+  onPlayStep?: (step: number | null) => void;
+  onPlayEnd?: () => void;
 }) {
   const byId = useMemo(() => new Map(obstacles.map((o) => [o.id, o])), [obstacles]);
-  const points = useMemo(() => {
-    const path = runPath(run.start, run.end, run.steps, obstacles);
-    // Dieselbe Reihenfolge wie runPath: aufeinanderfolgende Schritte am selben
-    // Obstacle zählen einmal. Die Linie führt auf die Oberkante des Obstacles.
-    const visited: Obstacle[] = [];
-    for (const step of run.steps) {
-      const o = byId.get(step.obstacle_id);
-      if (o && o !== visited[visited.length - 1]) visited.push(o);
-    }
-    return path.map((p, i) => {
-      const o = i > 0 && i < path.length - 1 ? visited[i - 1] : null;
-      const y = o ? baseOf(o) + Math.min(o.height, 2) : groundAt(p);
-      return new THREE.Vector3(p.x, y + 0.06, p.z);
-    });
-  }, [run, obstacles, byId, baseOf, groundAt]);
-  const arrows = useMemo(
-    () => pathArrows(points.map((p) => ({ x: p.x, z: p.z }))),
-    [points],
+  const via = useMemo(() => run.via ?? [], [run.via]);
+  const controls = useMemo(
+    () => runControls(run.start, run.end, run.steps, obstacles, via),
+    [run.start, run.end, run.steps, obstacles, via],
   );
+  // Kontrollpunkte in 3D: an Obstacles auf deren Oberkante, sonst auf dem Boden.
+  const { curve, samples, length, anchorsU } = useMemo(() => {
+    const points = controls.map((c) => {
+      const o = c.obstacleId ? byId.get(c.obstacleId) : null;
+      const y = o ? baseOf(o) + Math.min(o.height, 2) : groundAt(c);
+      return new THREE.Vector3(c.x, y + 0.06, c.z);
+    });
+    const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.5);
+    const length = curve.getLength();
+    const count = Math.min(1500, Math.max(24, Math.ceil(length / 0.25)));
+    // Die Linie darf nicht unter Gelände oder Scan tauchen.
+    const samples = curve.getSpacedPoints(count).map((p) => {
+      p.y = Math.max(p.y, groundAt({ x: p.x, z: p.z }) + 0.06);
+      return p;
+    });
+    // Anteil der Länge an jedem Kontrollpunkt (für Pfeile und Animation).
+    const divisions = 400;
+    const lengths = curve.getLengths(divisions);
+    const anchorsU = controls.map((_, i) =>
+      controls.length > 1 ? lengths[Math.round((i / (controls.length - 1)) * divisions)] / Math.max(1e-6, length) : 0,
+    );
+    return { curve, samples, length, anchorsU };
+  }, [controls, byId, baseOf, groundAt]);
+
+  // Ein Pfeil in der Mitte jedes Abschnitts zwischen Start, Obstacles und Ziel.
+  const arrows = useMemo(() => {
+    const anchors = controls.map((c, i) => ({ c, u: anchorsU[i] })).filter((a) => a.c.kind !== "via");
+    const out: { position: THREE.Vector3; angle: number }[] = [];
+    for (let i = 1; i < anchors.length; i++) {
+      const u0 = anchors[i - 1].u;
+      const u1 = anchors[i].u;
+      if ((u1 - u0) * length < 0.5) continue;
+      const u = (u0 + u1) / 2;
+      const p = curve.getPointAt(u);
+      const t = curve.getTangentAt(u);
+      p.y = Math.max(p.y, groundAt({ x: p.x, z: p.z }) + 0.06) + 0.1;
+      out.push({ position: p, angle: Math.atan2(t.x, t.z) });
+    }
+    return out;
+  }, [controls, anchorsU, curve, length, groundAt]);
+  const stops = useMemo(
+    () => controls.flatMap((c, i) => (c.kind === "obstacle" ? [{ at: anchorsU[i], steps: c.steps ?? [] }] : [])),
+    [controls, anchorsU],
+  );
+
   const pins = useMemo(() => pinLayout(run.steps, obstacles), [run.steps, obstacles]);
   const startY = groundAt(run.start);
   const endY = groundAt(run.end);
 
   return (
     <group>
-      {points.slice(1).map((p, i) => (
-        <Segment key={i} a={points[i]} b={p} unit={unit} />
-      ))}
+      <Ribbon points={samples} width={0.16 * unit} />
       {arrows.map((a, i) => (
         <mesh
           key={i}
-          position={[a.x, (points[i].y + points[i + 1].y) / 2 + 0.1, a.z]}
+          position={a.position}
           // Kegel zuerst flach legen (Spitze nach +z), dann in Fahrtrichtung drehen.
           rotation={[Math.PI / 2, a.angle, 0, "YXZ"]}
           renderOrder={6}
@@ -675,7 +811,7 @@ function RunOverlay({
               text={String(pin.number)}
               color={COLORS.pin}
               position={[x, y, pin.z]}
-              scale={1.3 * unit}
+              scale={(activeStep === pin.number - 1 ? 1.6 : 1.3) * unit}
               ring={activeStep === pin.number - 1}
             />
           </group>
@@ -695,6 +831,107 @@ function RunOverlay({
           <Label text={m.text} color={m.color} position={[m.p.x, m.y + 1.6 * unit, m.p.z]} scale={1.5 * unit} />
         </group>
       ))}
+      {editing ? <PathHandles controls={controls} curve={curve} via={via} groundAt={groundAt} {...editing} /> : null}
+      {play !== null ? (
+        <PlayMarker
+          curve={curve}
+          stops={stops}
+          length={length}
+          groundAt={groundAt}
+          unit={unit}
+          play={play}
+          onStep={onPlayStep}
+          onEnd={onPlayEnd}
+        />
+      ) : null}
+    </group>
+  );
+}
+
+/**
+ * Griffe der Fahrlinie: Start/Ziel und Zwischenpunkte ziehen, auf die hohlen Punkte in
+ * der Mitte eines Abschnitts ziehen fügt einen Zwischenpunkt ein (Linie wird zur Kurve),
+ * Doppelklick bzw. Alt-Klick entfernt ihn.
+ */
+function PathHandles({
+  controls,
+  curve,
+  via,
+  groundAt,
+  pick,
+  consumed,
+  controlsRef,
+  onEdit,
+}: {
+  controls: RunControl[];
+  curve: THREE.Curve<THREE.Vector3>;
+  via: Waypoint[];
+  groundAt: (p: Point) => number;
+  pick: (clientX: number, clientY: number) => { x: number; y: number; z: number } | null;
+  consumed: WeakSet<Event>;
+  controlsRef: React.MutableRefObject<OrbitControls | null>;
+  onEdit: (patch: RunPathEdit, phase: EditPhase) => void;
+}) {
+  // Beim Einfügen: Liste nach dem Einfügen und Index des neuen Punkts, bis losgelassen wird.
+  const inserting = useRef<{ via: Waypoint[]; index: number } | null>(null);
+  const common = { pick, consumed, controlsRef };
+  const at = (p: Point, lift = 0.1) => new THREE.Vector3(p.x, groundAt(p) + lift, p.z);
+  const round = (p: Point) => ({ x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100 });
+  return (
+    <group>
+      {controls.map((c) => {
+        if (c.kind === "obstacle") return null;
+        if (c.kind === "via")
+          return (
+            <DragHandle
+              key={`v${c.viaIndex}`}
+              {...common}
+              position={at(c)}
+              onDrag={(p, phase) => onEdit({ via: moveWaypoint(via, c.viaIndex!, round(p)) }, phase)}
+              onRemove={() => onEdit({ via: removeWaypoint(via, c.viaIndex!) }, "commit")}
+            />
+          );
+        const key = c.kind === "start" ? "start" : "end";
+        return (
+          <DragHandle
+            key={key}
+            {...common}
+            size={0.042}
+            color={c.kind === "start" ? COLORS.start : COLORS.end}
+            position={at(c, 0.04)}
+            onDrag={(p, phase) => onEdit({ [key]: round(p) }, phase)}
+          />
+        );
+      })}
+      {controls.slice(1).map((_, i) => {
+        const mid = curve.getPoint((i + 0.5) / (controls.length - 1));
+        return (
+          <DragHandle
+            key={`m${i}`}
+            {...common}
+            size={0.028}
+            hollow
+            position={new THREE.Vector3(mid.x, Math.max(mid.y, groundAt(mid) + 0.1), mid.z)}
+            onDragStart={() => {
+              const result = insertWaypoint(via, controls, i, round(mid));
+              if (result.index < 0) return;
+              inserting.current = result;
+              onEdit({ via: result.via }, "preview");
+            }}
+            onDrag={(p, phase) => {
+              const current = inserting.current;
+              if (!current) return;
+              if (phase === "preview") {
+                current.via = moveWaypoint(current.via, current.index, round(p));
+                return onEdit({ via: current.via }, "preview");
+              }
+              // Loslassen: letzte Vorschau übernehmen (der Mittelgriff selbst ist inzwischen gewandert).
+              inserting.current = null;
+              onEdit({ via: current.via }, "commit");
+            }}
+          />
+        );
+      })}
     </group>
   );
 }
@@ -870,6 +1107,14 @@ function SceneContent(
           baseOf={baseOf}
           groundAt={groundAt}
           unit={unit}
+          editing={
+            props.onRunPathEdit && !props.pickThrough
+              ? { pick, consumed, controlsRef, onEdit: props.onRunPathEdit }
+              : null
+          }
+          play={props.play ?? null}
+          onPlayStep={props.onPlayStep}
+          onPlayEnd={props.onPlayEnd}
         />
       ) : null}
     </>
