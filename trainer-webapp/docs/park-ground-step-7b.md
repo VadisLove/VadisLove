@@ -66,7 +66,7 @@ Obstacle-Erkennung, Offline-Nutzung.
 ## Technischer Nachweis (26.09.2026, lokal)
 
 **Status: implementiert und lokal geprüft. Nicht veröffentlicht.** Migration
-`20260926120000_step_7b_park_ground.sql` auf keine Supabase-Datenbank angewandt.
+`20260926002019_step_7b_park_ground.sql` auf keine Supabase-Datenbank angewandt.
 
 | Prüfung | Ergebnis |
 | --- | --- |

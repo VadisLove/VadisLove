@@ -31,7 +31,7 @@ before(async () => {
   );
   // Schritt 7b erweitert dieselben Verträge; alle Tests laufen mit beiden Migrationen.
   await db.exec(
-    await read("../supabase/migrations/20260926120000_step_7b_park_ground.sql"),
+    await read("../supabase/migrations/20260926002019_step_7b_park_ground.sql"),
   );
   await db.query(
     "insert into public.profiles values($1,'Alex','athlete'),($2,'Kim','athlete'),($3,'Trainer','trainer'),($4,'Mama','guardian'),($5,'Vorstand','athlete'),($6,'Gesperrt','athlete')",
