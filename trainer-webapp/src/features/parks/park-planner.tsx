@@ -90,6 +90,13 @@ export function ParkPlannerView({
   const [placing, setPlacing] = useState<ScenePlacement>(null);
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [missedTap, setMissedTap] = useState(false);
+  // Hinweis nach einem Tipp neben ein Obstacle nach 4 s wieder ausblenden.
+  useEffect(() => {
+    if (!missedTap) return;
+    const timer = setTimeout(() => setMissedTap(false), 4000);
+    return () => clearTimeout(timer);
+  }, [missedTap]);
   const [conflict, setConflict] = useState(false);
   const command = useParkCommand<ParkDetail>();
 
@@ -157,7 +164,11 @@ export function ParkPlannerView({
 
   // ----- Park bearbeiten -----
   function startParkEdit() {
-    setParkDraft({ name: detail.park.name, location: detail.park.location, content: structuredClone(latest.content) });
+    const content = structuredClone(latest.content);
+    // Mit Gelände folgt die Grundfläche immer dem Höhenraster (ältere Stände konnten abweichen).
+    if (content.ground?.kind === "terrain")
+      content.size = { width: content.ground.width, length: content.ground.length };
+    setParkDraft({ name: detail.park.name, location: detail.park.location, content });
     setSelectedObstacle(null);
     selectRun(null);
     setMode("park");
@@ -341,9 +352,13 @@ export function ParkPlannerView({
     (content.ground?.kind === "terrain" ? content.ground.attribution : null) ??
     content.aerial?.attribution ??
     null;
+  // Tipp neben ein Obstacle: kurz erklären, woran Tricks angepinnt werden.
+  const showMissedTap = mode === "run" && !placing && missedTap;
   const stageHint =
     mode === "run"
-      ? placing
+      ? showMissedTap
+        ? "Tricks werden an Obstacles oder Bereiche angepinnt – bitte direkt darauf tippen."
+        : placing
         ? `Tippe im Park auf den ${placing === "start" ? "Startpunkt" : "Zielpunkt"}.`
         : runDraft?.steps.length
           ? null
@@ -395,7 +410,13 @@ export function ParkPlannerView({
             }
             onObstacleMove={mode === "park" ? moveObstacle : undefined}
             onGroundClick={
-              mode === "run" && placing ? placePoint : mode === "park" ? () => setSelectedObstacle(null) : undefined
+              mode === "run"
+                ? placing
+                  ? placePoint
+                  : () => setMissedTap(true)
+                : mode === "park"
+                  ? () => setSelectedObstacle(null)
+                  : undefined
             }
             run={sceneRun}
             activeStep={mode === "run" ? activeStep : null}
@@ -492,10 +513,24 @@ export function ParkPlannerView({
                 Run planen
               </button>
               {latest.content.obstacles.length === 0 ? (
-                <p className={styles.hint}>
-                  Dieser Park hat noch keine Obstacles.
-                  {detail.park.can_edit ? " Baue ihn zuerst über „Park bearbeiten“ nach." : ""}
-                </p>
+                <div className={styles.hint}>
+                  {latest.content.ground ? (
+                    <>
+                      Tricks werden an Obstacles oder Bereiche angepinnt. Markiere im Gelände
+                      zuerst Bowl, Banks und Rampen als <strong>Bereich</strong> oder setze
+                      Obstacles aus der Bibliothek.
+                    </>
+                  ) : (
+                    <>Dieser Park hat noch keine Obstacles.</>
+                  )}
+                  {detail.park.can_edit ? (
+                    <div className={styles.row} style={{ marginTop: 8 }}>
+                      <button type="button" className={styles.button} onClick={startParkEdit}>
+                        <Pencil size={16} /> {latest.content.ground ? "Bereiche anlegen" : "Park nachbauen"}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               {selectedRun ? (

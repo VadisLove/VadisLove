@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   OFFICIAL_SOURCES,
+  despike,
+  refineGrid,
   footprintBase,
   footprintRange,
   groundWindow,
@@ -84,4 +86,34 @@ test("Luftbild-WMS und Bundeslandzuordnung", () => {
   assert.equal(officialStateFromName("Bayern"), "BY");
   assert.equal(officialStateFromName("Sachsen"), "SN");
   assert.equal(officialStateFromName("Sachsen-Anhalt"), null);
+});
+
+test("Ausreißer (Laterne) verschwinden, durchgehende Kanten und Mulden bleiben", () => {
+  // 5 × 5: Mitte ist eine 6-m-Spitze, rechte Spalte eine 1,5 m hohe Wand.
+  const h = new Float32Array([
+    0, 0, 0, 0, 1.5,
+    0, 0, 0, 0, 1.5,
+    0, 0, 6, 0, 1.5,
+    0, 0, 0, 0, 1.5,
+    0, 0, 0, 0, 1.5,
+  ]);
+  const out = despike(h, 5);
+  assert.equal(out[12], 0);
+  assert.deepEqual([4, 9, 14, 19, 24].map((i) => out[i]), [1.5, 1.5, 1.5, 1.5, 1.5]);
+  // Breite Mulde (Bowl) aus mehreren Punkten bleibt.
+  const bowl = new Float32Array(36).fill(0);
+  for (const i of [14, 15, 20, 21]) bowl[i] = -2;
+  assert.deepEqual(Array.from(despike(bowl, 6)), Array.from(bowl));
+});
+
+test("Rasterverfeinerung geht durch die Originalpunkte und behält die Ausdehnung", () => {
+  const grid = { cols: 3, rows: 2, width: 3, length: 2, heights: new Float32Array([0, 1, 0, 0, 1, 0]) };
+  const fine = refineGrid(grid, 2);
+  assert.equal(fine.cols, 5);
+  assert.equal(fine.rows, 3);
+  assert.equal(fine.heights[2], 1);
+  assert.equal(fine.heights[4], 0);
+  // Mitte-zu-Mitte-Spanne unverändert (2 m in x, 1 m in z).
+  assert.ok(Math.abs(fine.width - fine.width / fine.cols - 2) < 1e-9);
+  assert.ok(Math.abs(fine.length - fine.length / fine.rows - 1) < 1e-9);
 });

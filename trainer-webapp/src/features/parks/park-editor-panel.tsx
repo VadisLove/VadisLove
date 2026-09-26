@@ -377,10 +377,18 @@ export function ParkEditorPanel({
 
       <section>
         <h3>Grundfläche</h3>
-        <div className={styles.twoCols}>
-          <NumberField label="Breite m" value={content.size.width} min={10} max={300} step={1} onChange={(width) => setContent({ size: { ...content.size, width } })} />
-          <NumberField label="Tiefe m" value={content.size.length} min={10} max={300} step={1} onChange={(length) => setContent({ size: { ...content.size, length } })} />
-        </div>
+        {content.ground?.kind === "terrain" ? (
+          // Mit amtlichem Gelände ist die Fläche durch den Ausschnitt festgelegt.
+          <p className={styles.muted}>
+            {Math.round(content.ground.width)} × {Math.round(content.ground.length)} m, festgelegt durch das
+            Gelände.
+          </p>
+        ) : (
+          <div className={styles.twoCols}>
+            <NumberField label="Breite m" value={content.size.width} min={10} max={300} step={1} onChange={(width) => setContent({ size: { ...content.size, width } })} />
+            <NumberField label="Tiefe m" value={content.size.length} min={10} max={300} step={1} onChange={(length) => setContent({ size: { ...content.size, length } })} />
+          </div>
+        )}
       </section>
 
       <GroundPanel

@@ -194,6 +194,85 @@ export function removeCanopy(
 }
 
 /**
+ * Entfernt einzelne Ausreißer (Laternen, Masten, Personen, Messfehler): Ein Punkt, der
+ * höher bzw. tiefer als mindestens 7 seiner 8 Nachbarn um mehr als `threshold` Meter
+ * liegt, erhält den Median der Nachbarn. Durchgehende Kanten (Wände, Coping, Bowl-Rand)
+ * haben gleich hohe Nachbarn entlang der Kante und bleiben erhalten.
+ * Mehrere Durchläufe entfernen auch Ausreißer aus zwei benachbarten Punkten.
+ */
+export function despike(values: Float32Array, cols: number, threshold = 0.5, passes = 3): Float32Array {
+  const rows = values.length / cols;
+  let src = values;
+  for (let pass = 0; pass < passes; pass++) {
+    const out = new Float32Array(src);
+    let changed = 0;
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++) {
+        const v = src[y * cols + x];
+        const n: number[] = [];
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const yy = y + dy;
+            const xx = x + dx;
+            if ((dx || dy) && yy >= 0 && yy < rows && xx >= 0 && xx < cols) n.push(src[yy * cols + xx]);
+          }
+        const lower = n.filter((h) => v - h > threshold).length;
+        const higher = n.filter((h) => h - v > threshold).length;
+        // Innen genügen 7 von 8 Nachbarn; am Rand müssen alle vorhandenen Nachbarn abweichen.
+        const needed = n.length === 8 ? 7 : n.length;
+        if (lower >= needed || higher >= needed) {
+          n.sort((a, b) => a - b);
+          const m = n.length >> 1;
+          out[y * cols + x] = n.length % 2 ? n[m] : (n[m - 1] + n[m]) / 2;
+          changed++;
+        }
+      }
+    src = out;
+    if (!changed) break;
+  }
+  return src;
+}
+
+/**
+ * Verfeinert ein Raster für die Darstellung (Catmull-Rom, geht durch die Originalpunkte).
+ * Grobe 1-m-Daten wirken dadurch weniger kantig, ohne Bowls oder Rampen abzuflachen.
+ * Höhenabfragen für Obstacles nutzen weiterhin das Originalraster.
+ */
+export function refineGrid(grid: TerrainGrid, factor: number): TerrainGrid {
+  if (factor <= 1) return grid;
+  const { cols, rows, heights } = grid;
+  const nc = (cols - 1) * factor + 1;
+  const nr = (rows - 1) * factor + 1;
+  const at = (x: number, y: number) =>
+    heights[Math.min(rows - 1, Math.max(0, y)) * cols + Math.min(cols - 1, Math.max(0, x))];
+  const cubic = (p0: number, p1: number, p2: number, p3: number, t: number) =>
+    p1 + 0.5 * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
+  const out = new Float32Array(nc * nr);
+  for (let j = 0; j < nr; j++) {
+    const fy = j / factor;
+    const y = Math.floor(fy);
+    const ty = fy - y;
+    for (let i = 0; i < nc; i++) {
+      const fx = i / factor;
+      const x = Math.floor(fx);
+      const tx = fx - x;
+      const col = (yy: number) => cubic(at(x - 1, yy), at(x, yy), at(x + 1, yy), at(x + 2, yy), tx);
+      out[j * nc + i] = cubic(col(y - 1), col(y), col(y + 1), col(y + 2), ty);
+    }
+  }
+  // Ausdehnung bleibt gleich: Mitte-zu-Mitte-Abstand der neuen Punkte ist kleiner.
+  const cellX = grid.width / cols;
+  const cellZ = grid.length / rows;
+  return {
+    cols: nc,
+    rows: nr,
+    width: (cols - 1) * cellX + cellX / factor,
+    length: (rows - 1) * cellZ + cellZ / factor,
+    heights: out,
+  };
+}
+
+/**
  * Höhen relativ zu einer Basis (2-%-Quantil), damit der Park nahe y = 0 liegt.
  * Ungültige Werte (NoData) werden durch die Basis ersetzt.
  */

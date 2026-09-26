@@ -13,7 +13,7 @@ import {
   type Point,
   type RunStep,
 } from "@/domain/parks";
-import { footprintBase, footprintRange, terrainHeightAt, type TerrainGrid } from "@/domain/geodata";
+import { despike, footprintBase, footprintRange, refineGrid, terrainHeightAt, type TerrainGrid } from "@/domain/geodata";
 import { obstacleParts } from "./obstacle-geometry";
 import { applyUpAxis, loadModel, loadTerrain } from "./model-assets";
 
@@ -229,7 +229,8 @@ function useTerrainGrid(content: ParkContent, assetUrls: Record<string, string>)
         if (!alive) return;
         setGrid({
           key: ground.path,
-          grid: { cols: ground.cols, rows: ground.rows, width: ground.width, length: ground.length, heights },
+          // Ausreißer auch in bereits gespeicherten Rastern entfernen (idempotent).
+          grid: { cols: ground.cols, rows: ground.rows, width: ground.width, length: ground.length, heights: despike(heights, ground.cols) },
         });
         invalidate();
       })
@@ -258,13 +259,18 @@ function TerrainMesh({
 }) {
   const texture = useTexture(aerialUrl);
   const geometry = useMemo(() => {
+    // Grobe Raster (≥ 0,8 m, z. B. Sachsen) für die Darstellung verfeinern, damit Bowls
+    // und Rampen weich statt treppig wirken. Höchstens 512 Punkte je Achse.
+    const source = grid.width / grid.cols;
+    const factor = source >= 0.8 ? Math.max(1, Math.min(3, Math.floor(511 / Math.max(grid.cols, grid.rows)))) : 1;
+    const mesh = refineGrid(grid, factor);
     // Rasterpunkte liegen in Zellmitten: Abstand Mitte–Mitte = Ausdehnung − eine Zelle.
-    const cellX = grid.width / grid.cols;
-    const cellZ = grid.length / grid.rows;
-    const g = new THREE.PlaneGeometry(grid.width - cellX, grid.length - cellZ, grid.cols - 1, grid.rows - 1);
+    const cellX = mesh.width / mesh.cols;
+    const cellZ = mesh.length / mesh.rows;
+    const g = new THREE.PlaneGeometry(mesh.width - cellX, mesh.length - cellZ, mesh.cols - 1, mesh.rows - 1);
     g.rotateX(-Math.PI / 2); // Zeile 0 (Norden) liegt danach bei −z.
     const pos = g.attributes.position as THREE.BufferAttribute;
-    for (let i = 0; i < pos.count; i++) pos.setY(i, grid.heights[i]);
+    for (let i = 0; i < pos.count; i++) pos.setY(i, mesh.heights[i]);
     if (aerial) {
       // Weltposition → Bildkoordinaten über die inverse Luftbild-Transformation.
       const frame = new THREE.Object3D();

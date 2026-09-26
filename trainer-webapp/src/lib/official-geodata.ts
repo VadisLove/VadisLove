@@ -6,6 +6,7 @@ import {
   latLonToUtm,
   officialStateFromName,
   relativeHeights,
+  despike,
   removeCanopy,
   tilesForWindow,
   wmsImageUrl,
@@ -173,7 +174,8 @@ export async function loadOfficialGround(input: {
         ],
   );
   const cleaned = removeCanopy(surface.values, terrain.values, win.cols, win.cell);
-  const rel = relativeHeights(cleaned);
+  // Einzelne Ausreißer (Laternen, Masten) entfernen, dann relativ zur Basis speichern.
+  const rel = relativeHeights(despike(cleaned, win.cols));
   return {
     state: input.state,
     window: win,
