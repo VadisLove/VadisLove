@@ -13,6 +13,7 @@ import type { AerialImage, GeoReference, ModelGround, ParkContent, TerrainGround
 import {
   MODEL_UNITS,
   checkModelFile,
+  describeLimit,
   uploadModelFile,
   type ModelCheck,
   type ModelUnit,
@@ -320,7 +321,7 @@ function ModelGroundUpload({
   return (
     <div className={styles.card}>
       <p className={styles.muted}>
-        GLB, eigenständige glTF oder OBJ, höchstens 25 MB und 500 000 Dreiecke. Die Datei
+        GLB, eigenständige glTF oder OBJ, {describeLimit("ground")}. Die Datei
         wird vor dem Hochladen im Browser geprüft.
       </p>
       <input

@@ -14,10 +14,21 @@ import type { ModelFormat } from "@/domain/parks";
 
 export const MODEL_BUCKET = "skatepark-models";
 
+/**
+ * Obergrenzen je Datei. 50 MB ist das Maximum des Supabase-Free-Plans (globale Grenze).
+ * Nach einem Wechsel auf Pro können hier und im Bucket `skatepark-models` (Migration
+ * `20260926005815_raise_park_model_limit.sql`) z. B. 80 MB eingetragen werden.
+ */
 export const MODEL_LIMITS = {
-  ground: { bytes: 25 * 1024 * 1024, triangles: 500_000 },
-  obstacle: { bytes: 8 * 1024 * 1024, triangles: 100_000 },
+  ground: { bytes: 50 * 1024 * 1024, triangles: 1_500_000 },
+  obstacle: { bytes: 50 * 1024 * 1024, triangles: 300_000 },
 } as const;
+
+/** Lesbare Beschreibung der Grenzen für Hinweise in der Oberfläche. */
+export function describeLimit(purpose: keyof typeof MODEL_LIMITS): string {
+  const limit = MODEL_LIMITS[purpose];
+  return `höchstens ${Math.round(limit.bytes / 1024 / 1024)} MB und ${limit.triangles.toLocaleString("de-DE")} Dreiecke`;
+}
 
 /** Meter je Modelleinheit. OBJ/CAD legen keine Einheit fest; glTF ist per Definition Meter. */
 export const MODEL_UNITS = {

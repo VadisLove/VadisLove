@@ -40,8 +40,8 @@ und Runs am Smartphone.
   Gelände-Elemente (z. B. Bowl), damit Tricks daran angepinnt werden können.
 - **3D-Modelle:** OBJ (ohne Materialien, Darstellung im ruhigen App-Stil) sowie GLB
   und eigenständige glTF (eingebettete Daten). Prüfung vor dem Hochladen im Browser:
-  lesbar, Dreiecksanzahl (Park ≤ 500 000, Obstacle ≤ 100 000), Größe (Park ≤ 25 MB,
-  Obstacle ≤ 8 MB). Einheit (m/cm/mm/Zoll) und Hochachse (Y/Z) wählbar, da OBJ/CAD
+  lesbar, Dreiecksanzahl (Park ≤ 1 500 000, Obstacle ≤ 300 000), Größe (je ≤ 50 MB;
+  am 26.09.2026 vom Nutzer angehoben, 50 MB = Maximum des Supabase-Free-Plans). Einheit (m/cm/mm/Zoll) und Hochachse (Y/Z) wählbar, da OBJ/CAD
   keine Einheit festlegt. Eigenes Modell als Obstacle wird auf seine Maße skaliert und
   ist direkt anpinnbar. Ein Park-Modell ersetzt das Höhenraster als Untergrund.
 - Rechte wie Schritt 7: Ersteller, Trainer und Funktionäre ändern Parks; jede Änderung
@@ -138,3 +138,12 @@ Rollback: `vercel promote dpl_FQYH2tDwPRM3LuykzZKmx84SLnzU`.
 - [ ] Ein echtes 3D-Modell (vom Parkbauer oder Handy-Scan) als GLB/OBJ hochladen –
       als ganzer Park und als einzelnes Obstacle; Einheit und Hochachse prüfen.
 - [ ] Verständlichkeit von Suche, Verschieben und Quellenangabe bewerten.
+
+## Anhebung der Dateigrenzen (26.09.2026)
+
+Auf Wunsch des Nutzers: 3D-Modelle (Park und Obstacle) je bis 50 MB, Park-Modelle bis
+1 500 000 und Obstacles bis 300 000 Dreiecke. 80 MB waren gewünscht, sind im
+Supabase-Free-Plan (globale Grenze 50 MB pro Datei) aber nicht möglich. Nach einem
+Wechsel auf Pro: `MODEL_LIMITS` in `src/features/parks/model-assets.ts` und das Limit
+des Buckets `skatepark-models` (neue Migration, z. B. 83886080) anheben.
+Bucket-Grenze per Migration `20260926005815` in Produktion gesetzt und geprüft.
