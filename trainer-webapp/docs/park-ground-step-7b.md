@@ -115,6 +115,21 @@ ggf. eigenen Geocoder vorsehen.
 Rollback: `vercel promote dpl_2mzTnc6voEx9EbVf75ob47hcoT8S`. Die additive
 Datenbankerweiterung bleibt bestehen; bestehende Parks sind davon unberührt.
 
+## Korrektur nach erster Praxisrückmeldung (26.09.2026)
+
+Befund des Nutzers (Park „Southbank“): Gelände mit Spitzen und pixelig, kein Run planbar.
+Ursachen: einzelne Ausreißer im Oberflächenmodell (Laternen/Masten), 1-m-Raster ohne
+Glättung, Park ohne Obstacles/Bereiche (Pins brauchen ein Obstacle), Grundfläche wich
+vom Gelände ab (110 × 80 statt 80 × 90 m).
+Behoben: Ausreißerfilter (Server und beim Laden bestehender Parks), Catmull-Rom-
+Verfeinerung grober Raster für die Darstellung, Grundfläche folgt dem Gelände, Hinweis
+mit „Bereiche anlegen“ sowie Hinweis beim Tippen neben ein Obstacle im Run-Modus.
+Prüfung: 189/189 Tests, Typprüfung, Lint, Build; Browser-Prüfstand mit echten
+Heizhaus-Daten (Spitzen entfernt, Bereich angelegt, „Run planen“ aktiv).
+Veröffentlicht: `dpl_3ftYawEzhhpxwZoJw3TzUZVKMBNS`, Alias geprüft, `/login` 200,
+keine Fehlerlogs. Sicherungstag `production/stable-before-park-terrain-fix-20260926`;
+Rollback: `vercel promote dpl_FQYH2tDwPRM3LuykzZKmx84SLnzU`.
+
 ## Praxisprüfliste für den Nutzer
 
 - [ ] Einen bayerischen und einen sächsischen Park über „Amtliche Daten“ anlegen.
