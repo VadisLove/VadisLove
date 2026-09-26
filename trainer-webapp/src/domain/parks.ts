@@ -37,6 +37,14 @@ export interface Obstacle {
   label?: string;
   /** Höhenversatz der Unterkante gegenüber dem Gelände (Meter, Schritt 7b). */
   elevation?: number;
+  /**
+   * Nur bei `zone`: frei gesetzter Umriss in lokalen Koordinaten (relativ zu x/z, vor der
+   * Drehung). `width`/`length` entsprechen dann dem umschließenden Rechteck.
+   */
+  points?: Point[];
+  /** Neigung in Grad um die Breiten- (pitch) bzw. Längsachse (roll) des Obstacles. */
+  pitch?: number;
+  roll?: number;
   /** Nur bei `custom`: Datei im Speicher `skatepark-models`. */
   modelPath?: string;
   modelFormat?: ModelFormat;

@@ -1,7 +1,8 @@
 "use client";
 
-import { RotateCcw, RotateCw, Trash2, Upload } from "lucide-react";
+import { PenTool, RotateCcw, RotateCw, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
+import { scaleObstacle } from "@/domain/park-geometry";
 import {
   OBSTACLE_LIBRARY,
   OBSTACLE_TYPES,
@@ -78,6 +79,7 @@ export function ParkEditorPanel({
   onChange,
   onAdd,
   onSelect,
+  onDrawZone,
   onAssetPreview,
   onSave,
   onCancel,
@@ -91,6 +93,8 @@ export function ParkEditorPanel({
   /** Neues Obstacle; `patch` überschreibt Standardwerte (z. B. Maße eines eigenen Modells). */
   onAdd: (type: Obstacle["type"], patch?: Partial<Obstacle>) => void;
   onSelect: (id: string | null) => void;
+  /** Startet das Zeichnen eines Bereichs mit frei gesetzten Punkten. */
+  onDrawZone: () => void;
   onAssetPreview: (urls: Record<string, string>) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -225,8 +229,13 @@ export function ParkEditorPanel({
       <section>
         <h3>Obstacle hinzufügen</h3>
         <p className={styles.muted}>
-          Neue Obstacles erscheinen in der Parkmitte. Zum Verschieben ziehen.
+          Neue Obstacles erscheinen in der Parkmitte. Zum Verschieben ziehen oder auswählen
+          und <strong>G</strong> (verschieben), <strong>R</strong> (drehen), <strong>S</strong>{" "}
+          (skalieren) drücken.
         </p>
+        <button type="button" className={styles.button} style={{ marginTop: 8 }} onClick={onDrawZone}>
+          <PenTool size={16} /> Bereich zeichnen (B)
+        </button>
         <div className={styles.library}>
           {OBSTACLE_TYPES.map((type) => (
             <button key={type} type="button" onClick={() => onAdd(type)}>
@@ -324,13 +333,15 @@ export function ParkEditorPanel({
               <span className={styles.muted}>{Math.round(selected.rotation)}°</span>
             </div>
             <div className={styles.threeCols}>
-              <NumberField label="Breite m" value={selected.width} min={0.1} max={60} onChange={(width) => updateObstacle({ width })} />
-              <NumberField label="Tiefe m" value={selected.length} min={0.1} max={60} onChange={(length) => updateObstacle({ length })} />
+              {/* Über scaleObstacle, damit ein gezeichneter Umriss mitskaliert. */}
+              <NumberField label="Breite m" value={selected.width} min={0.1} max={60} onChange={(width) => updateObstacle(scaleObstacle(selected, width / selected.width, 1, 1))} />
+              <NumberField label="Tiefe m" value={selected.length} min={0.1} max={60} onChange={(length) => updateObstacle(scaleObstacle(selected, 1, length / selected.length, 1))} />
               <NumberField label="Höhe m" value={selected.height} min={0.05} max={10} step={0.05} onChange={(height) => updateObstacle({ height })} />
             </div>
             <div className={styles.threeCols}>
-              <NumberField label="X m" value={selected.x} min={-200} max={200} onChange={(x) => updateObstacle({ x })} />
-              <NumberField label="Z m" value={selected.z} min={-200} max={200} onChange={(z) => updateObstacle({ z })} />
+              {/* Achsen wie im Gizmo: X = Osten, Y = Norden (intern −z). */}
+              <NumberField label="X m (Ost)" value={selected.x} min={-200} max={200} onChange={(x) => updateObstacle({ x })} />
+              <NumberField label="Y m (Nord)" value={-selected.z || 0} min={-200} max={200} onChange={(y) => updateObstacle({ z: -y || 0 })} />
               <NumberField label="Drehung °" value={selected.rotation} min={-360} max={360} step={5} onChange={(rotation) => updateObstacle({ rotation: normalizeRotation(rotation) })} />
             </div>
             <NumberField
@@ -344,9 +355,15 @@ export function ParkEditorPanel({
             {selected.type === "zone" ? (
               <p className={styles.muted}>
                 Ein Bereich markiert ein Gelände-Element (z. B. Bowl oder Snake Run), an das
-                Tricks angepinnt werden können.
+                Tricks angepinnt werden können. Eckpunkte in der 3D-Ansicht ziehen; an der
+                Kantenmitte ziehen fügt einen Punkt ein, Doppelklick entfernt ihn.
               </p>
-            ) : null}
+            ) : (
+              <div className={styles.twoCols}>
+                <NumberField label="Neigung X °" value={selected.pitch ?? 0} min={-80} max={80} step={1} onChange={(pitch) => updateObstacle({ pitch: pitch || undefined })} />
+                <NumberField label="Neigung Y °" value={selected.roll ?? 0} min={-80} max={80} step={1} onChange={(roll) => updateObstacle({ roll: roll || undefined })} />
+              </div>
+            )}
             {selected.type === "custom" ? (
               <label className={styles.field}>
                 Hochachse der Datei

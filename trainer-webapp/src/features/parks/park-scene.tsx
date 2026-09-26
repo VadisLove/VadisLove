@@ -1,26 +1,51 @@
 "use client";
 
 import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import {
+  clampToPark,
   pathArrows,
   pinLayout,
   runPath,
+  snap,
   type Obstacle,
   type ParkContent,
   type Point,
   type RunStep,
 } from "@/domain/parks";
-import { despike, footprintBase, footprintRange, refineGrid, terrainHeightAt, type TerrainGrid } from "@/domain/geodata";
+import {
+  HeightRaster,
+  despike,
+  footprintBase,
+  footprintRange,
+  refineGrid,
+  terrainHeightAt,
+  type TerrainGrid,
+} from "@/domain/geodata";
+import { zoneOutline } from "@/domain/park-geometry";
 import { obstacleParts } from "./obstacle-geometry";
 import { applyUpAxis, loadModel, loadTerrain } from "./model-assets";
+import {
+  AxisGizmo,
+  CameraBridge,
+  CameraRig,
+  GroundMarker,
+  GroundPicker,
+  PolygonDraft,
+  ReferenceGrid,
+  TransformTool,
+  ZoneHandles,
+  useGroundPick,
+} from "./scene-tools";
+import { makeCommand, type EditPhase, type SceneCommand, type TransformState, type ViewName } from "./scene-commands";
 
 /**
  * Ruhige 3D-Darstellung eines Parks (Schritt 7): wenige Farben, flache Schattierung,
- * Beschriftung nur über nummerierte Pins. Bearbeitungswerkzeuge liegen außerhalb
- * des Canvas; hier werden nur Zeiger-Ereignisse an die Planer-Logik gemeldet.
+ * Beschriftung nur über nummerierte Pins. Seit dem Steuerungs-Update gibt es ein
+ * Referenzraster mit Achsen, ein Achsen-Gizmo, Blender-Kürzel (G/R/S) und frei
+ * gezeichnete Bereiche; Änderungen werden als Vorschau/Bestätigung an den Planer gemeldet.
  */
 
 const COLORS = {
@@ -46,12 +71,25 @@ export interface ParkSceneProps {
   /** Signierte bzw. lokale URLs je Storage-Pfad (Luftbild, Höhenraster, Modelle). */
   assetUrls: Record<string, string>;
   topView: boolean;
-  /** Obstacles dürfen gezogen werden (nur im Park-Bearbeitungsmodus). */
+  onTopViewChange?: (top: boolean) => void;
+  /** Obstacles dürfen gezogen und transformiert werden (nur im Park-Bearbeitungsmodus). */
   editable: boolean;
   selectedObstacleId: string | null;
   onObstacleClick?: (id: string) => void;
-  onObstacleMove?: (id: string, point: Point) => void;
-  onGroundClick?: (point: Point) => void;
+  /** Änderung an einem Obstacle: Vorschau während des Ziehens, dann Bestätigung oder Abbruch. */
+  onObstacleEdit?: (next: Obstacle, phase: EditPhase) => void;
+  /** Tipp auf den Boden (Position auf Gelände bzw. Scan). */
+  onGroundClick?: (point: Point, info: { closesPolygon: boolean }) => void;
+  onGroundDoubleClick?: () => void;
+  /** Obstacles ignorieren Tipps (z. B. beim Setzen von Start/Ziel oder Zeichnen). */
+  pickThrough?: boolean;
+  /** Bodenmarkierung unter dem Mauszeiger (zeigt, wo ein Klick landet). */
+  showCursor?: boolean;
+  /** Punkte eines Bereichs, der gerade gezeichnet wird. */
+  draftPolygon?: Point[] | null;
+  showGrid?: boolean;
+  command?: SceneCommand | null;
+  onTransformState?: (state: TransformState | null) => void;
   run?: { start: Point; end: Point; steps: Pick<RunStep, "obstacle_id">[] } | null;
   activeStep?: number | null;
   label: string;
@@ -108,66 +146,6 @@ function Label({
   );
 }
 
-/** OrbitControls aus three.js; in der Draufsicht nur Verschieben und Zoomen. */
-function Controls({
-  topView,
-  park,
-  controlsRef,
-}: {
-  topView: boolean;
-  park: ParkContent["size"];
-  controlsRef: React.MutableRefObject<OrbitControls | null>;
-}) {
-  const { camera, gl, invalidate, size: canvas } = useThree();
-  useEffect(() => {
-    const controls = new OrbitControls(camera, gl.domElement);
-    controls.maxPolarAngle = Math.PI / 2.1;
-    controls.minDistance = 3;
-    controls.maxDistance = 400;
-    controls.addEventListener("change", () => invalidate());
-    controlsRef.current = controls;
-    return () => {
-      controls.dispose();
-      controlsRef.current = null;
-    };
-  }, [camera, gl, invalidate, controlsRef]);
-
-  // Kamera beim Wechsel zwischen 3D und Draufsicht so ausrichten, dass der ganze
-  // Park unabhängig vom Seitenverhältnis des Canvas sichtbar ist.
-  useEffect(() => {
-    const controls = controlsRef.current;
-    if (!controls || !canvas.width || !canvas.height) return;
-    const vfov = ((camera as THREE.PerspectiveCamera).fov * Math.PI) / 180;
-    const hfov = 2 * Math.atan(Math.tan(vfov / 2) * (canvas.width / canvas.height));
-    const fit =
-      Math.max(park.width / 2 / Math.tan(hfov / 2), park.length / 2 / Math.tan(vfov / 2)) * 1.12;
-    controls.target.set(0, 0, 0);
-    if (topView) {
-      camera.position.set(0, fit, 0.001);
-      controls.enableRotate = false;
-      controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
-      controls.mouseButtons = {
-        LEFT: THREE.MOUSE.PAN,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN,
-      };
-    } else {
-      const tilt = new THREE.Vector3(0, 0.8, 0.75).normalize().multiplyScalar(fit * 1.1);
-      camera.position.copy(tilt);
-      controls.enableRotate = true;
-      controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-      controls.mouseButtons = {
-        LEFT: THREE.MOUSE.ROTATE,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN,
-      };
-    }
-    controls.update();
-    invalidate();
-  }, [topView, park.width, park.length, canvas.width, canvas.height, camera, controlsRef, invalidate]);
-  return null;
-}
-
 /** Lädt eine Bildtextur (Luftbild) und löst beim Eintreffen ein Neuzeichnen aus. */
 function useTexture(url: string | null | undefined) {
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
@@ -192,22 +170,13 @@ function useTexture(url: string | null | undefined) {
   return url ? texture : null;
 }
 
-function AerialPlane({
-  url,
-  aerial,
-  onClick,
-}: {
-  url: string;
-  aerial: NonNullable<ParkContent["aerial"]>;
-  onClick: (e: ThreeEvent<MouseEvent>) => void;
-}) {
+function AerialPlane({ url, aerial }: { url: string; aerial: NonNullable<ParkContent["aerial"]> }) {
   const texture = useTexture(url);
   if (!texture) return null;
   return (
     <mesh
       position={[aerial.offsetX, 0.005, aerial.offsetZ]}
       rotation={[-Math.PI / 2, 0, deg(aerial.rotation)]}
-      onClick={onClick}
     >
       <planeGeometry args={[aerial.width, aerial.width * aerial.aspect]} />
       <meshBasicMaterial map={texture} transparent opacity={aerial.opacity} depthWrite={false} />
@@ -250,12 +219,10 @@ function TerrainMesh({
   grid,
   aerial,
   aerialUrl,
-  onClick,
 }: {
   grid: TerrainGrid;
   aerial: ParkContent["aerial"];
   aerialUrl: string | null;
-  onClick: (e: ThreeEvent<MouseEvent>) => void;
 }) {
   const texture = useTexture(aerialUrl);
   const geometry = useMemo(() => {
@@ -292,7 +259,7 @@ function TerrainMesh({
   }, [grid, aerial]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh geometry={geometry} onClick={onClick}>
+    <mesh geometry={geometry}>
       {/* Eigener key: beim Eintreffen der Textur entsteht ein neues Material samt Shader. */}
       {texture ? (
         <meshStandardMaterial key="aerial" map={texture} roughness={1} />
@@ -303,17 +270,37 @@ function TerrainMesh({
   );
 }
 
-/** Hochgeladenes 3D-Modell des ganzen Parks als Untergrund (Materialien bleiben erhalten). */
+/** Positionen eines Meshes als einfache Float-Liste (auch bei verschachtelten/quantisierten Daten). */
+function plainPositions(attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute): ArrayLike<number> {
+  if (!(attribute as THREE.InterleavedBufferAttribute).isInterleavedBufferAttribute && !attribute.normalized)
+    return attribute.array as ArrayLike<number>;
+  const out = new Float32Array(attribute.count * 3);
+  for (let i = 0; i < attribute.count; i++) {
+    out[i * 3] = attribute.getX(i);
+    out[i * 3 + 1] = attribute.getY(i);
+    out[i * 3 + 2] = attribute.getZ(i);
+  }
+  return out;
+}
+
+/**
+ * Hochgeladenes 3D-Modell des ganzen Parks als Untergrund (Materialien bleiben erhalten).
+ * Aus den Dreiecken entsteht einmalig ein Höhenfeld; darauf landen Tipps, Start/Ziel,
+ * Pins, Raster und Bereiche – genau auf der sichtbaren Oberfläche.
+ */
 function GroundModel({
   ground,
   url,
-  onClick,
+  size,
+  onHeights,
 }: {
   ground: Extract<NonNullable<ParkContent["ground"]>, { kind: "model" }>;
   url: string;
-  onClick: (e: ThreeEvent<MouseEvent>) => void;
+  size: ParkContent["size"];
+  onHeights: (grid: TerrainGrid | null) => void;
 }) {
   const [object, setObject] = useState<THREE.Object3D | null>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const { invalidate } = useThree();
   useEffect(() => {
     let alive = true;
@@ -335,13 +322,46 @@ function GroundModel({
       alive = false;
     };
   }, [url, ground.format, ground.upAxis, invalidate]);
+
+  // Höhenfeld nach Laden bzw. Verschieben/Drehen/Skalieren (kurz entprellt) neu berechnen.
+  useEffect(() => {
+    if (!object) return;
+    const timer = setTimeout(() => {
+      const group = groupRef.current;
+      if (!group) return;
+      group.updateMatrixWorld(true);
+      const cell = Math.max(0.2, Math.max(size.width, size.length) / 400);
+      const raster = new HeightRaster(size.width, size.length, cell);
+      group.traverse((child) => {
+        const mesh = child as THREE.Mesh;
+        const position = mesh.isMesh ? mesh.geometry.getAttribute("position") : null;
+        if (!position) return;
+        raster.addMesh(plainPositions(position), mesh.geometry.index?.array ?? null, mesh.matrixWorld.elements);
+      });
+      // Außerhalb des Scans liegt die flache Grundfläche (y ≈ 0).
+      onHeights(raster.finish(0));
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [
+    object,
+    ground.offsetX,
+    ground.offsetY,
+    ground.offsetZ,
+    ground.rotation,
+    ground.scale,
+    size.width,
+    size.length,
+    onHeights,
+  ]);
+  useEffect(() => () => onHeights(null), [onHeights]);
+
   if (!object) return null;
   return (
     <group
+      ref={groupRef}
       position={[ground.offsetX, ground.offsetY, ground.offsetZ]}
       rotation={[0, deg(ground.rotation), 0]}
       scale={ground.scale}
-      onClick={onClick}
     >
       <primitive object={object} />
     </group>
@@ -400,16 +420,28 @@ function CustomModel({ obstacle, url, color }: { obstacle: Obstacle; url: string
   return <primitive object={fitted} />;
 }
 
-/** Bereich: halbtransparente Markierung eines Gelände-Elements, an die Tricks angepinnt werden. */
+/**
+ * Bereich: halbtransparente Markierung eines Gelände-Elements, an die Tricks angepinnt
+ * werden. Der Umriss ist ein Rechteck oder ein frei gezeichnetes Polygon, hochgezogen
+ * von der Unterkante bis zur Höhe.
+ */
 function ZoneMarker({ obstacle, selected }: { obstacle: Obstacle; selected: boolean }) {
-  const edges = useMemo(
-    () => new THREE.EdgesGeometry(new THREE.BoxGeometry(obstacle.width, obstacle.height, obstacle.length)),
-    [obstacle.width, obstacle.height, obstacle.length],
-  );
+  const { points, width, length, height } = obstacle;
+  const { body, edges } = useMemo(() => {
+    const outline = zoneOutline({ points, width, length });
+    // Shape liegt in x/y; nach der Drehung um −90° um X wird y zu −z und die Extrusion zu +y.
+    const shape = new THREE.Shape(outline.map((p) => new THREE.Vector2(p.x, -p.z)));
+    const g = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false });
+    g.rotateX(-Math.PI / 2);
+    return { body: g, edges: new THREE.EdgesGeometry(g) };
+  }, [points, width, length, height]);
+  useEffect(() => () => {
+    body.dispose();
+    edges.dispose();
+  }, [body, edges]);
   return (
-    <group position={[0, obstacle.height / 2, 0]}>
-      <mesh>
-        <boxGeometry args={[obstacle.width, obstacle.height, obstacle.length]} />
+    <group>
+      <mesh geometry={body}>
         <meshBasicMaterial color={COLORS.zone} transparent opacity={selected ? 0.4 : 0.28} depthWrite={false} />
       </mesh>
       <lineSegments geometry={edges}>
@@ -426,9 +458,12 @@ function ObstacleMesh({
   selected,
   modelUrl,
   editable,
+  interactive,
+  parkSize,
+  consumed,
   controlsRef,
   onClick,
-  onMove,
+  onEdit,
 }: {
   obstacle: Obstacle;
   /** Unterkante in Weltkoordinaten (Gelände + Höhenversatz). */
@@ -437,11 +472,15 @@ function ObstacleMesh({
   selected: boolean;
   modelUrl?: string;
   editable: boolean;
+  /** false: Obstacle nimmt keine Zeiger-Ereignisse an (Tipps gehen auf den Boden). */
+  interactive: boolean;
+  parkSize: ParkContent["size"];
+  consumed: WeakSet<Event>;
   controlsRef: React.MutableRefObject<OrbitControls | null>;
   onClick?: (id: string) => void;
-  onMove?: (id: string, point: Point) => void;
+  onEdit?: (next: Obstacle, phase: EditPhase) => void;
 }) {
-  const drag = useRef<{ dx: number; dz: number } | null>(null);
+  const drag = useRef<{ dx: number; dz: number; moved: boolean } | null>(null);
   // Gezogen wird auf der Ebene der Unterkante, damit das Obstacle unter dem Zeiger bleibt.
   const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), -base), [base]);
   const hit = useMemo(() => new THREE.Vector3(), []);
@@ -487,38 +526,51 @@ function ObstacleMesh({
     );
   }
 
+  const handlers = interactive
+    ? {
+        onClick: (e: ThreeEvent<MouseEvent>) => {
+          if (e.delta > 6) return;
+          e.stopPropagation();
+          consumed.add(e.nativeEvent);
+          onClick?.(obstacle.id);
+        },
+        onPointerDown: (e: ThreeEvent<PointerEvent>) => {
+          if (!editable || !onEdit || e.button !== 0) return;
+          e.stopPropagation();
+          const p = groundPoint(e);
+          if (!p) return;
+          // Während des Ziehens darf die Kamera nicht mitdrehen.
+          if (controlsRef.current) controlsRef.current.enabled = false;
+          (e.target as Element).setPointerCapture?.(e.pointerId);
+          drag.current = { dx: obstacle.x - p.x, dz: obstacle.z - p.z, moved: false };
+          onClick?.(obstacle.id);
+        },
+        onPointerMove: (e: ThreeEvent<PointerEvent>) => {
+          if (!drag.current) return;
+          e.stopPropagation();
+          const p = groundPoint(e);
+          if (!p) return;
+          drag.current.moved = true;
+          const next = clampToPark({ x: snap(p.x + drag.current.dx), z: snap(p.z + drag.current.dz) }, parkSize);
+          onEdit?.({ ...obstacle, ...next }, "preview");
+        },
+        onPointerUp: (e: ThreeEvent<PointerEvent>) => {
+          if (!drag.current) return;
+          const moved = drag.current.moved;
+          drag.current = null;
+          (e.target as Element).releasePointerCapture?.(e.pointerId);
+          if (controlsRef.current) controlsRef.current.enabled = true;
+          if (moved) onEdit?.(obstacle, "commit");
+        },
+      }
+    : {};
+
   return (
     <group
       position={[obstacle.x, base, obstacle.z]}
-      rotation={[0, deg(obstacle.rotation), 0]}
-      onClick={(e) => {
-        if (e.delta > 6) return;
-        e.stopPropagation();
-        onClick?.(obstacle.id);
-      }}
-      onPointerDown={(e) => {
-        if (!editable || !onMove) return;
-        e.stopPropagation();
-        const p = groundPoint(e);
-        if (!p) return;
-        // Während des Ziehens darf die Kamera nicht mitdrehen.
-        if (controlsRef.current) controlsRef.current.enabled = false;
-        (e.target as Element).setPointerCapture?.(e.pointerId);
-        drag.current = { dx: obstacle.x - p.x, dz: obstacle.z - p.z };
-        onClick?.(obstacle.id);
-      }}
-      onPointerMove={(e) => {
-        if (!drag.current) return;
-        e.stopPropagation();
-        const p = groundPoint(e);
-        if (p) onMove?.(obstacle.id, { x: p.x + drag.current.dx, z: p.z + drag.current.dz });
-      }}
-      onPointerUp={(e) => {
-        if (!drag.current) return;
-        drag.current = null;
-        (e.target as Element).releasePointerCapture?.(e.pointerId);
-        if (controlsRef.current) controlsRef.current.enabled = true;
-      }}
+      // YXZ: erst um die Hochachse drehen, dann um die eigenen Achsen kippen.
+      rotation={[deg(obstacle.pitch ?? 0), deg(obstacle.rotation), deg(obstacle.roll ?? 0), "YXZ"]}
+      {...handlers}
     >
       {body}
     </group>
@@ -629,25 +681,41 @@ function RunOverlay({
           </group>
         );
       })}
-      <Label text="S" color={COLORS.start} position={[run.start.x, startY + 1.2 * unit, run.start.z]} scale={1.7 * unit} />
-      <Label text="Z" color={COLORS.end} position={[run.end.x, endY + 1.2 * unit, run.end.z]} scale={1.7 * unit} />
+      {/* Start/Ziel: Ring genau am gesetzten Punkt, Stab nach oben zum Label. */}
+      {[
+        { text: "S", color: COLORS.start, p: run.start, y: startY },
+        { text: "Z", color: COLORS.end, p: run.end, y: endY },
+      ].map((m) => (
+        <group key={m.text}>
+          <GroundMarker point={new THREE.Vector3(m.p.x, m.y, m.p.z)} unit={unit * 0.8} color={m.color} />
+          <mesh position={[m.p.x, m.y + 0.6 * unit, m.p.z]} renderOrder={7}>
+            <cylinderGeometry args={[0.03 * unit, 0.03 * unit, 1.2 * unit, 6]} />
+            <meshBasicMaterial color={m.color} depthTest={false} transparent />
+          </mesh>
+          <Label text={m.text} color={m.color} position={[m.p.x, m.y + 1.6 * unit, m.p.z]} scale={1.5 * unit} />
+        </group>
+      ))}
     </group>
   );
 }
 
-function SceneContent(props: ParkSceneProps) {
-  const { content, run, selectedObstacleId, onGroundClick, assetUrls } = props;
+function SceneContent(
+  props: ParkSceneProps & { orientation: EventTarget; onCamera: (camera: THREE.Camera) => void },
+) {
+  const { content, run, selectedObstacleId, assetUrls, editable } = props;
   const controlsRef = useRef<OrbitControls | null>(null);
-  const grid = useTerrainGrid(content, assetUrls);
+  // Klicks, die ein Obstacle oder Griff bereits verarbeitet hat (sonst zählen sie als Bodentipp).
+  const consumed = useMemo(() => new WeakSet<Event>(), []);
+  const terrain = useTerrainGrid(content, assetUrls);
+  const [modelGrid, setModelGrid] = useState<TerrainGrid | null>(null);
+  const onModelHeights = useCallback((g: TerrainGrid | null) => setModelGrid(g), []);
+  const ground = content.ground ?? null;
+  // Höhenfeld für alles, was auf dem Boden liegt: amtliches Gelände oder hochgeladener Scan.
+  const grid = terrain ?? (ground?.kind === "model" ? modelGrid : null);
   const used = useMemo(
     () => new Set(run?.steps.map((s) => s.obstacle_id) ?? []),
     [run],
   );
-  const groundClick = (e: ThreeEvent<MouseEvent>) => {
-    if (e.delta > 6 || !onGroundClick) return;
-    e.stopPropagation();
-    onGroundClick({ x: e.point.x, z: e.point.z });
-  };
   // Bereiche auf dem Gelände reichen vom tiefsten bis zum höchsten Punkt darunter
   // (plus 0,2 m), damit z. B. eine Bowl vollständig markiert und anpinnbar ist.
   const obstacles = useMemo(
@@ -666,44 +734,74 @@ function SceneContent(props: ParkSceneProps) {
       (o.elevation ?? 0),
     [grid],
   );
-  const groundAt = useMemo(
-    () => (p: Point) => (grid ? terrainHeightAt(grid, p.x, p.z) : 0),
+  const heightAt = useMemo(
+    () => (grid ? (x: number, z: number) => terrainHeightAt(grid, x, z) : null),
     [grid],
   );
+  const groundAt = useMemo(
+    () => (p: Point) => (heightAt ? heightAt(p.x, p.z) : 0),
+    [heightAt],
+  );
+  const flatHeight = useCallback((x: number, z: number) => (heightAt ? heightAt(x, z) : 0), [heightAt]);
+  const pick = useGroundPick(heightAt, grid ? Math.min(0.25, grid.width / grid.cols) : 0.25);
   const { width, length } = content.size;
-  const ground = content.ground ?? null;
   const aerialUrl = content.aerial ? (assetUrls[content.aerial.path] ?? null) : null;
+  const unit = Math.max(1, Math.max(width, length) / 45);
+
+  // Gewähltes Obstacle (mit berechneter Bereichshöhe) für Werkzeuge und „Auswahl zentrieren“.
+  const selected = obstacles.find((o) => o.id === selectedObstacleId) ?? null;
+  const selectedRaw = content.obstacles.find((o) => o.id === selectedObstacleId) ?? null;
+  const selectedBase = selected ? baseOf(selected) : 0;
+  const focus = selected
+    ? {
+        x: selected.x,
+        y: selectedBase + selected.height / 2,
+        z: selected.z,
+        size: Math.max(selected.width, selected.length, selected.height),
+      }
+    : null;
+  const [transforming, setTransforming] = useState(false);
+  const onTransformState = props.onTransformState;
+  const reportTransform = useCallback(
+    (state: TransformState | null) => {
+      setTransforming(Boolean(state));
+      onTransformState?.(state);
+    },
+    [onTransformState],
+  );
+  const draft = props.draftPolygon ?? null;
+  const closeTarget =
+    draft && draft.length >= 3 ? new THREE.Vector3(draft[0].x, flatHeight(draft[0].x, draft[0].z), draft[0].z) : null;
 
   return (
     <>
-      <Controls topView={props.topView} park={content.size} controlsRef={controlsRef} />
+      <CameraRig
+        topView={props.topView}
+        onTopViewChange={props.onTopViewChange}
+        park={content.size}
+        controlsRef={controlsRef}
+        orientation={props.orientation}
+        command={props.command ?? null}
+        focus={focus}
+      />
+      <CameraBridge onCamera={props.onCamera} />
       <ambientLight intensity={1.4} />
       <directionalLight position={[12, 24, 16]} intensity={1.6} />
       {ground?.kind === "terrain" ? (
-        grid ? (
-          <TerrainMesh grid={grid} aerial={content.aerial} aerialUrl={aerialUrl} onClick={groundClick} />
-        ) : null
+        grid ? <TerrainMesh grid={grid} aerial={content.aerial} aerialUrl={aerialUrl} /> : null
       ) : (
         <>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, ground ? -0.02 : 0, 0]} onClick={groundClick}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, ground ? -0.02 : 0, 0]}>
             <planeGeometry args={[width, length]} />
             <meshBasicMaterial color={COLORS.ground} />
           </mesh>
-          {!ground ? (
-            <gridHelper
-              args={[Math.max(width, length), Math.max(width, length), COLORS.grid, COLORS.grid]}
-              position={[0, 0.002, 0]}
-              scale={[width / Math.max(width, length), 1, length / Math.max(width, length)]}
-            />
-          ) : null}
-          {content.aerial && aerialUrl ? (
-            <AerialPlane url={aerialUrl} aerial={content.aerial} onClick={groundClick} />
-          ) : null}
+          {content.aerial && aerialUrl ? <AerialPlane url={aerialUrl} aerial={content.aerial} /> : null}
           {ground?.kind === "model" && assetUrls[ground.path] ? (
-            <GroundModel ground={ground} url={assetUrls[ground.path]} onClick={groundClick} />
+            <GroundModel ground={ground} url={assetUrls[ground.path]} size={content.size} onHeights={onModelHeights} />
           ) : null}
         </>
       )}
+      {props.showGrid !== false ? <ReferenceGrid width={width} length={length} heightAt={heightAt} /> : null}
       {obstacles.map((o) => (
         <ObstacleMesh
           key={o.id}
@@ -718,12 +816,52 @@ function SceneContent(props: ParkSceneProps) {
                 ? COLORS.used
                 : COLORS.concrete
           }
-          editable={props.editable}
+          editable={editable && !transforming}
+          interactive={!props.pickThrough && !transforming && Boolean(props.onObstacleClick || props.onObstacleEdit)}
+          parkSize={content.size}
+          consumed={consumed}
           controlsRef={controlsRef}
           onClick={props.onObstacleClick}
-          onMove={props.onObstacleMove}
+          // Mit der Maus gezogen wird das Original (ohne berechnete Bereichshöhe) geändert.
+          onEdit={(next, phase) => {
+            const raw = content.obstacles.find((x) => x.id === next.id);
+            props.onObstacleEdit?.(raw ? { ...raw, x: next.x, z: next.z } : next, phase);
+          }}
         />
       ))}
+      {editable && selectedRaw?.type === "zone" && selected && !transforming && !draft ? (
+        <ZoneHandles
+          zone={selectedRaw}
+          top={selectedBase + selected.height}
+          pick={pick}
+          consumed={consumed}
+          controlsRef={controlsRef}
+          onEdit={(next, phase) => props.onObstacleEdit?.(next, phase)}
+        />
+      ) : null}
+      <TransformTool
+        selected={selectedRaw}
+        base={selectedBase}
+        enabled={editable && !draft && Boolean(props.onObstacleEdit)}
+        command={props.command ?? null}
+        controlsRef={controlsRef}
+        onEdit={(next, phase) => props.onObstacleEdit?.(next, phase)}
+        onState={reportTransform}
+      />
+      <GroundPicker
+        pick={pick}
+        consumed={consumed}
+        onClick={
+          props.onGroundClick && !transforming
+            ? (p, info) => props.onGroundClick?.({ x: p.x, z: p.z }, info)
+            : undefined
+        }
+        onDoubleClick={props.onGroundDoubleClick}
+        showCursor={Boolean(props.showCursor)}
+        closeTarget={closeTarget}
+        unit={unit}
+      />
+      {draft && draft.length ? <PolygonDraft points={draft} heightAt={flatHeight} unit={unit} /> : null}
       {run ? (
         <RunOverlay
           run={run}
@@ -731,7 +869,7 @@ function SceneContent(props: ParkSceneProps) {
           activeStep={props.activeStep ?? null}
           baseOf={baseOf}
           groundAt={groundAt}
-          unit={Math.max(1, Math.max(width, length) / 45)}
+          unit={unit}
         />
       ) : null}
     </>
@@ -739,17 +877,30 @@ function SceneContent(props: ParkSceneProps) {
 }
 
 export default function ParkScene(props: ParkSceneProps) {
+  // Kamera-Drehungen werden über dieses Ereignisziel an das Gizmo gemeldet (ohne React-Neuaufbau der Szene).
+  const orientation = useMemo(() => new EventTarget(), []);
+  const [camera, setCamera] = useState<THREE.Camera | null>(null);
+  const [gizmoCommand, setGizmoCommand] = useState<SceneCommand | null>(null);
+  const onView = useCallback((view: ViewName) => setGizmoCommand(makeCommand({ type: "view", view })), []);
+  // Befehle aus Planer und Gizmo zusammenführen: der jüngere gewinnt.
+  const command =
+    gizmoCommand && (!props.command || gizmoCommand.id > props.command.id) ? gizmoCommand : (props.command ?? null);
   return (
-    <Canvas
-      frameloop="demand"
-      dpr={[1, 2]}
-      camera={{ fov: 45, near: 0.1, far: 1000, position: [0, 25, 30] }}
-      aria-label={props.label}
-      role="img"
-      style={{ touchAction: "none" }}
-    >
-      <color attach="background" args={["#f5f7f9"]} />
-      <SceneContent {...props} />
-    </Canvas>
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <Canvas
+        frameloop="demand"
+        dpr={[1, 2]}
+        camera={{ fov: 45, near: 0.1, far: 2000, position: [0, 25, 30] }}
+        aria-label={props.label}
+        role="img"
+        style={{ touchAction: "none", cursor: props.showCursor ? "crosshair" : undefined }}
+      >
+        <color attach="background" args={["#f5f7f9"]} />
+        <SceneContent {...props} command={command} orientation={orientation} onCamera={setCamera} />
+      </Canvas>
+      <div style={{ position: "absolute", right: 8, top: 54, zIndex: 2 }}>
+        <AxisGizmo orientation={orientation} camera={camera} onView={onView} />
+      </div>
+    </div>
   );
 }

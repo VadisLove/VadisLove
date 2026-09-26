@@ -271,7 +271,7 @@
   position: absolute;
   left: 10px;
   right: 10px;
-  bottom: 10px;
+  bottom: 30px;
   z-index: 2;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
@@ -281,10 +281,85 @@
   text-align: center;
   pointer-events: none;
 }
+/* Bearbeitungswerkzeuge links oben (Park bearbeiten). */
+.editTools {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 245px);
+}
+.toolButton {
+  min-height: 36px;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text, #07182d);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+.toolButton[aria-pressed="true"] {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+.toolButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.shortcutHelp {
+  position: absolute;
+  top: 54px;
+  right: 104px;
+  z-index: 3;
+  width: min(420px, calc(100% - 120px));
+  max-height: calc(100% - 70px);
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
+  font-size: 13px;
+}
+.shortcutHelp h3 {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+.shortcutHelp dl {
+  margin: 0;
+  display: grid;
+  gap: 3px;
+}
+.shortcutHelp dl div {
+  display: grid;
+  grid-template-columns: minmax(120px, 44%) 1fr;
+  gap: 8px;
+}
+.shortcutHelp dt {
+  font-weight: 700;
+}
+.shortcutHelp dd {
+  margin: 0;
+  color: var(--color-muted);
+}
 .attribution {
   position: absolute;
-  left: 8px;
-  top: 8px;
+  right: 8px;
+  bottom: 8px;
   z-index: 2;
   max-width: calc(100% - 120px);
   padding: 3px 8px;
@@ -469,6 +544,15 @@
 }
 
 @media (max-width: 640px) {
+  .editTools {
+    max-width: calc(100% - 20px);
+    top: auto;
+    bottom: 76px;
+  }
+  .shortcutHelp {
+    right: 10px;
+    width: calc(100% - 20px);
+  }
   .page {
     padding: 16px;
   }

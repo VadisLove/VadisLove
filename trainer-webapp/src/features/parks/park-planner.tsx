@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ChevronLeft, Pencil } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { zoneFromPolygon } from "@/domain/park-geometry";
 import {
   clampToPark,
   createObstacle,
@@ -15,6 +16,7 @@ import {
   snap,
   stepLabel,
   type ParkDetail,
+  type Obstacle,
   type ParkRun,
   type Point,
   type TrickCategory,
@@ -22,6 +24,8 @@ import {
 import { ParkEditorPanel, type ParkDraft } from "./park-editor-panel";
 import type { ScenePlacement } from "./park-scene";
 import { RunEditorPanel, type RunDraft } from "./run-editor-panel";
+import { makeCommand, type EditPhase, type SceneCommand, type SceneCommandInput, type TransformState } from "./scene-commands";
+import { StageToolbar, ShortcutHelp } from "./stage-toolbar";
 import { useParkCommand } from "./use-park-command";
 import styles from "./parks.module.css";
 
@@ -99,6 +103,19 @@ export function ParkPlannerView({
   }, [missedTap]);
   const [conflict, setConflict] = useState(false);
   const command = useParkCommand<ParkDetail>();
+  // ----- Steuerung der 3D-Ansicht -----
+  const [showGrid, setShowGrid] = useState(true);
+  const [helpOpen, setHelpOpen] = useState(false);
+  /** Punkte des Bereichs, der gerade gezeichnet wird (null = kein Zeichenmodus). */
+  const [drawing, setDrawing] = useState<Point[] | null>(null);
+  const [sceneCommand, setSceneCommand] = useState<SceneCommand | null>(null);
+  const [transform, setTransform] = useState<TransformState | null>(null);
+  const sendCommand = (c: SceneCommandInput) => setSceneCommand(makeCommand(c));
+  // Rückgängig/Wiederholen für den Park-Entwurf. `previewBase` hält den Stand vor einer
+  // laufenden Vorschau (Ziehen, G/R/S), damit die ganze Bewegung ein Schritt ist.
+  const [past, setPast] = useState<ParkDraft[]>([]);
+  const [future, setFuture] = useState<ParkDraft[]>([]);
+  const previewBase = useRef<ParkDraft | null>(null);
 
   const selectedRun = detail.runs.find((r) => r.id === selectedRunId) ?? null;
   const versionById = useMemo(
@@ -138,6 +155,9 @@ export function ParkPlannerView({
     if (dirty && !window.confirm("Ungespeicherte Änderungen verwerfen?")) return;
     setMode("view");
     setParkDraft(null);
+    setDrawing(null);
+    setPast([]);
+    setFuture([]);
     setRunDraft(null);
     setPlacing(null);
     setActiveStep(null);
@@ -170,23 +190,105 @@ export function ParkPlannerView({
       content.size = { width: content.ground.width, length: content.ground.length };
     setParkDraft({ name: detail.park.name, location: detail.park.location, content });
     setSelectedObstacle(null);
+    setPast([]);
+    setFuture([]);
     selectRun(null);
     setMode("park");
   }
-  function updateParkDraft(next: ParkDraft) {
+  /** Übernimmt einen neuen Entwurf; `preview` sammelt Zwischenschritte zu einem Undo-Schritt. */
+  function updateParkDraft(next: ParkDraft, phase: EditPhase = "commit") {
+    if (!parkDraft) return;
+    if (phase === "cancel") {
+      if (previewBase.current) setParkDraft(previewBase.current);
+      previewBase.current = null;
+      return;
+    }
+    if (phase === "preview") {
+      if (!previewBase.current) previewBase.current = parkDraft;
+    } else {
+      const base = previewBase.current ?? parkDraft;
+      previewBase.current = null;
+      setPast((p) => [...p.slice(-59), base]);
+      setFuture([]);
+    }
     setParkDraft(next);
     setDirty(true);
   }
-  function moveObstacle(id: string, point: Point) {
+  function editObstacle(next: Obstacle, phase: EditPhase) {
     if (!parkDraft) return;
-    const p = clampToPark({ x: snap(point.x), z: snap(point.z) }, parkDraft.content.size);
+    if (phase === "cancel") return updateParkDraft(parkDraft, "cancel");
+    updateParkDraft(
+      {
+        ...parkDraft,
+        content: {
+          ...parkDraft.content,
+          obstacles: parkDraft.content.obstacles.map((o) => (o.id === next.id ? next : o)),
+        },
+      },
+      phase,
+    );
+  }
+  function undo() {
+    if (!parkDraft || past.length === 0) return;
+    setFuture((f) => [parkDraft, ...f]);
+    setParkDraft(past[past.length - 1]);
+    setPast((p) => p.slice(0, -1));
+    setDirty(true);
+  }
+  function redo() {
+    if (!parkDraft || future.length === 0) return;
+    setPast((p) => [...p, parkDraft]);
+    setParkDraft(future[0]);
+    setFuture((f) => f.slice(1));
+    setDirty(true);
+  }
+  function removeSelected() {
+    if (!parkDraft || !selectedObstacle) return;
     updateParkDraft({
       ...parkDraft,
-      content: {
-        ...parkDraft.content,
-        obstacles: parkDraft.content.obstacles.map((o) => (o.id === id ? { ...o, ...p } : o)),
-      },
+      content: { ...parkDraft.content, obstacles: parkDraft.content.obstacles.filter((o) => o.id !== selectedObstacle) },
     });
+    setSelectedObstacle(null);
+  }
+  /** Kopie des gewählten Obstacles; danach direkt verschieben (wie Umschalt+D in Blender). */
+  function duplicateSelected() {
+    const source = parkDraft?.content.obstacles.find((o) => o.id === selectedObstacle);
+    if (!parkDraft || !source) return;
+    const copy = { ...structuredClone(source), id: crypto.randomUUID(), label: source.label };
+    updateParkDraft({
+      ...parkDraft,
+      content: { ...parkDraft.content, obstacles: [...parkDraft.content.obstacles, copy] },
+    });
+    setSelectedObstacle(copy.id);
+    // Erst nach dem Rendern der Kopie verschieben.
+    setTimeout(() => sendCommand({ type: "transform", kind: "move" }), 0);
+  }
+  // ----- Bereich zeichnen (Punkte setzen wie mit dem Zeichenstift) -----
+  function startDrawing() {
+    setSelectedObstacle(null);
+    setDrawing([]);
+    command.setMessage("");
+  }
+  function finishDrawing(points = drawing) {
+    if (!parkDraft || !points) return;
+    // Doppelklick erzeugt zwei gleiche Punkte am Ende: zusammenfassen.
+    const clean = points.filter(
+      (p, i) => i === 0 || Math.hypot(p.x - points[i - 1].x, p.z - points[i - 1].z) > 0.05,
+    );
+    if (clean.length < 3) return command.setMessage("Ein Bereich braucht mindestens 3 Punkte.");
+    const zone = zoneFromPolygon(clean, crypto.randomUUID());
+    if (!zone) return command.setMessage("Ein Bereich darf höchstens 60 × 60 m groß sein.");
+    updateParkDraft({
+      ...parkDraft,
+      content: { ...parkDraft.content, obstacles: [...parkDraft.content.obstacles, zone] },
+    });
+    setDrawing(null);
+    setSelectedObstacle(zone.id);
+  }
+  function addDrawingPoint(point: Point, closes: boolean) {
+    if (!drawing) return;
+    if (closes) return finishDrawing(drawing);
+    setDrawing([...drawing, { x: Math.round(point.x * 100) / 100, z: Math.round(point.z * 100) / 100 }]);
   }
   async function saveParkDraft() {
     if (!parkDraft) return;
@@ -258,7 +360,8 @@ export function ParkPlannerView({
   }
   function placePoint(point: Point) {
     if (!runDraft || !placing) return;
-    const p = clampToPark({ x: snap(point.x), z: snap(point.z) }, content.size);
+    // Feines Raster (10 cm): der Punkt landet dort, wo getippt wurde.
+    const p = clampToPark({ x: snap(point.x, 0.1), z: snap(point.z, 0.1) }, content.size);
     updateRunDraft({ ...runDraft, [placing]: p });
     setPlacing(null);
   }
@@ -333,6 +436,64 @@ export function ParkPlannerView({
     }
   }
 
+  // Tastenkürzel des Planers (G/R/S, Ansichten und Achsen verarbeitet die Szene selbst).
+  const keyHandler = useRef<(e: KeyboardEvent) => void>(() => {});
+  const handleKey = (e: KeyboardEvent) => {
+    const el = e.target as HTMLElement | null;
+    if (e.defaultPrevented || (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)))) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const key = e.key.toLowerCase();
+    if (e.key === "?" || (e.shiftKey && e.code === "Slash")) {
+      e.preventDefault();
+      return setHelpOpen((v) => !v);
+    }
+    if (key === "#" || (e.code === "Backquote" && e.shiftKey)) return setShowGrid((v) => !v);
+    if (mode === "run") {
+      if (e.key === "Escape" && placing) setPlacing(null);
+      return;
+    }
+    if (mode !== "park" || transform) return;
+    if (drawing) {
+      if (e.key === "Escape") setDrawing(null);
+      else if (e.key === "Enter") finishDrawing();
+      else if (e.key === "Backspace" || e.key === "Delete") setDrawing(drawing.slice(0, -1));
+      else return;
+      e.preventDefault();
+      return;
+    }
+    if (mod && key === "z") {
+      e.preventDefault();
+      return e.shiftKey ? redo() : undo();
+    }
+    if (mod && key === "y") {
+      e.preventDefault();
+      return redo();
+    }
+    if (mod || e.altKey) return;
+    if (e.shiftKey && key === "d") {
+      e.preventDefault();
+      return duplicateSelected();
+    }
+    if (e.shiftKey) return;
+    if (key === "b") {
+      e.preventDefault();
+      return startDrawing();
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && selectedObstacle) {
+      e.preventDefault();
+      return removeSelected();
+    }
+    if (e.key === "Escape") setSelectedObstacle(null);
+  };
+  useLayoutEffect(() => {
+    keyHandler.current = handleKey;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keyHandler.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const runVersion = runDraft ? versionById.get(runDraft.park_version_id) : null;
   const missingInDraft = runDraft ? missingObstacleSteps(runDraft.steps, content.obstacles) : [];
   const missingInLatest = runDraft ? missingObstacleSteps(runDraft.steps, latest.content.obstacles) : [];
@@ -354,8 +515,17 @@ export function ParkPlannerView({
     null;
   // Tipp neben ein Obstacle: kurz erklären, woran Tricks angepinnt werden.
   const showMissedTap = mode === "run" && !placing && missedTap;
-  const stageHint =
-    mode === "run"
+  const stageHint = transform
+    ? `${transform.text} — ${
+        transform.awaitingDrag
+          ? "im Bild ziehen, Loslassen übernimmt"
+          : "X/Y/Z Achse · Zahl tippen · Enter/Klick übernehmen · Esc abbrechen"
+      }`
+    : drawing
+      ? drawing.length < 3
+        ? `Bereich zeichnen: Punkte um das Element setzen (${drawing.length}/3). Esc bricht ab.`
+        : "Weitere Punkte setzen – ersten Punkt antippen, Doppelklick oder Enter schließt den Bereich."
+      : mode === "run"
       ? showMissedTap
         ? "Tricks werden an Obstacles oder Bereiche angepinnt – bitte direkt darauf tippen."
         : placing
@@ -389,33 +559,54 @@ export function ParkPlannerView({
 
       <div className={styles.planner}>
         <div className={styles.stage}>
-          <div className={styles.stageTools}>
-            <button
-              type="button"
-              className={styles.button}
-              aria-pressed={topView}
-              onClick={() => setTopView((v) => !v)}
-            >
-              {topView ? "3D" : "Draufsicht"}
-            </button>
-          </div>
+          <StageToolbar
+            mode={mode}
+            topView={topView}
+            onTopView={setTopView}
+            showGrid={showGrid}
+            onGrid={setShowGrid}
+            onHelp={() => setHelpOpen((v) => !v)}
+            hasSelection={Boolean(selectedObstacle)}
+            drawing={Boolean(drawing)}
+            transform={transform}
+            canUndo={past.length > 0}
+            canRedo={future.length > 0}
+            onCommand={sendCommand}
+            onDraw={() => (drawing ? setDrawing(null) : startDrawing())}
+            onFinishDrawing={() => finishDrawing()}
+            onUndo={undo}
+            onRedo={redo}
+            onDuplicate={duplicateSelected}
+            onDelete={removeSelected}
+          />
+          {helpOpen ? <ShortcutHelp onClose={() => setHelpOpen(false)} /> : null}
           <ParkScene
             content={content}
             assetUrls={assetUrls}
             topView={topView}
+            onTopViewChange={setTopView}
+            showGrid={showGrid}
+            command={sceneCommand}
+            onTransformState={setTransform}
             editable={mode === "park"}
             selectedObstacleId={mode === "park" ? selectedObstacle : null}
             onObstacleClick={
               mode === "park" ? setSelectedObstacle : mode === "run" && !placing ? addStep : undefined
             }
-            onObstacleMove={mode === "park" ? moveObstacle : undefined}
+            onObstacleEdit={mode === "park" ? editObstacle : undefined}
+            pickThrough={Boolean(placing || drawing)}
+            showCursor={Boolean((mode === "run" && placing) || drawing)}
+            draftPolygon={drawing}
+            onGroundDoubleClick={drawing ? () => finishDrawing() : undefined}
             onGroundClick={
               mode === "run"
                 ? placing
                   ? placePoint
                   : () => setMissedTap(true)
                 : mode === "park"
-                  ? () => setSelectedObstacle(null)
+                  ? drawing
+                    ? (p, info) => addDrawingPoint(p, info.closesPolygon)
+                    : () => setSelectedObstacle(null)
                   : undefined
             }
             run={sceneRun}
@@ -450,7 +641,8 @@ export function ParkPlannerView({
               selectedId={selectedObstacle}
               usedObstacleIds={usedObstacleIds}
               busy={command.busy}
-              onChange={updateParkDraft}
+              onChange={(next) => updateParkDraft(next)}
+              onDrawZone={startDrawing}
               onAdd={(type, patch) => {
                 const obstacle = { ...createObstacle(type, { x: 0, z: 0 }, crypto.randomUUID()), ...patch };
                 updateParkDraft({

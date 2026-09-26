@@ -366,23 +366,198 @@ export function footprintBase(
  */
 export function footprintRange(
   grid: TerrainGrid,
-  o: { x: number; z: number; width: number; length: number; rotation: number },
+  o: {
+    x: number;
+    z: number;
+    width: number;
+    length: number;
+    rotation: number;
+    /** Optionaler Umriss (lokale Koordinaten); dann zählen nur Punkte innerhalb. */
+    points?: { x: number; z: number }[];
+  },
   samples = 7,
 ): { min: number; max: number } {
   const r = (-o.rotation * Math.PI) / 180;
   const cos = Math.cos(r);
   const sin = Math.sin(r);
+  const outline = o.points && o.points.length >= 3 ? o.points : null;
   let min = Infinity;
   let max = -Infinity;
+  const sample = (lx: number, lz: number) => {
+    const h = terrainHeightAt(grid, o.x + lx * cos + lz * sin, o.z - lx * sin + lz * cos);
+    if (h < min) min = h;
+    if (h > max) max = h;
+  };
   for (let i = 0; i < samples; i++)
     for (let j = 0; j < samples; j++) {
       const lx = (i / (samples - 1) - 0.5) * o.width;
       const lz = (j / (samples - 1) - 0.5) * o.length;
-      const h = terrainHeightAt(grid, o.x + lx * cos + lz * sin, o.z - lx * sin + lz * cos);
-      if (h < min) min = h;
-      if (h > max) max = h;
+      if (!outline || insidePolygon(lx, lz, outline)) sample(lx, lz);
     }
+  // Eckpunkte des Umrisses immer mitnehmen (schmale Polygone treffen sonst kaum Rasterpunkte).
+  if (outline) for (const p of outline) sample(p.x, p.z);
   return { min, max };
+}
+
+/** Punkt-in-Polygon-Test (Strahlverfahren) in der x/z-Ebene. */
+export function insidePolygon(x: number, z: number, polygon: { x: number; z: number }[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i];
+    const b = polygon[j];
+    if (a.z > z !== b.z > z && x < ((b.x - a.x) * (z - a.z)) / (b.z - a.z) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Höhenfeld aus Dreiecken eines 3D-Modells (z. B. Scan des ganzen Parks). Je Zelle zählt
+ * die höchste Oberfläche; so lassen sich Start/Ziel, Pins und Bereiche auf den Scan legen,
+ * ohne bei jeder Mausbewegung Millionen Dreiecke zu treffen.
+ * `positions`/`index` sind Rohdaten eines Meshes, `matrix` dessen Weltmatrix (spaltenweise).
+ */
+export class HeightRaster {
+  readonly width: number;
+  readonly length: number;
+  readonly cols: number;
+  readonly rows: number;
+  readonly heights: Float32Array;
+
+  constructor(width: number, length: number, cell: number) {
+    this.width = width;
+    this.length = length;
+    this.cols = Math.max(2, Math.round(width / cell));
+    this.rows = Math.max(2, Math.round(length / cell));
+    this.heights = new Float32Array(this.cols * this.rows).fill(Number.NaN);
+  }
+
+  private put(c: number, r: number, h: number) {
+    if (c < 0 || r < 0 || c >= this.cols || r >= this.rows) return;
+    const i = r * this.cols + c;
+    const prev = this.heights[i];
+    if (!(prev >= h)) this.heights[i] = h;
+  }
+
+  addMesh(positions: ArrayLike<number>, index: ArrayLike<number> | null, matrix: ArrayLike<number>) {
+    const m = matrix;
+    const count = index ? index.length : positions.length / 3;
+    const cw = this.width / this.cols;
+    const cl = this.length / this.rows;
+    const v = new Float64Array(9);
+    for (let t = 0; t + 2 < count; t += 3) {
+      for (let k = 0; k < 3; k++) {
+        const vi = (index ? index[t + k] : t + k) * 3;
+        const x = positions[vi];
+        const y = positions[vi + 1];
+        const z = positions[vi + 2];
+        // Weltposition (Spaltenmatrix wie three.js) → Rasterkoordinaten (Zellen, ab Nordwest).
+        v[k * 3] = (m[0] * x + m[4] * y + m[8] * z + m[12] + this.width / 2) / cw;
+        v[k * 3 + 1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+        v[k * 3 + 2] = (m[2] * x + m[6] * y + m[10] * z + m[14] + this.length / 2) / cl;
+      }
+      const [ax, ay, az, bx, by, bz, cx, cy, cz] = v;
+      const minC = Math.ceil(Math.min(ax, bx, cx) - 0.5);
+      const maxC = Math.floor(Math.max(ax, bx, cx) - 0.5);
+      const minR = Math.ceil(Math.min(az, bz, cz) - 0.5);
+      const maxR = Math.floor(Math.max(az, bz, cz) - 0.5);
+      const det = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+      if (minC > maxC || minR > maxR || Math.abs(det) < 1e-12) {
+        // Dreieck kleiner als eine Zelle: Schwerpunkt eintragen.
+        this.put(Math.floor((ax + bx + cx) / 3), Math.floor((az + bz + cz) / 3), Math.max(ay, by, cy));
+        continue;
+      }
+      // Größere Dreiecke: alle Zellmitten darin baryzentrisch interpolieren.
+      for (let r = Math.max(0, minR); r <= Math.min(this.rows - 1, maxR); r++)
+        for (let c = Math.max(0, minC); c <= Math.min(this.cols - 1, maxC); c++) {
+          const px = c + 0.5;
+          const pz = r + 0.5;
+          const w1 = ((bz - cz) * (px - cx) + (cx - bx) * (pz - cz)) / det;
+          const w2 = ((cz - az) * (px - cx) + (ax - cx) * (pz - cz)) / det;
+          const w3 = 1 - w1 - w2;
+          if (w1 < -1e-6 || w2 < -1e-6 || w3 < -1e-6) continue;
+          this.put(c, r, w1 * ay + w2 * by + w3 * cy);
+        }
+    }
+  }
+
+  /**
+   * Kleine Lücken (höchstens `passes` Zellen breit) aus Nachbarzellen füllen; übrige Zellen
+   * erhalten `fallback` (Standard: tiefster Wert). Mehr Durchgänge würden den Rand eines
+   * Scans nach außen „verschmieren“.
+   */
+  finish(fallback?: number, passes = 2): TerrainGrid {
+    const { cols, rows, heights } = this;
+    if (fallback === undefined) {
+      fallback = Infinity;
+      for (const h of heights) if (h < fallback) fallback = h;
+      if (!Number.isFinite(fallback)) fallback = 0;
+    }
+    for (let pass = 0; pass < passes; pass++) {
+      const copy = heights.slice();
+      let open = 0;
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++) {
+          const i = r * cols + c;
+          if (!Number.isNaN(copy[i])) continue;
+          let sum = 0;
+          let n = 0;
+          for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const cc = c + dc;
+            const rr = r + dr;
+            if (cc < 0 || rr < 0 || cc >= cols || rr >= rows) continue;
+            const h = copy[rr * cols + cc];
+            if (!Number.isNaN(h)) {
+              sum += h;
+              n++;
+            }
+          }
+          if (n) heights[i] = sum / n;
+          else open++;
+        }
+      if (!open) break;
+    }
+    for (let i = 0; i < heights.length; i++) if (Number.isNaN(heights[i])) heights[i] = fallback;
+    return { cols, rows, width: this.width, length: this.length, heights };
+  }
+}
+
+/**
+ * Schnittpunkt eines Sichtstrahls mit dem Höhenfeld (Schrittverfahren mit Verfeinerung).
+ * Ohne Treffer im Raster wird die Ebene y = 0 verwendet; `null`, wenn der Strahl nach oben zeigt.
+ */
+export function pickHeightfield(
+  origin: { x: number; y: number; z: number },
+  dir: { x: number; y: number; z: number },
+  heightAt: ((x: number, z: number) => number) | null,
+  step = 0.25,
+  maxDistance = 1500,
+): { x: number; y: number; z: number } | null {
+  const at = (t: number) => ({ x: origin.x + dir.x * t, y: origin.y + dir.y * t, z: origin.z + dir.z * t });
+  if (heightAt) {
+    let prev = 0;
+    for (let t = step; t <= maxDistance; t += step) {
+      const p = at(t);
+      if (p.y <= heightAt(p.x, p.z)) {
+        // Binärsuche zwischen letztem Punkt über und erstem Punkt unter der Oberfläche.
+        let lo = prev;
+        let hi = t;
+        for (let k = 0; k < 12; k++) {
+          const mid = (lo + hi) / 2;
+          const q = at(mid);
+          if (q.y <= heightAt(q.x, q.z)) hi = mid;
+          else lo = mid;
+        }
+        const hit = at(hi);
+        return { x: hit.x, y: heightAt(hit.x, hit.z), z: hit.z };
+      }
+      prev = t;
+      // Weit über dem Gelände größere Schritte (spart Zeit bei weit entfernter Kamera).
+      if (p.y - heightAt(p.x, p.z) > step * 8) t += step * 2;
+    }
+  }
+  if (dir.y >= -1e-6) return null;
+  const t = -origin.y / dir.y;
+  return t > 0 ? at(t) : null;
 }
 
 /** WMS-Adresse für das Luftbild eines Ausschnitts (für Vorschau und Übernahme). */
