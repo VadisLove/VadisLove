@@ -65,8 +65,9 @@ Obstacle-Erkennung, Offline-Nutzung.
 
 ## Technischer Nachweis (26.09.2026, lokal)
 
-**Status: implementiert und lokal geprüft. Nicht veröffentlicht.** Migration
-`20260926002019_step_7b_park_ground.sql` auf keine Supabase-Datenbank angewandt.
+**Status: technisch produktiv veröffentlicht am 26.09.2026** (Festlegungen und
+Veröffentlichung vom Nutzer bestätigt; Obergrenzen bleiben vorerst wie festgelegt und
+werden bei ausreichendem Budget angehoben). Praxisabnahme offen.
 
 | Prüfung | Ergebnis |
 | --- | --- |
@@ -90,6 +91,29 @@ Grenzen: Kein Test gegen echtes Supabase Storage und keine Produktion; GLB/glTF 
 als Untergrund nicht im Browser geprüft; keine Prüfung auf echten Mobilgeräten.
 Nominatim hat eine strenge Nutzungsrichtlinie (geringe Last) – bei breiter Nutzung
 ggf. eigenen Geocoder vorsehen.
+
+## Produktionsrelease (26.09.2026)
+
+- Vorheriger Stand: `dpl_2mzTnc6voEx9EbVf75ob47hcoT8S` (Trainingspläne-Redesign mit
+  Video-Uploads, Code `5088654`; per Dateivergleich des Deployments bestätigt).
+  Sicherungstag `production/stable-before-step-7b-park-ground-20260926`, vorab gepusht.
+- Migration als Version `20260926002019` auf `lglmlktrngmrimvhwxab` angewandt, lokaler
+  Dateiname angeglichen. Transaktionaler Funktionstest (Park mit Höhenraster,
+  Georeferenz, Bereich und eigenem Modell gespeichert; fremder Rasterpfad abgelehnt)
+  bestanden und zurückgerollt; danach unverändert 2 Parks, 3 Versionen.
+  Security-Advisor: keine neuen Findings.
+- Befund am Rande: Die Migration `20260926090000_training_video_uploads.sql` ist
+  wirksam (Bucket und Policies vorhanden), aber nicht in der Supabase-Migrationshistorie
+  registriert. Nicht Teil von 7b; beim nächsten Paket der Videos nachziehen.
+- Vercel: `dpl_FQYH2tDwPRM3LuykzZKmx84SLnzU`, `READY`; `https://trainer-webapp-ruby.vercel.app`
+  zeigt laut `vercel inspect` darauf. HTTP: `/login` 200; `/skateparks`, `/api/parks`,
+  `/api/parks/geocode`, `/api/parks/official` ohne Anmeldung 307 zum Login.
+  `vercel logs` (error, 15 min): keine Einträge.
+- Nicht geprüft: angemeldeter Produktionsablauf inkl. Abruf der Landesdienste aus der
+  Vercel-Funktion und Upload in den echten Speicher – erster Punkt der Praxisprüfung.
+
+Rollback: `vercel promote dpl_2mzTnc6voEx9EbVf75ob47hcoT8S`. Die additive
+Datenbankerweiterung bleibt bestehen; bestehende Parks sind davon unberührt.
 
 ## Praxisprüfliste für den Nutzer
 
