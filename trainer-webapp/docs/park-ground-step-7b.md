@@ -147,3 +147,6 @@ Supabase-Free-Plan (globale Grenze 50 MB pro Datei) aber nicht möglich. Nach ei
 Wechsel auf Pro: `MODEL_LIMITS` in `src/features/parks/model-assets.ts` und das Limit
 des Buckets `skatepark-models` (neue Migration, z. B. 83886080) anheben.
 Bucket-Grenze per Migration `20260926005815` in Produktion gesetzt und geprüft.
+
+Veröffentlicht: `dpl_zUNQmi3ep1DKFkWtyK17s4DoFA8J`, Alias geprüft, `/login` 200. Sicherungstag
+`production/stable-before-model-limits-20260926`; Rollback: `vercel promote dpl_3ftYawEzhhpxwZoJw3TzUZVKMBNS`.
