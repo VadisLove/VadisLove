@@ -1,6 +1,8 @@
 # Schritt 11: Familienübersicht und Teilnahmeorganisation
 
-Stand: 24.09.2026. Teilumfang lokal implementiert und geprüft; noch nicht veröffentlicht. Fachliche Praxisabnahme offen.
+Stand: 28.09.2026. Freigegebener Teilumfang technisch in Produktion veröffentlicht und
+geprüft. Fachliche Praxisabnahme mit echten Konten offen. Frühere Nachweise unten
+beschreiben jeweils ihren damaligen Stand.
 Basis: veröffentlichter Schritt 6 (`8aa88a3`), isolierter Branch
 `codex/step-11-family`. Schritte 7–10 werden parallel bearbeitet.
 
@@ -151,3 +153,39 @@ Trainingsplanansicht und Einzelauswertung bleiben erhalten.
 - Produktionsschema und erforderliche Kalender-/Kontofunktionen abgeglichen.
   Es werden ausschließlich die beiden Familienmigrationen veröffentlicht.
 - Fachliche Praxisabnahme mit echten Konten bleibt separat offen.
+
+## Produktionsnachweis · 28.09.2026
+
+- Nutzerfreigabe: „oke kannst es deployen … nichts überschreibst“ und anschließend
+  „setze fort und deploye es“. Lokale Eltern-/Athletenansichten zuvor gezeigt.
+- Runtime-Version: `0be7b48221fb3e1ab4f0d94b7336500b89088ccb`.
+  Vercel-Deployment: `dpl_EMM93srFEA6kX4kSTZv1Bxj5pjhu`, Zustand `READY`.
+- Die bestehende Produktionsadresse
+  <https://trainer-webapp-ruby.vercel.app> zeigt nach Promotion auf dieses Deployment.
+  Vor dem Umschalten war weiterhin der erwartete Vorgänger aktiv; kein paralleles
+  neueres Deployment wurde verdrängt. Änderungen in fremden Arbeitskopien wurden
+  nicht angefasst.
+- Rollback-Punkt: Git-Tag `production/stable-before-step11-20260928-1550`, Commit
+  `bd4deed27bf0637c88545e1396b0674313a7cdd8`, Deployment
+  `dpl_82jnzsSg8VYMuLqXSGfPAybk3RjK`. Der neue Datenbankteil bleibt additiv;
+  vor Rückkehr zu älterem Anwendungscode vorhandene Teilnehmer ohne Login beachten.
+- Ausschließlich Familienmigrationen erfolgreich angewendet:
+  `20260928155144_step_11_family.sql` und
+  `20260928155154_step_11_family_attendance.sql`. Lokale Dateinamen und
+  Testreferenzen auf die vom Server vergebenen Versionen abgeglichen;
+  SQL-Inhalte unverändert. Danach alle 18 Familien-SQL-Tests erneut erfolgreich.
+- Lint erfolgreich. Produktionsbuild auf Vercel erfolgreich. HTTP nach Promotion:
+  `/login` 200; `/familie`, `/kalender`, `/runbuilder`, `/trainingsplaene` und
+  `/auswertung` ohne Sitzung jeweils korrekt 307 zur Anmeldung.
+- Produktive Datenbankprüfung: RLS auf allen drei Familientabellen aktiv;
+  alle sieben öffentlichen Familien-RPCs SECURITY INVOKER, ohne anonyme
+  Ausführungsrechte. Ohne Benutzerkontext liefert die Übersicht keine Daten.
+- Security-Advisor vor/nach Migration: unveränderte bestehende Warnungen
+  (2 anonyme und 12 angemeldete Aufrufe bestehender SECURITY-DEFINER-RPCs,
+  1 Hinweis auf deaktivierte Prüfung kompromittierter Passwörter). Zwei neue
+  INFO-Hinweise betreffen absichtlich vollständig gesperrte private Tabellen
+  für Einladungen und Antwortaudit; keine direkten Clientrechte/Policies.
+- Keine separaten Staging- oder angemeldeten Produktionstests mit echten
+  Familienkonten. Die fachliche Praxisprüfliste bleibt für den Nutzer offen.
+  Technisches Deployment ist abgeschlossen; das gesamte Roadmap-Paket inklusive
+  ausgeschlossener späterer Erweiterungen ist damit nicht als fertig erklärt.

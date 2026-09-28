@@ -19,8 +19,8 @@ const parent='00000000-0000-0000-0000-000000000004',child='00000000-0000-0000-00
 await db.query("insert into public.profiles values($1,'Elternkonto','parent@example.test'),($2,'Alex','alex@example.test'),($3,'Trainer','trainer@example.test')",[parent,child,owner]);
 await db.exec('insert into auth.users select id,email,now() from public.profiles');
 await db.query("insert into public.relationships values($1,$2,true,'guardian')",[parent,child]);
-await db.exec(await read('../../supabase/migrations/20260924210421_step_11_family.sql'));
-await db.exec(await read('../../supabase/migrations/20260928114803_step_11_family_attendance.sql'));
+await db.exec(await read('../../supabase/migrations/20260928155144_step_11_family.sql'));
+await db.exec(await read('../../supabase/migrations/20260928155154_step_11_family_attendance.sql'));
 // Eltern und Kind haben im Prüfstand eigene bestätigte Vereinsmitgliedschaften.
 await db.exec("create or replace function private.is_organization_member(target uuid) returns boolean language sql stable as $$select target='10000000-0000-0000-0000-000000000001'::uuid and auth.uid() in ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000004')$$");
 await db.query("insert into public.guardian_approval_requests values($1,current_date+730,'approved')",[child]);

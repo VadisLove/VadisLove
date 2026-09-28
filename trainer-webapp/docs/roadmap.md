@@ -90,7 +90,8 @@ abgenommen; andere offene Roadmap-Abnahmen bleiben unverändert.
 Bestätigt: mehrere Kinder je Elternkonto, eigene Kinderanlage ohne Vereinsfreigabe,
 vorhandene Bestätigungslinks und stellvertretende Zu-/Absagen.
 [Umfang, Qualitätsziele und Praxisprüfliste](family-step-11.md).
-Umsetzung im isolierten Arbeitsstand; keine Abnahme oder Veröffentlichung behauptet.
+Der freigegebene Teilumfang ist seit 28.09.2026 technisch in Produktion veröffentlicht.
+Fachliche Praxisabnahme mit echten Familienkonten bleibt offen.
 
 Schritt 11, Präzisierung am 28.09.2026: Eltern können alle eigenen Kinder zu
 für sie sichtbaren Terminen anmelden. Kinder können selbst antworten; aktive

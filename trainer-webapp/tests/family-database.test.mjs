@@ -27,8 +27,8 @@ before(async()=>{
  await db.query("insert into public.profiles(id,display_name,email) values($1,'Parent','parent@example.test'),($2,'Second','second@example.test'),($3,'Child','child@example.test'),($4,'Other','other@example.test'),($5,'Owner','owner@example.test')",[P,Q,C,X,O]);
  await db.exec('insert into auth.users select id,email,now() from public.profiles');
  await db.query("insert into public.relationships values($1,$2,true,'guardian')",[P,C]);
- await db.exec(await read('../supabase/migrations/20260924210421_step_11_family.sql'));
- await db.exec(await read('../supabase/migrations/20260928114803_step_11_family_attendance.sql'));
+ await db.exec(await read('../supabase/migrations/20260928155144_step_11_family.sql'));
+ await db.exec(await read('../supabase/migrations/20260928155154_step_11_family_attendance.sql'));
 });
 after(async()=>db?.close());
 test('mehrere Kinder ohne Login; Wiederholung erzeugt kein Duplikat',async()=>{
