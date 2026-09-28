@@ -20,6 +20,7 @@ export const en: DictionaryShape<typeof de> = {
     organization_staff: "Club or association administration",
   },
   navigation: {
+    family: "Family",
     dashboard: "Dashboard", calendar: "Calendar", plans: "Training plans", evaluations: "Evaluation",
     people: "People", inbox: "Inbox", organization: "Organisation", profile: "Profile", createEvent: "Create event",
     settings: "Settings", logout: "Log out", main: "Main navigation",

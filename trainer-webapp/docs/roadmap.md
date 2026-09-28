@@ -28,7 +28,8 @@ Bei Abweichungen nach Funktionsnamen zuordnen, nicht die Reihenfolge zurückänd
 | 16 | Native Apps |
 
 Der vorgezogene Ablauf bleibt **4 Kalender → 5 Training → 6 Fortschritt → 7 3D**.
-Familienübersicht, Offline und Videos bleiben als spätere Schritte 11–13 geplant.
+Schritt 11 wird auf Nutzerwunsch vom 24.09.2026 parallel zu den Schritten 7–10
+vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bestehen.
 
 ## Aktueller Stand und nächster Schritt
 
@@ -73,3 +74,15 @@ Produktreihenfolge unverändert.
 Stance-Abnahme am 24.09.2026: Nutzer bestätigt nach Produktionsprüfung, dass alles
 funktioniert. Diese Profilerweiterung ist technisch veröffentlicht und fachlich
 abgenommen; andere offene Roadmap-Abnahmen bleiben unverändert.
+
+## Schritt 11 parallel begonnen (24.09.2026)
+
+Bestätigt: mehrere Kinder je Elternkonto, eigene Kinderanlage ohne Vereinsfreigabe,
+vorhandene Bestätigungslinks und stellvertretende Zu-/Absagen.
+[Umfang, Qualitätsziele und Praxisprüfliste](family-step-11.md).
+Umsetzung im isolierten Arbeitsstand; keine Abnahme oder Veröffentlichung behauptet.
+
+Schritt 11, Präzisierung am 28.09.2026: Eltern können alle eigenen Kinder zu
+für sie sichtbaren Terminen anmelden. Kinder können selbst antworten; aktive
+Elternverknüpfungen erhalten eine In-App-Benachrichtigung. Lokale Rollenansichten
+werden vor der Veröffentlichung gezeigt. Noch kein Deployment freigegeben.

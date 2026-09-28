@@ -1625,3 +1625,6 @@ button.legendItem:focus-visible {
     display: none;
   }
 }
+
+/* Der Hinweis erklärt die Elterninformation ohne einen zusätzlichen Freigabeschritt. */
+.familyNotice { padding: 14px 18px; margin-bottom: 18px; border-radius: var(--radius-lg); background: var(--color-blue-soft); color: var(--color-navy); font-size: .9rem; line-height: 1.5; }

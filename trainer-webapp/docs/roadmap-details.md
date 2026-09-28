@@ -554,6 +554,12 @@ Veröffentlichungsblocker. Schritt 1 bleibt fachlich offen.
 
 ## Festlegungen für Kinderprofile und Elternzugriff
 
+Ergänzung vom 24.09.2026: Eigene Kinderanlage mit Selbstbestätigung der
+Sorgeberechtigung, ohne Freigabe durch die Vereinsverwaltung. Mehrere Kinder pro
+Elternkonto; vorhandene Bestätigungslinks bleiben gültiger Verknüpfungsweg.
+Erster Umfang umfasst Übersicht, offene Aufgaben und stellvertretende Zu-/Absagen.
+Vereinsseitige Anlage wird später behandelt. [Arbeitsstand Schritt 11](family-step-11.md).
+
 - Ein Kind kann ein dauerhaftes Athletenprofil ohne eigene E-Mail und ohne
   eigenen Login besitzen. Eltern und Vereinsmitarbeitende verwenden immer ihr
   eigenes Konto; handelnde Person und betroffenes Kind bleiben getrennt.

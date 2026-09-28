@@ -17,6 +17,7 @@ import {
   Settings,
   UserRound,
   Users,
+  UsersRound,
   X,
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
@@ -35,6 +36,7 @@ const navigation = [
   { href: "/kalender", labelKey: "navigation.calendar", icon: CalendarDays },
   { href: "/trainingsplaene", labelKey: "navigation.plans", icon: ClipboardList },
   { href: "/auswertung", labelKey: "navigation.evaluations", icon: ChartNoAxesCombined },
+  { href: "/familie", labelKey: "navigation.family", icon: UsersRound },
   { href: "/personen", labelKey: "navigation.people", icon: Users },
   { href: "/postfach", labelKey: "navigation.inbox", icon: MessagesSquare },
   { href: "/organisation", labelKey: "navigation.organization", icon: Building2 },

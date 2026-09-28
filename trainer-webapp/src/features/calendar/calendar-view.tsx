@@ -34,6 +34,7 @@ import { CarpoolPanel } from "@/features/carpools/carpool-panel";
 import { CarpoolEntry } from "@/features/carpools/carpool-entry";
 
 interface CalendarViewProps {
+  guardianNotice?: boolean;
   initialEvents: CalendarEvent[];
   organizationOptions: EventOrganizationOption[];
   initialSelectedEventId?: string;
@@ -300,6 +301,7 @@ export function CalendarView({
   initialSelectedEventId,
   initialCreateDialogRequest,
   initialDetailFocus = false,
+  guardianNotice = false,
 }: CalendarViewProps) {
   const initialSelectedEvent = initialEvents.find(
     (event) => event.id === initialSelectedEventId,
@@ -1193,9 +1195,14 @@ export function CalendarView({
       <PageHeader
         title={t("calendar.title")}
         description={t("calendar.description")}
-        showContext
+        showContext={!guardianNotice}
       />
 
+      {guardianNotice && <p className={styles.familyNotice}>
+        {locale === "en"
+          ? "You can accept or decline events yourself. Your linked guardians will be notified. They can also respond for you."
+          : "Du kannst selbst zu- oder absagen. Deine verknüpften Eltern werden informiert und können auch für dich antworten."}
+      </p>}
       <section className={styles.toolbar}>
         <label className={styles.viewField}>
           {t("calendar.view")}

@@ -36,7 +36,9 @@ export interface CalendarEventRow {
   event_participants?: Array<{
     status: AttendanceStatus;
     user_id: string | null;
-    invited_email: string;
+    invited_email: string | null;
+    family_athlete_id?: string | null;
+    family_display_name?: string | null;
     reminder_enabled: boolean;
     response_is_late: boolean;
     acknowledged_revision: number;
@@ -84,6 +86,8 @@ export const calendarEventSelect = `
     status,
     user_id,
     invited_email,
+    family_athlete_id,
+    family_display_name,
     reminder_enabled,
     response_is_late,
     acknowledged_revision,
@@ -159,7 +163,7 @@ export function mapCalendarEvent(
   const ownAttendance = (row.event_participants || []).find(
     (participant) =>
       participant.user_id === currentUserId ||
-      participant.invited_email.toLowerCase() === currentUserEmail.toLowerCase(),
+      (Boolean(currentUserEmail) && participant.invited_email?.toLowerCase() === currentUserEmail.toLowerCase()),
   );
   const participants: EventParticipantSummary[] = (row.event_participants || [])
     .map((participant) => {
@@ -168,14 +172,14 @@ export function mapCalendarEvent(
         : participant.profiles;
 
       return {
-        id: participant.user_id || participant.invited_email,
+        id: participant.user_id || participant.family_athlete_id || participant.invited_email || "",
         name:
-          profile?.display_name?.trim() ||
-          participant.invited_email,
+          profile?.display_name?.trim() || participant.family_display_name ||
+          participant.invited_email || "",
         // Die bereits autorisierte Teilnehmerzeile ist die kanonische Quelle
         // fuer die Event-E-Mail; profiles.email bleibt direkt unlesbar.
-        email: participant.invited_email,
-        accountType: profile?.account_type || "unspecified",
+        email: participant.invited_email || "",
+        accountType: profile?.account_type || (participant.family_athlete_id ? "athlete" : "unspecified"),
         status: participant.status,
         reminderEnabled: participant.reminder_enabled,
         responseIsLate: participant.response_is_late,

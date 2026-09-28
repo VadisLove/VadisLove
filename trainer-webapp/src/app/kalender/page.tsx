@@ -1,3 +1,4 @@
+import { getOwnFamilyNotice } from "@/data/family-repository";
 import {
   getCalendarEvents,
   getEventOrganizationOptions,
@@ -21,14 +22,16 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     ? params.neu
     : undefined;
   const initialDetailFocus = params.focus === "attendance";
-  const [events, organizationOptions] = await Promise.all([
+  const [events, organizationOptions, guardianNotice] = await Promise.all([
     getCalendarEvents(),
     getEventOrganizationOptions(),
+    getOwnFamilyNotice(),
   ]);
 
   return (
     <CalendarView
       initialEvents={events}
+      guardianNotice={guardianNotice}
       organizationOptions={organizationOptions}
       initialSelectedEventId={selectedEventId}
       initialCreateDialogRequest={createDialogRequest}
