@@ -31,7 +31,7 @@ export function ParkDirectoryView({ initial }: { initial: ParkDirectory | null }
   if (!data)
     return (
       <div className={styles.page}>
-        <h1>Skateparks</h1>
+        <h1>Runbuilder</h1>
         <p className={styles.message}>Parks konnten nicht geladen werden. Bitte Seite neu laden.</p>
       </div>
     );
@@ -52,7 +52,7 @@ export function ParkDirectoryView({ initial }: { initial: ParkDirectory | null }
       content: emptyParkContent(),
     });
     // Neue Parks öffnen direkt im Bearbeitungsmodus, damit sie nachgebaut werden können.
-    if (outcome.ok) router.push(`/skateparks/${parkId}?bearbeiten=1`);
+    if (outcome.ok) router.push(`/runbuilder/${parkId}?bearbeiten=1`);
   }
 
   async function review(trickId: string, decision: "approved" | "rejected") {
@@ -64,7 +64,7 @@ export function ParkDirectoryView({ initial }: { initial: ParkDirectory | null }
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1>Skateparks</h1>
+          <h1>Runbuilder</h1>
           <p>Parks nachbauen und Runs mit Trickfolge, Richtung und Scores planen.</p>
         </div>
         <button type="button" className={styles.primary} onClick={() => dialog.current?.showModal()}>
@@ -89,7 +89,7 @@ export function ParkDirectoryView({ initial }: { initial: ParkDirectory | null }
           <ul className={styles.list}>
             {data.runs.slice(0, 12).map((run) => (
               <li key={run.id}>
-                <Link href={`/skateparks/${run.park_id}?run=${run.id}`} className={styles.listItem}>
+                <Link href={`/runbuilder/${run.park_id}?run=${run.id}`} className={styles.listItem}>
                   <div>
                     <strong>{run.title}</strong>
                     <span className={styles.muted}>
@@ -130,7 +130,7 @@ export function ParkDirectoryView({ initial }: { initial: ParkDirectory | null }
         ) : (
           <div className={styles.grid}>
             {parks.map((park) => (
-              <Link key={park.id} href={`/skateparks/${park.id}`} className={styles.parkCard}>
+              <Link key={park.id} href={`/runbuilder/${park.id}`} className={styles.parkCard}>
                 <strong>{park.name}</strong>
                 <span className={styles.muted}>{park.location || "Ohne Ortsangabe"}</span>
                 <span className={styles.muted}>

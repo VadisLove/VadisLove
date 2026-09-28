@@ -664,8 +664,8 @@ export function ParkPlannerView({
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <Link href="/skateparks" className={styles.back}>
-            <ChevronLeft size={16} /> Skateparks
+          <Link href="/runbuilder" className={styles.back}>
+            <ChevronLeft size={16} /> Runbuilder
           </Link>
           <h1>{detail.park.name}</h1>
           <p>

@@ -35,7 +35,7 @@ const navigation = [
   { href: "/", labelKey: "navigation.dashboard", icon: LayoutDashboard },
   { href: "/kalender", labelKey: "navigation.calendar", icon: CalendarDays },
   { href: "/trainingsplaene", labelKey: "navigation.plans", icon: ClipboardList },
-  { href: "/skateparks", labelKey: "navigation.parks", icon: MapIcon },
+  { href: "/runbuilder", labelKey: "navigation.parks", icon: MapIcon },
   { href: "/auswertung", labelKey: "navigation.evaluations", icon: ChartNoAxesCombined },
   { href: "/personen", labelKey: "navigation.people", icon: Users },
   { href: "/postfach", labelKey: "navigation.inbox", icon: MessagesSquare },

@@ -103,7 +103,7 @@ createServer(async (req, res) => {
         "base64-" +
         enc({ access_token: u.token, refresh_token: "local-only", expires_at: 4102444800, expires_in: 999999999, token_type: "bearer", user: u });
       res.setHeader("Set-Cookie", `sb-127-auth-token=${cookie}; Path=/; SameSite=Lax`);
-      res.writeHead(302, { Location: `${APP}/skateparks` });
+      res.writeHead(302, { Location: `${APP}/runbuilder` });
       return res.end();
     }
     // Signierte URLs sind ohne Login abrufbar, wie bei Supabase.
