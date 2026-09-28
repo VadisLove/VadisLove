@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e6ebf0;font-family:Figtree,system-ui,sans-serif;color:#102238;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}input,textarea,button{font-family:inherit}button{cursor:pointer}input:focus,textarea:focus{outline:2px solid #148cf2;outline-offset:-1px}a{color:#0874d1}a:hover{color:#07182d}</style>
+</helmet>
+<section style="padding:56px 64px 96px;display:flex;flex-direction:column;gap:40px">
+<div style="max-width:900px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;font-weight:700;color:#fff;background:#07182d;border-radius:6px;padding:3px 8px">Runde 1</span><span style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#68778a">Auswertung · weniger Scrollen</span></div>
+<h1 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Auswertung – zwei Richtungen</h1>
+<div style="font-size:15px;color:#46576b;line-height:1.55;text-wrap:pretty">Gemeinsam für alle: Notizfelder öffnen sich erst auf Klick. Der Wert der letzten Auswertung steht gestrichelt auf der Skala, daneben die Veränderung. Der doppelte Donut entfällt, die Contests stecken im Kennzahlen-Streifen. Gespeichert wird oben statt in einer Leiste am Seitenende. <b style="color:#07182d">Kompakt</b> (<a href="#1a">1a</a>, <a href="#1c">1c</a>) zeigt alles auf einem Bildschirm. <b style="color:#07182d">Fokus</b> (<a href="#1b">1b</a>, <a href="#1d">1d</a>) führt Kriterium für Kriterium durch die Auswertung und lässt sich mit der Tastatur bedienen. Alle vier teilen sich dieselben Daten.</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+<div id="1a" style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:13px;font-weight:700;color:#fff;background:#148cf2;border-radius:6px;padding:3px 8px">1a</span><span style="font-size:18px;font-weight:700;color:#07182d">Desktop · Kompakt mit Seitenleiste</span><span style="font-size:14px;color:#68778a">Alle 12 Kriterien als Tabelle, rechts immer die Zusammenfassung</span></div>
+<div style="width:1440px;display:grid;grid-template-columns:232px 1fr;background:#f5f7f9;border-radius:14px;overflow:hidden;box-shadow:0 30px 60px rgba(7,24,45,.18)">
+<div style="background:#0a1a2f;padding:20px 14px;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 18px"><span style="width:34px;height:34px;border-radius:17px;background:#fff;color:#0a1a2f;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">SKSB</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;line-height:.95">TRAINER<br>HUB</span></div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Dashboard</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Kalender</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Trainingspläne</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Skateparks</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;background:#148cf2;color:#fff;font-size:14px;font-weight:600">Auswertung</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Personen</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Postfach</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Organisation</div>
+<div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:8px;color:#c4d0dd;font-size:14px">Profil</div>
+</div>
+<div style="padding:26px 32px 32px;display:flex;flex-direction:column;gap:16px;min-width:0">
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+<div><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#68778a">Athleten</div><h2 style="margin:2px 0 0;font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Auswertung</h2></div>
+<div style="display:flex;align-items:center;gap:10px">
+<div style="display:flex;background:#dfe5eb;border-radius:10px;padding:3px;gap:3px"><span style="height:34px;padding:0 14px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(7,24,45,.12);font-size:13px;font-weight:700;display:flex;align-items:center;color:#07182d">Einzelauswertung</span><span style="height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;color:#46576b">Fahrervergleich</span></div>
+<span style="height:40px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;border-radius:10px;font-size:13px;font-weight:600;color:#102238;display:flex;align-items:center;flex:none;white-space:nowrap">01.01.2026 – 25.09.2026</span>
+<button style="height:40px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;border-radius:10px;font-size:13px;font-weight:600;color:#102238">CSV</button>
+<button style="flex:none;white-space:nowrap;height:40px;padding:0 16px;border:0;background:#148cf2;border-radius:10px;font-size:14px;font-weight:600;color:#fff">Auswertung speichern</button>
+</div>
+</div>
+<div style="background:#0a1a2f;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:20px;box-shadow:0 12px 28px rgba(10,26,47,.2)">
+<span style="width:44px;height:44px;border-radius:22px;background:#1d3350;color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex:none">VA</span>
+<div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:700;color:#fff">Vladik Athlet Testikowski ▾</div><div style="font-size:13px;color:#c4d0dd">Kader B-NK2 · Street · Gespräch am 18.09.2026</div></div>
+<div style="display:flex;gap:28px;align-items:center">
+<div><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#fff;line-height:1">100 %</div><div style="font-size:12px;color:#c4d0dd">Anwesenheit</div></div>
+<div><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#fff;line-height:1">2 <span style="font-size:15px;color:#7fb8f2">›</span></div><div style="font-size:12px;color:#c4d0dd">Contests</div></div>
+<div><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#fff;line-height:1">{{ trickDone }}/13</div><div style="font-size:12px;color:#c4d0dd">Trickziele</div></div>
+<div><div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#fff;line-height:1">63</div><div style="font-size:12px;color:#c4d0dd">Score</div></div>
+<span style="height:36px;padding:0 12px;border-radius:8px;background:#1d3350;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center">Status: Kader halten ▾</span>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:12px">
+<div style="font-size:16px;font-weight:700;color:#07182d;white-space:nowrap">Bewertung <span style="font-weight:600;color:#68778a">· {{ rated }}/12</span></div>
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#68778a"><span style="width:18px;height:18px;border-radius:5px;border:1.5px dashed #148cf2"></span>letzte Auswertung 12.06.2026</div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 206px 58px 230px;gap:14px;padding:0 18px 8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#68778a"><span>Kriterium</span><span>1 · 2 · 3 · 4 · 5</span><span>Δ</span><span>Notiz</span></div>
+<sc-for list="{{ secs }}" as="s" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 18px;background:#f5f7f9;border-top:1px solid #eef1f4;border-bottom:1px solid #eef1f4">
+<span style="font-size:13px;font-weight:700;color:#07182d"><span style="color:#9aa6b4">{{ s.n }}</span>  {{ s.t }}</span>
+<span style="font-size:12px;font-weight:600;color:#46576b">Ø {{ s.avgL }} <span style="color:#9aa6b4">· zuvor {{ s.pavgL }}</span></span>
+</div>
+<sc-for list="{{ s.rows }}" as="w" hint-placeholder-count="4">
+<div style="border-bottom:1px solid #eef1f4">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 206px 58px 230px;gap:14px;align-items:center;min-height:50px;padding:0 18px">
+<span style="font-size:14px;font-weight:600;color:#102238">{{ w.t }}</span>
+<span style="display:flex;gap:6px"><sc-for list="{{ w.scale }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.go }}" style="width:36px;height:34px;border-radius:8px;border:{{ b.bd }};background:{{ b.bg }};color:{{ b.fg }};font-size:14px;font-weight:700">{{ b.v }}</button></sc-for></span>
+<span style="justify-self:start;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:{{ w.d.bg }};color:{{ w.d.fg }};white-space:nowrap">{{ w.d.t }}</span>
+<button onClick="{{ w.toggle }}" style="text-align:left;border:0;background:none;padding:6px 0;font-size:13px;color:{{ w.noteFg }};overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ w.noteL }}</button>
+</div>
+<sc-if value="{{ w.open }}">
+<div style="padding:0 18px 14px;display:flex;gap:10px;align-items:flex-start">
+<textarea value="{{ w.note }}" onChange="{{ w.onNote }}" rows="2" placeholder="Beobachtung oder Entwicklung festhalten …" style="flex:1;border:1px solid #dfe5eb;border-radius:10px;padding:10px 12px;font-size:14px;color:#102238;resize:vertical"></textarea>
+<button style="width:40px;height:40px;border-radius:10px;border:1px solid #dfe5eb;background:#fff;color:#148cf2;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
+<button onClick="{{ w.toggle }}" style="height:40px;padding:0 14px;border-radius:10px;border:0;background:#eef6fe;color:#0b5aa0;font-size:13px;font-weight:700">Fertig</button>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</sc-for>
+</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+<div style="font-size:16px;font-weight:700;color:#07182d;white-space:nowrap">Trickziele aus Aufgaben <span style="font-weight:600;color:#68778a">· {{ trickDone }}/13 erreicht</span></div>
+<div style="display:flex;background:#eef1f4;border-radius:8px;padding:3px;gap:3px"><sc-for list="{{ tfOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.go }}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:{{ o.bg }};color:{{ o.fg }};font-size:12px;font-weight:700">{{ o.l }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ tricksF }}" as="k" hint-placeholder-count="13"><button onClick="{{ k.go }}" style="height:36px;padding:0 12px;flex:none;white-space:nowrap;border-radius:18px;border:{{ k.bd }};background:{{ k.bg }};color:{{ k.fg }};font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px"><span style="font-weight:700">{{ k.mark }}</span>{{ k.t }}</button></sc-for></div>
+<div style="font-size:12px;color:#68778a">Klick auf einen Trick schaltet zwischen offen und erreicht um.</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+<div style="font-size:16px;font-weight:700;color:#07182d">Entwicklung seit 12.06.</div>
+<sc-for list="{{ secs }}" as="s" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;font-size:13px"><span style="font-weight:600;color:#102238">{{ s.s }} <span style="color:#9aa6b4;font-weight:500">{{ s.cnt }}</span></span><span style="font-weight:700;color:{{ s.dFg }}">{{ s.avgL }} {{ s.dL }}</span></div>
+<div style="position:relative;height:10px;border-radius:5px;background:#eef1f4"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ s.pct }};border-radius:5px;background:#148cf2"></div><div style="position:absolute;top:-3px;bottom:-3px;width:2px;left:{{ s.ppct }};background:#07182d"></div></div>
+</div>
+</sc-for>
+<div style="font-size:12px;color:#68778a">Balken = jetzt · Strich = letzte Auswertung</div>
+</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:700;color:#07182d">Persönliche Bemerkung</div>
+<textarea rows="3" placeholder="Gespräch, Umfeld, Entwicklung, nächste Schritte …" style="border:1px solid #dfe5eb;border-radius:10px;padding:10px 12px;font-size:14px;resize:vertical"></textarea>
+<div style="font-size:14px;font-weight:700;color:#07182d;margin-top:4px">Maßnahmen</div>
+<textarea rows="3" placeholder="Vereinbarte Maßnahmen, Physio, Trainingsschwerpunkte …" style="border:1px solid #dfe5eb;border-radius:10px;padding:10px 12px;font-size:14px;resize:vertical"></textarea>
+</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:700;color:#07182d">Persönliche Ziele</div>
+<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#102238"><span style="width:20px;height:20px;border-radius:10px;border:1.5px solid #b9c4d0"></span>Fitness Training<span style="margin-left:auto;font-size:12px;color:#68778a">3× / Woche</span></div>
+<div style="display:flex;gap:8px"><input placeholder="Neues persönliches Ziel" style="flex:1;height:40px;border:1px solid #dfe5eb;border-radius:10px;padding:0 12px;font-size:14px"><button style="height:40px;padding:0 12px;border:0;border-radius:10px;background:#eef6fe;color:#0b5aa0;font-size:13px;font-weight:700">+ Hinzufügen</button></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="1c" style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:13px;font-weight:700;color:#fff;background:#148cf2;border-radius:6px;padding:3px 8px">1c</span><span style="font-size:18px;font-weight:700;color:#07182d">Mobil · Kompakt mit Tabs</span></div>
+<div style="font-size:14px;color:#68778a;max-width:390px">Ein Tab pro Bereich statt einer langen Seite. Der Fortschritt steht immer unten.</div>
+<div style="width:390px;height:844px;flex:none;border-radius:48px;background:#0a1a2f;padding:10px;box-shadow:0 30px 60px rgba(7,24,45,.25)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:#f5f7f9;display:flex;flex-direction:column">
+<div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:14px;font-weight:600;background:#fff;color:#07182d"><span>9:41</span><span style="width:96px;height:26px;background:#0a1a2f;border-radius:14px"></span><span style="font-size:12px">5G ▮</span></div>
+<div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;border-bottom:1px solid #dfe5eb"><span style="font-size:20px;color:#07182d">≡</span><span style="flex:1;font-size:15px;font-weight:700;color:#07182d">Trainer Hub</span><span style="font-size:12px;font-weight:600;color:#68778a;background:#eef1f4;border-radius:6px;padding:4px 8px">Trainer</span></div>
+<div style="flex:none;padding:14px 16px 0;display:flex;flex-direction:column;gap:12px;background:#f5f7f9">
+<div style="display:flex;align-items:flex-end;justify-content:space-between"><h2 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Auswertung</h2><span style="font-size:12px;font-weight:600;color:#46576b;background:#fff;border:1px solid #dfe5eb;border-radius:8px;padding:6px 8px">01.01. – 25.09.26</span></div>
+<div style="background:#0a1a2f;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:36px;height:36px;border-radius:18px;background:#1d3350;color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center">VA</span><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Vladik Athlet Testikowski ▾</div><div style="font-size:12px;color:#c4d0dd">B-NK2 · Street · Kader halten</div></div></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center"><div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff">100 %</div><div style="font-size:11px;color:#c4d0dd">Anwesend</div></div><div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff">2</div><div style="font-size:11px;color:#c4d0dd">Contests</div></div><div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff">{{ trickDone }}/13</div><div style="font-size:11px;color:#c4d0dd">Ziele</div></div><div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff">63</div><div style="font-size:11px;color:#c4d0dd">Score</div></div></div>
+</div>
+<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;border-bottom:1px solid #dfe5eb"><sc-for list="{{ mTabs }}" as="t" hint-placeholder-count="5"><button onClick="{{ t.go }}" style="flex:none;height:40px;padding:0 12px;border-radius:20px;border:{{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">{{ t.l }}<span style="font-size:11px;font-weight:600;opacity:.8">{{ t.c }}</span></button></sc-for></div>
+</div>
+<div style="flex:1;overflow:auto;padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ mRows }}" as="w" hint-placeholder-count="4">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:flex-start;gap:8px"><span style="flex:1;font-size:15px;font-weight:600;color:#102238;line-height:1.3">{{ w.t }}</span><span style="flex:none;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:{{ w.d.bg }};color:{{ w.d.fg }}">{{ w.d.t }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px"><sc-for list="{{ w.scale }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.go }}" style="height:44px;border-radius:10px;border:{{ b.bd }};background:{{ b.bg }};color:{{ b.fg }};font-size:16px;font-weight:700">{{ b.v }}</button></sc-for></div>
+<button onClick="{{ w.toggle }}" style="text-align:left;border:0;background:none;padding:0;min-height:24px;font-size:13px;color:{{ w.noteFg }};overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ w.noteL }}</button>
+<sc-if value="{{ w.open }}"><div style="display:flex;gap:8px"><textarea value="{{ w.note }}" onChange="{{ w.onNote }}" rows="3" placeholder="Beobachtung festhalten …" style="flex:1;border:1px solid #dfe5eb;border-radius:10px;padding:10px;font-size:14px"></textarea><button style="width:44px;height:44px;border-radius:10px;border:1px solid #dfe5eb;background:#fff;color:#148cf2;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button></div></sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ mZiele }}">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:15px;font-weight:700;color:#07182d">Trickziele · {{ trickDone }}/13</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ tricks }}" as="k" hint-placeholder-count="13"><button onClick="{{ k.go }}" style="height:40px;padding:0 12px;flex:none;white-space:nowrap;border-radius:20px;border:{{ k.bd }};background:{{ k.bg }};color:{{ k.fg }};font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px"><span style="font-weight:700">{{ k.mark }}</span>{{ k.t }}</button></sc-for></div>
+</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
+<div style="font-size:15px;font-weight:700;color:#07182d">Persönliche Ziele</div>
+<div style="font-size:14px;color:#102238">○ Fitness Training · 3× / Woche</div>
+<input placeholder="+ Neues Ziel" style="height:44px;border:1px solid #dfe5eb;border-radius:10px;padding:0 12px;font-size:14px">
+</div>
+</sc-if>
+<sc-if value="{{ mAbs }}">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px">
+<div style="font-size:15px;font-weight:700;color:#07182d">Persönliche Bemerkung</div>
+<textarea rows="4" placeholder="Gespräch, Umfeld, nächste Schritte …" style="border:1px solid #dfe5eb;border-radius:10px;padding:10px;font-size:14px"></textarea>
+<div style="font-size:15px;font-weight:700;color:#07182d;margin-top:6px">Maßnahmen</div>
+<textarea rows="4" placeholder="Physio, Trainingsschwerpunkte …" style="border:1px solid #dfe5eb;border-radius:10px;padding:10px;font-size:14px"></textarea>
+</div>
+</sc-if>
+</div>
+<div style="flex:none;padding:10px 16px;background:#fff;border-top:1px solid #dfe5eb;display:flex;align-items:center;gap:12px">
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:700;color:#07182d">{{ rated }}/12 bewertet</span><div style="height:6px;border-radius:3px;background:#eef1f4;overflow:hidden"><div style="height:100%;width:{{ progPct }};background:#1f9d6b"></div></div></div>
+<button style="height:44px;padding:0 16px;border:0;border-radius:10px;background:#148cf2;color:#fff;font-size:14px;font-weight:600">Speichern</button>
+</div>
+<div style="height:64px;flex:none;background:#fff;border-top:1px solid #eef1f4;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;text-align:center;font-size:10px;font-weight:600;color:#68778a"><span>Start</span><span>Kalender</span><span style="display:flex;justify-content:center"><span style="width:44px;height:44px;border-radius:22px;background:#148cf2;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center">+</span></span><span style="color:#148cf2">Auswertung</span><span>Profil</span></div>
+</div>
+</div>
+</div>
+
+<div id="1b" onPointerEnter="{{ kbB }}" onPointerLeave="{{ kbOff }}" style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:13px;font-weight:700;color:#fff;background:#148cf2;border-radius:6px;padding:3px 8px">1b</span><span style="font-size:18px;font-weight:700;color:#07182d">Desktop · Fokus-Modus</span><span style="font-size:14px;color:#68778a">Ein Kriterium nach dem anderen – Maus über den Rahmen, dann Tasten 1–5</span></div>
+<div style="width:1440px;height:900px;display:grid;grid-template-columns:232px 1fr;background:#f5f7f9;border-radius:14px;overflow:hidden;box-shadow:0 30px 60px rgba(7,24,45,.18)">
+<div style="background:#0a1a2f;padding:20px 14px;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 18px"><span style="width:34px;height:34px;border-radius:17px;background:#fff;color:#0a1a2f;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">SKSB</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;line-height:.95">TRAINER<br>HUB</span></div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;color:#c4d0dd;font-size:14px">Dashboard</div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;color:#c4d0dd;font-size:14px">Kalender</div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;color:#c4d0dd;font-size:14px">Trainingspläne</div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;color:#c4d0dd;font-size:14px">Skateparks</div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#148cf2;color:#fff;font-size:14px;font-weight:600">Auswertung</div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;color:#c4d0dd;font-size:14px">Personen</div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;color:#c4d0dd;font-size:14px">Postfach</div>
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;color:#c4d0dd;font-size:14px">Profil</div>
+</div>
+<div style="padding:24px 32px;display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0">
+<div style="display:flex;align-items:center;gap:16px">
+<h2 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Auswertung</h2>
+<span style="height:40px;padding:0 12px 0 6px;border:1px solid #dfe5eb;background:#fff;border-radius:20px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#07182d;flex:none;white-space:nowrap"><span style="width:28px;height:28px;border-radius:14px;background:#0a1a2f;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">VA</span>Vladik Athlet Testikowski · B-NK2 ▾</span>
+<span style="font-size:13px;color:#68778a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">100 % · 2 Contests · Score 63</span>
+<span style="flex:1"></span>
+<div style="width:160px;flex:none;display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:700;color:#07182d">{{ rated }}/12 bewertet</span><div style="height:6px;border-radius:3px;background:#dfe5eb;overflow:hidden"><div style="height:100%;width:{{ progPct }};background:#1f9d6b"></div></div></div>
+<button style="flex:none;white-space:nowrap;height:40px;padding:0 16px;border:0;background:#148cf2;border-radius:10px;font-size:14px;font-weight:600;color:#fff">Auswertung speichern</button>
+</div>
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:10px;overflow:auto;display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ bNav }}" as="s" hint-placeholder-count="3">
+<div style="display:flex;justify-content:space-between;padding:10px 10px 6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#68778a"><span>{{ s.n }} {{ s.s }}</span><span>Ø {{ s.avgL }}</span></div>
+<sc-for list="{{ s.items }}" as="i" hint-placeholder-count="4">
+<button onClick="{{ i.go }}" style="text-align:left;min-height:40px;display:flex;align-items:center;gap:10px;padding:6px 10px;border:0;border-radius:8px;background:{{ i.bg }}">
+<span style="width:26px;height:26px;flex:none;border-radius:7px;border:{{ i.bBd }};background:{{ i.bBg }};color:{{ i.bFg }};font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ i.v }}</span>
+<span style="flex:1;font-size:13px;font-weight:600;color:{{ i.fg }};line-height:1.25">{{ i.t }}</span>
+<sc-if value="{{ i.hasNote }}"><span style="font-size:12px;color:#9aa6b4">✎</span></sc-if>
+</button>
+</sc-for>
+</sc-for>
+<button onClick="{{ bAbsGo }}" style="margin-top:8px;text-align:left;min-height:44px;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #dfe5eb;border-radius:8px;background:{{ bAbsBg }};font-size:13px;font-weight:700;color:#07182d">Abschluss · Ziele & Bemerkung ›</button>
+</div>
+<sc-if value="{{ bIsCrit }}" hint-placeholder-val="{{ true }}">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:36px 44px;display:flex;flex-direction:column;gap:26px;min-height:0">
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#68778a">{{ bF.kick }}</span>
+<span style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">{{ bF.t }}</span>
+</div>
+<div style="display:flex;align-items:flex-end;gap:28px">
+<div style="display:flex;align-items:flex-end;gap:8px;height:64px"><sc-for list="{{ bF.hist }}" as="h" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:34px"><span style="font-size:12px;font-weight:700;color:#46576b">{{ h.v }}</span><div style="width:22px;height:{{ h.h }};border-radius:4px;background:{{ h.bg }}"></div><span style="font-size:11px;color:#68778a">{{ h.l }}</span></div></sc-for></div>
+<span style="font-size:14px;color:#46576b;padding-bottom:18px">{{ bF.prevL }}</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px"><sc-for list="{{ bF.scale }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.go }}" style="height:110px;border-radius:14px;border:{{ b.bd }};background:{{ b.bg }};color:{{ b.fg }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:700;line-height:1">{{ b.v }}</span><span style="font-size:13px;font-weight:600">{{ b.l }}</span><span style="font-size:11px;font-weight:700;height:14px;opacity:.85">{{ b.tag }}</span></button></sc-for></div>
+<div style="display:flex;gap:10px;align-items:stretch">
+<textarea ref="{{ bNoteRef }}" value="{{ bF.note }}" onChange="{{ bF.onNote }}" rows="3" placeholder="Notiz (optional) – Taste N" style="flex:1;border:1px solid #dfe5eb;border-radius:12px;padding:12px 14px;font-size:15px;color:#102238;resize:none"></textarea>
+<button style="width:110px;border-radius:12px;border:1px solid #dfe5eb;background:#fff;color:#148cf2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Diktieren</button>
+</div>
+<div style="margin-top:auto;display:flex;align-items:center;gap:12px">
+<button onClick="{{ bPrev }}" style="height:46px;padding:0 18px;border:1px solid #dfe5eb;background:#fff;border-radius:10px;font-size:14px;font-weight:600;color:#102238;flex:none;white-space:nowrap">← Zurück</button>
+<span style="flex:1;display:flex;justify-content:center;flex-wrap:wrap;gap:14px;font-size:12px;color:#68778a"><span style="white-space:nowrap"><b style="border:1px solid #dfe5eb;border-radius:4px;padding:1px 6px;color:#07182d">1</b>–<b style="border:1px solid #dfe5eb;border-radius:4px;padding:1px 6px;color:#07182d">5</b> bewerten &amp; weiter</span><span style="white-space:nowrap"><b style="border:1px solid #dfe5eb;border-radius:4px;padding:1px 6px;color:#07182d">↑ ↓</b> wechseln</span><span style="white-space:nowrap"><b style="border:1px solid #dfe5eb;border-radius:4px;padding:1px 6px;color:#07182d">N</b> Notiz</span></span>
+<button onClick="{{ bNext }}" style="height:46px;padding:0 20px;border:0;background:#07182d;border-radius:10px;font-size:14px;font-weight:600;color:#fff;flex:none;white-space:nowrap">Weiter →</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ bIsAbs }}">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:32px 40px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-content:start">
+<div style="grid-column:1 / -1;display:flex;align-items:flex-end;justify-content:space-between"><span style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Abschluss</span><span style="font-size:14px;color:#46576b">{{ rated }}/12 Kriterien bewertet</span></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font-size:15px;font-weight:700;color:#07182d">Trickziele · {{ trickDone }}/13 erreicht</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ tricks }}" as="k" hint-placeholder-count="13"><button onClick="{{ k.go }}" style="height:36px;padding:0 12px;flex:none;white-space:nowrap;border-radius:18px;border:{{ k.bd }};background:{{ k.bg }};color:{{ k.fg }};font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px"><span style="font-weight:700">{{ k.mark }}</span>{{ k.t }}</button></sc-for></div>
+<div style="font-size:15px;font-weight:700;color:#07182d;margin-top:10px">Persönliche Ziele</div>
+<div style="display:flex;gap:8px"><input value="Fitness Training · 3× / Woche" style="flex:1;height:42px;border:1px solid #dfe5eb;border-radius:10px;padding:0 12px;font-size:14px"><button style="height:42px;padding:0 12px;border:0;border-radius:10px;background:#eef6fe;color:#0b5aa0;font-size:13px;font-weight:700">+ Ziel</button></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:15px;font-weight:700;color:#07182d">Persönliche Bemerkung</div>
+<textarea rows="5" placeholder="Gespräch, Umfeld, Entwicklung …" style="border:1px solid #dfe5eb;border-radius:12px;padding:12px;font-size:14px;resize:none"></textarea>
+<div style="font-size:15px;font-weight:700;color:#07182d;margin-top:6px">Maßnahmen</div>
+<textarea rows="5" placeholder="Physio, Trainingsschwerpunkte …" style="border:1px solid #dfe5eb;border-radius:12px;padding:12px;font-size:14px;resize:none"></textarea>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+
+<div id="1d" onPointerEnter="{{ kbD }}" onPointerLeave="{{ kbOff }}" style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:13px;font-weight:700;color:#fff;background:#148cf2;border-radius:6px;padding:3px 8px">1d</span><span style="font-size:18px;font-weight:700;color:#07182d">Mobil · Schnell-Auswertung</span></div>
+<div style="font-size:14px;color:#68778a;max-width:390px">Ein Kriterium pro Bildschirm, mit einem Daumen bedienbar. Nach dem Antippen geht es automatisch weiter.</div>
+<div style="width:390px;height:844px;flex:none;border-radius:48px;background:#0a1a2f;padding:10px;box-shadow:0 30px 60px rgba(7,24,45,.25)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:#fff;display:flex;flex-direction:column">
+<div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:14px;font-weight:600;color:#07182d"><span>9:41</span><span style="width:96px;height:26px;background:#0a1a2f;border-radius:14px"></span><span style="font-size:12px">5G ▮</span></div>
+<div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px"><span style="font-size:20px;color:#07182d">✕</span><span style="flex:1;font-size:15px;font-weight:700;color:#07182d">Vladik A. Testikowski</span><span style="font-size:13px;font-weight:700;color:#68778a">{{ dPos }}</span></div>
+<div style="flex:none;display:flex;gap:3px;padding:0 16px"><sc-for list="{{ dSeg }}" as="g" hint-placeholder-count="13"><button onClick="{{ g.go }}" style="flex:1;height:6px;border:0;padding:0;border-radius:3px;background:{{ g.bg }}"></button></sc-for></div>
+<sc-if value="{{ dIsCrit }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;display:flex;flex-direction:column;padding:22px 16px 16px;gap:16px;min-height:0">
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#68778a">{{ dF.sec }}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1.02">{{ dF.t }}</span><span style="font-size:13px;color:#46576b">{{ dF.prevL }}</span></div>
+<div style="display:flex;flex-direction:column;gap:8px"><sc-for list="{{ dF.scaleR }}" as="b" hint-placeholder-count="5"><button onClick="{{ b.go }}" style="height:54px;border-radius:12px;border:{{ b.bd }};background:{{ b.bg }};color:{{ b.fg }};display:flex;align-items:center;gap:14px;padding:0 16px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;width:18px">{{ b.v }}</span><span style="flex:1;text-align:left;font-size:15px;font-weight:600">{{ b.l }}</span><span style="font-size:11px;font-weight:700">{{ b.tag }}</span></button></sc-for></div>
+<div style="display:flex;gap:8px"><input value="{{ dF.note }}" onChange="{{ dF.onNote }}" placeholder="Notiz (optional)" style="flex:1;height:48px;border:1px solid #dfe5eb;border-radius:12px;padding:0 12px;font-size:14px"><button style="width:48px;height:48px;border-radius:12px;border:0;background:#eef6fe;color:#148cf2;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button></div>
+<div style="margin-top:auto;display:grid;grid-template-columns:1fr 2fr;gap:8px"><button onClick="{{ dPrev }}" style="height:52px;border:1px solid #dfe5eb;background:#fff;border-radius:12px;font-size:15px;font-weight:600;color:#102238">Zurück</button><button onClick="{{ dNext }}" style="height:52px;border:0;background:#07182d;border-radius:12px;font-size:15px;font-weight:600;color:#fff">{{ dNextL }}</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ dIsAbs }}">
+<div style="flex:1;display:flex;flex-direction:column;padding:22px 16px 16px;gap:14px;overflow:auto">
+<span style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Zusammenfassung</span>
+<sc-for list="{{ secs }}" as="s" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #dfe5eb;border-radius:12px"><span style="flex:1;font-size:15px;font-weight:600;color:#102238">{{ s.s }} <span style="font-size:12px;color:#9aa6b4">{{ s.cnt }}</span></span><span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#07182d">{{ s.avgL }}</span><span style="font-size:12px;font-weight:700;color:{{ s.dFg }}">{{ s.dL }}</span></div>
+</sc-for>
+<textarea rows="3" placeholder="Persönliche Bemerkung …" style="border:1px solid #dfe5eb;border-radius:12px;padding:12px;font-size:14px"></textarea>
+<textarea rows="3" placeholder="Maßnahmen …" style="border:1px solid #dfe5eb;border-radius:12px;padding:12px;font-size:14px"></textarea>
+<div style="font-size:13px;color:#68778a">Trickziele und Contests lassen sich danach in der Übersicht (<a href="#1c">1c</a>) ergänzen.</div>
+<div style="margin-top:auto;display:grid;grid-template-columns:1fr 2fr;gap:8px"><button onClick="{{ dPrev }}" style="height:52px;border:1px solid #dfe5eb;background:#fff;border-radius:12px;font-size:15px;font-weight:600;color:#102238">Zurück</button><button style="height:52px;border:0;background:#148cf2;border-radius:12px;font-size:15px;font-weight:600;color:#fff">Auswertung speichern</button></div>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const SEC=[
+{k:'skate',n:'01',s:'Skate',t:'Skateboardspezifische Anforderungen',items:[['trk','Trick-Repertoire Street',3],['obs','Obstacles',2],['flp','Variationen: Flip in/out, Shuv in/out',2],['rot','Variationen: Rotationen in/out',3],['stc','Stance-Optionen: Switch, Fakie',2],['flw','Flow: Entwicklung von Runs / Lines',3]]},
+{k:'mental',n:'02',s:'Mental',t:'Mentaler Zustand',items:[['mut','Risikobereitschaft & Mut',4],['emo','Emotional gefestigt & belastbar',3],['fok','Fokus, Commitment & Konstanz',3]]},
+{k:'ath',n:'03',s:'Athletik',t:'Athletik',items:[['fit','Fitnesszustand',3],['koo','Koordination & Gleichgewicht',4],['gym','Athletiktraining / Gym',2]]}];
+const ALL=[];SEC.forEach(s=>s.items.forEach(([id,t,p])=>ALL.push({id,t,p,sec:s})));
+const LAB=['Einstieg','Grundlagen','Sicher','Stark','Top-Niveau'];
+const TR=[['Kickflip',1],['360 Shuvit',0],['Nosebluntslide',0],['Zwei vollständige Runs',1],['Contest-Run ohne Abbruch',0],['Boardslide',0],['50-50 Grind',0],['Rock to Fakie',1],['Rock’n’Roll',1],['Axle Stall',1],['Drop-in',0],['Fakie Ollie',0],['Frontside 180',0]];
+const f1=n=>n==null?'–':n.toFixed(1).replace('.',',');
+class Component extends DCLogic{
+state={r:{trk:4,obs:3,flp:2,rot:3,mut:4,emo:3,fok:4,fit:3,koo:4},notes:{trk:'Kickflip auf flach sicher, an der Box noch zögerlich.',mut:'Traut sich an die große Rail.'},open:null,mOpen:null,tf:'all',done:TR.map(t=>!!t[1]),fi:0,mfi:0,mTab:'skate',kb:null};
+noteRef=React.createRef();
+componentDidMount(){this.kd=e=>{const kb=this.state.kb;if(!kb)return;const tg=e.target.tagName;if(tg==='TEXTAREA'||tg==='INPUT')return;const key=kb==='b'?'fi':'mfi';const i=this.state[key];
+if(/^[1-5]$/.test(e.key)&&ALL[i]){e.preventDefault();this.rateAdv(ALL[i].id,+e.key,key);}
+else if(e.key==='ArrowDown'||e.key==='Enter'||e.key==='ArrowRight'){e.preventDefault();this.setState({[key]:Math.min(i+1,ALL.length)});}
+else if(e.key==='ArrowUp'||e.key==='ArrowLeft'){e.preventDefault();this.setState({[key]:Math.max(i-1,0)});}
+else if((e.key==='n'||e.key==='N')&&kb==='b'&&this.noteRef.current){e.preventDefault();this.noteRef.current.focus();}};
+window.addEventListener('keydown',this.kd);}
+componentWillUnmount(){window.removeEventListener('keydown',this.kd);}
+rate(id,v){this.setState(s=>({r:{...s.r,[id]:s.r[id]===v?undefined:v}}));}
+rateAdv(id,v,key){this.setState(s=>({r:{...s.r,[id]:v}}));clearTimeout(this.t);this.t=setTimeout(()=>this.setState(s=>({[key]:Math.min(s[key]+1,ALL.length)})),260);}
+scale(id,p,adv){const cur=this.state.r[id];return [1,2,3,4,5].map(v=>{const sel=cur===v,pv=p===v;return{v,l:LAB[v-1],go:()=>adv?this.rateAdv(id,v,adv):this.rate(id,v),bg:sel?'#148cf2':(pv?'#f5f9fe':'#fff'),fg:sel?'#fff':(pv?'#0b5aa0':'#46576b'),bd:sel?'1.5px solid #148cf2':(pv?'1.5px dashed #148cf2':'1px solid #dfe5eb'),tag:pv?'zuletzt':''};});}
+delta(id,p){const v=this.state.r[id];if(!v)return{t:'offen',bg:'#eef1f4',fg:'#68778a'};const d=v-p;if(d>0)return{t:'↑ '+d,bg:'#e3f4ec',fg:'#157a52'};if(d<0)return{t:'↓ '+(-d),bg:'#fdf1e1',fg:'#9a5600'};return{t:'=',bg:'#eef1f4',fg:'#46576b'};}
+row(it,ok){const {id,t,p}=it;const note=this.state.notes[id]||'';const open=this.state[ok]===id;
+return{id,t,scale:this.scale(id,p),d:this.delta(id,p),note,open,noteL:note?('✎ '+note):'+ Notiz',noteFg:note?'#46576b':'#0874d1',toggle:()=>this.setState({[ok]:open?null:id}),onNote:e=>this.setState({notes:{...this.state.notes,[id]:e.target.value}})};}
+renderVals(){const st=this.state,r=st.r;
+const items=s=>s.items.map(([id,t,p])=>({id,t,p}));
+const secs=SEC.map(s=>{const it=items(s);const rv=it.filter(x=>r[x.id]);const avg=rv.length?rv.reduce((a,x)=>a+r[x.id],0)/rv.length:null;const pavg=it.reduce((a,x)=>a+x.p,0)/it.length;const pavgR=rv.length?rv.reduce((a,x)=>a+x.p,0)/rv.length:pavg;const d=avg==null?null:avg-pavgR;
+return{k:s.k,n:s.n,s:s.s,t:s.t,avgL:f1(avg),pavgL:f1(pavg),cnt:rv.length+'/'+it.length,pct:((avg||0)/5*100)+'%',ppct:(pavgR/5*100)+'%',dL:d==null?'':(d>0.05?'↑ '+f1(d):d<-0.05?'↓ '+f1(-d):'='),dFg:d==null?'#68778a':d>0.05?'#157a52':d<-0.05?'#9a5600':'#46576b',rows:it.map(x=>this.row(x,'open')),mrows:it.map(x=>this.row(x,'mOpen')),items:it};});
+const rated=ALL.filter(x=>r[x.id]).length;
+const tricks=TR.map(([t],i)=>{const dn=st.done[i];return{t,dn,mark:dn?'✓':'○',bg:dn?'#e3f4ec':'#fff',fg:dn?'#157a52':'#102238',bd:dn?'1px solid #bfe3d1':'1px solid #dfe5eb',go:()=>{const d=[...st.done];d[i]=!d[i];this.setState({done:d});}};});
+const trickDone=st.done.filter(Boolean).length;
+const tfOpts=[['all','Alle'],['open','Offen'],['done','Erreicht']].map(([k,l])=>({l,go:()=>this.setState({tf:k}),bg:st.tf===k?'#fff':'transparent',fg:st.tf===k?'#07182d':'#68778a'}));
+const tricksF=tricks.filter(k=>st.tf==='all'||(st.tf==='done'?k.dn:!k.dn));
+// 1c
+const mTabs=[...secs.map(s=>({k:s.k,l:s.s,c:s.cnt})),{k:'ziele',l:'Ziele',c:trickDone+'/13'},{k:'abs',l:'Abschluss',c:''}].map(t=>{const a=st.mTab===t.k;return{...t,go:()=>this.setState({mTab:t.k,mOpen:null}),bg:a?'#07182d':'#fff',fg:a?'#fff':'#102238',bd:a?'1px solid #07182d':'1px solid #dfe5eb'};});
+const ms=secs.find(s=>s.k===st.mTab);
+// 1b
+const focus=(i,key)=>{const c=ALL[i];if(!c)return null;const h=[Math.max(1,c.p-1),Math.max(1,c.p-1),c.p,c.p];const lb=['Okt','Jan','Mär','Jun'];const hist=h.map((v,j)=>({v,h:(v*9)+'px',l:lb[j],bg:'#c9d4df'}));if(r[c.id])hist.push({v:r[c.id],h:(r[c.id]*9)+'px',l:'Jetzt',bg:'#148cf2'});else hist.push({v:'–',h:'3px',l:'Jetzt',bg:'#eef1f4'});
+const sc=this.scale(c.id,c.p,key);
+return{kick:c.sec.n+' '+c.sec.t+' · '+(i+1)+' von 12',sec:c.sec.s+' · '+(i+1)+' von 12',t:c.t,prevL:'Letzte Auswertung 12.06.2026: '+c.p+' · '+LAB[c.p-1],hist,scale:sc,scaleR:[...sc].reverse(),note:st.notes[c.id]||'',onNote:e=>this.setState({notes:{...this.state.notes,[c.id]:e.target.value}})};};
+const bNav=secs.map(s=>({n:s.n,s:s.s,avgL:s.avgL,items:s.items.map(x=>{const i=ALL.findIndex(a=>a.id===x.id);const a=st.fi===i;const v=r[x.id];return{t:x.t,v:v||'',hasNote:!!st.notes[x.id],go:()=>this.setState({fi:i}),bg:a?'#eef6fe':'transparent',fg:a?'#0b5aa0':'#102238',bBg:v?'#e8f3fe':'#fff',bFg:'#0b5aa0',bBd:v?'1px solid #bcdcfb':'1.5px dashed #c9d4df'};})}));
+const bIsAbs=st.fi>=ALL.length;
+const dIsAbs=st.mfi>=ALL.length;
+const dSeg=[...ALL.map((a,i)=>({go:()=>this.setState({mfi:i}),bg:i===st.mfi?'#07182d':(r[a.id]?'#1f9d6b':'#dfe5eb')})),{go:()=>this.setState({mfi:ALL.length}),bg:dIsAbs?'#07182d':'#dfe5eb'}];
+return{secs,rated,progPct:(rated/12*100)+'%',tricks,tricksF,tfOpts,trickDone,
+mTabs,mRows:ms?ms.mrows:[],mZiele:st.mTab==='ziele',mAbs:st.mTab==='abs',
+bNav,bIsAbs,bIsCrit:!bIsAbs,bF:focus(Math.min(st.fi,ALL.length-1),'fi'),bNoteRef:this.noteRef,bAbsGo:()=>this.setState({fi:ALL.length}),bAbsBg:bIsAbs?'#eef6fe':'#fff',
+bPrev:()=>this.setState({fi:Math.max(0,st.fi-1)}),bNext:()=>this.setState({fi:Math.min(ALL.length,st.fi+1)}),
+dIsAbs,dIsCrit:!dIsAbs,dF:focus(Math.min(st.mfi,ALL.length-1),'mfi'),dSeg,dPos:dIsAbs?'Fertig':(st.mfi+1)+' / 12',dNextL:st.mfi===ALL.length-1?'Zur Zusammenfassung':'Weiter',
+dPrev:()=>this.setState({mfi:Math.max(0,st.mfi-1)}),dNext:()=>this.setState({mfi:Math.min(ALL.length,st.mfi+1)}),
+kbB:()=>this.setState({kb:'b'}),kbD:()=>this.setState({kb:'d'}),kbOff:()=>this.setState({kb:null})};}
+}
+</script>
+</body>
+</html>
