@@ -95,4 +95,5 @@ Umsetzung im isolierten Arbeitsstand; keine Abnahme oder Veröffentlichung behau
 Schritt 11, Präzisierung am 28.09.2026: Eltern können alle eigenen Kinder zu
 für sie sichtbaren Terminen anmelden. Kinder können selbst antworten; aktive
 Elternverknüpfungen erhalten eine In-App-Benachrichtigung. Lokale Rollenansichten
-werden vor der Veröffentlichung gezeigt. Noch kein Deployment freigegeben.
+wurden vor der Veröffentlichung gezeigt. Deployment am 28.09.2026 vom Nutzer
+freigegeben; technischer Release-Nachweis in der verlinkten Schrittdokumentation.

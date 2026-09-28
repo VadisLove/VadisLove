@@ -97,7 +97,8 @@ Bestehende Einladungen der Kinder bleiben für deren Eltern bearbeitbar. Neue
 Organisations- oder globale Terminrechte werden dadurch nicht geschaffen.
 
 Vor Veröffentlichung zeigt Codex lokale Ansichten für Eltern und minderjährige
-Athleten mit synthetischen Daten. **Noch nicht deployen.**
+Athleten mit synthetischen Daten. Diese Vorgabe wurde erfüllt; der Nutzer hat
+das Deployment am 28.09.2026 anschließend ausdrücklich freigegeben.
 Zusätzliche Abnahmekriterien: zwei Kinder unabhängig zu demselben Termin anmelden;
 Kinder ohne Login erscheinen namentlich in der bestehenden Teilnehmerliste; eigene
 Kinderrückmeldung erzeugt genau eine Benachrichtigung pro aktivem Elternkonto;
@@ -134,3 +135,19 @@ Branch `codex/step-11-family` auf Basis `8aa88a3`; kein Produktionsrelease.
 
 Die am 24.09. offene Terminberechtigung ist damit entschieden und implementiert.
 Fachliche Praxisabnahme sowie Veröffentlichung bleiben offen.
+
+## Releaseprüfung und Freigabe · 28.09.2026
+
+Die gezeigten lokalen Rollenansichten wurden vom Nutzer zur Veröffentlichung
+freigegeben. Integration von `e89513c` mit `ae97bf2` (Produktionscode `bd4deed`
+plus neuere Roadmap-Notiz zum Rollenmodell) in `9fb0718`. Runbuilder, neue
+Trainingsplanansicht und Einzelauswertung bleiben erhalten.
+
+- Node 24.21.0: 227 Tests erfolgreich, einschließlich 18 Familien-SQL-Tests.
+- Typprüfung erfolgreich. Produktionsbuild und lokale HTTP-Releaseprüfungen
+  erfolgreich; keine Server-Secrets in 74 Browser-Artefakten.
+- Generierte Design-Runtime `docs/design/auswertung/support.js` gezielt vom
+  Anwendungs-Lint ausgenommen; der Designentwurf selbst bleibt unverändert.
+- Produktionsschema und erforderliche Kalender-/Kontofunktionen abgeglichen.
+  Es werden ausschließlich die beiden Familienmigrationen veröffentlicht.
+- Fachliche Praxisabnahme mit echten Konten bleibt separat offen.

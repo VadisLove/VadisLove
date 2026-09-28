@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generierter Designentwurf-Runtime; kein Anwendungsquellcode.
+    "docs/design/auswertung/support.js",
   ]),
 ]);
 
