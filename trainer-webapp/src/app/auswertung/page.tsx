@@ -11,12 +11,21 @@ const barlow = Barlow_Condensed({
   display: "swap",
 });
 
-/** Serverseitiger Einstieg fuer Einzel-Auswertung und Fahrervergleich. */
-export default async function EvaluationPage() {
-  const data = await getEvaluationDashboardData();
+/** Serverseitiger Einstieg fuer Einzel-Auswertung und Fahrervergleich (?athlete=<id> waehlt den Athleten vor). */
+export default async function EvaluationPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [data, params] = await Promise.all([getEvaluationDashboardData(), searchParams]);
+  const fonts = `${figtree.variable} ${barlow.variable}`;
   return (
-    <div className={`${figtree.variable} ${barlow.variable}`}>
-      <EvaluationView initialData={data} />
+    <div className={fonts}>
+      <EvaluationView
+        initialData={data}
+        initialAthleteId={typeof params.athlete === "string" ? params.athlete : undefined}
+        fontClassName={fonts}
+      />
     </div>
   );
 }

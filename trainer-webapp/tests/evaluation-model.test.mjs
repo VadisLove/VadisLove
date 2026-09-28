@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   athleteTrickGoals,
   evaluationDate,
+  exercisesForSkill,
+  pendingTrickConfirmations,
   formatAverage,
   previousEvaluation,
   ratingDelta,
@@ -90,4 +92,31 @@ test("athleteTrickGoals übernimmt Übungen und Status aus den geteilten Plänen
   assert.equal(goals[0].planId, "shared-s1");
   assert.equal(goals[0].trickId, "t1");
   assert.deepEqual(athleteTrickGoals([plan], "a3"), []);
+});
+
+test("exercisesForSkill ordnet Übungen per Stichwort den Skate-Kriterien zu", () => {
+  const goal = (title, kind = "trick") => ({ id: title, title, kind, state: "open", done: false, planId: "shared-s1", planTitle: "Plan" });
+  const goals = [goal("Kickflip"), goal("Switch Heelflip"), goal("Boardslide"), goal("Frontside 180"), goal("Fakie Ollie"), goal("Contest-Run ohne Abbruch"), goal("Zwei Runs", "goal")];
+  const titles = (key) => exercisesForSkill(key, goals).map((entry) => entry.title);
+  assert.deepEqual(titles("flip-variations"), ["Kickflip", "Switch Heelflip"]);
+  assert.deepEqual(titles("obstacles"), ["Boardslide"]);
+  assert.deepEqual(titles("rotation-variations"), ["Frontside 180"]);
+  assert.deepEqual(titles("stance-options"), ["Switch Heelflip", "Fakie Ollie"]);
+  assert.deepEqual(titles("flow-lines"), ["Contest-Run ohne Abbruch"]);
+  assert.equal(titles("trick-repertoire").length, 6);
+  assert.deepEqual(titles("fitness"), []);
+});
+
+test("pendingTrickConfirmations sammelt gemeldete Tricks aus versendeten Plänen", () => {
+  const plan = (id, direction, tricks) => ({ id, title: `Plan ${id}`, shareDirection: direction, recipientUserId: "a2", tricks });
+  const trick = (id, name, status, athleteId = "a1") => ({ id, name, status, athleteId });
+  const queue = pendingTrickConfirmations([
+    plan("shared-1", "sent", [trick("t1", "Kickflip", "awaiting_confirmation"), trick("t2", "Ollie", "confirmed")]),
+    plan("shared-2", "sent", [trick("t3", "Boardslide", "awaiting_confirmation", "")]),
+    plan("shared-3", "received", [trick("t4", "Heelflip", "awaiting_confirmation")]),
+  ], new Map([["a1", "Zoe"], ["a2", "Ben"]]));
+  assert.deepEqual(queue.map((item) => [item.athleteName, item.trickName, item.planId, item.trickId]), [
+    ["Ben", "Boardslide", "shared-2", "t3"],
+    ["Zoe", "Kickflip", "shared-1", "t1"],
+  ]);
 });

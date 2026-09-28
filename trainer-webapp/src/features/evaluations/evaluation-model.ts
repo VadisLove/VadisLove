@@ -299,3 +299,59 @@ export function calculateMetrics({
     overall,
   };
 }
+
+/*
+ * Zuordnung von Plan-Übungen zu Skate-Kriterien. Tricks tragen im Plan nur die
+ * Plan-Kategorie (Street, Park …) als Gruppe, deshalb wird über Stichworte im
+ * Namen zugeordnet. Ein Trick darf mehreren Kriterien helfen (z. B. „Switch
+ * Kickflip“ → Flip-Variationen und Stance-Optionen).
+ */
+const exerciseKeywords: Record<string, RegExp> = {
+  obstacles: /grind|slide|stall|rail|ledge|curb|box|hubba|manual|50-50|5-0|crook|smith|feeble|lipslide|nosegrind|gap|stair|treppe|bank|wallride/i,
+  "flip-variations": /flip|shuv|shove|varial|heel|tre\b|impossible|hardflip/i,
+  "rotation-variations": /180|360|540|bigspin|revert|half.?cab|\bcab\b|rotation|body.?varial/i,
+  "stance-options": /switch|fakie|nollie|\bcab\b|half.?cab/i,
+  "flow-lines": /\brun|line|flow|kombination|combo|drop.?in|pump|carve/i,
+};
+
+/** Übungen (nur Tricks), die zu einem Kriterium passen. Trick-Repertoire umfasst alle Tricks. */
+export function exercisesForSkill(skillKey: string, goals: TrickGoal[]): TrickGoal[] {
+  const tricks = goals.filter((goal) => goal.kind === "trick");
+  if (skillKey === "trick-repertoire") return tricks;
+  const pattern = exerciseKeywords[skillKey];
+  return pattern ? tricks.filter((goal) => pattern.test(goal.title)) : [];
+}
+
+export interface PendingConfirmation {
+  id: string;
+  planId: string;
+  planTitle: string;
+  trickId: string;
+  trickName: string;
+  athleteId: string;
+  athleteName: string;
+}
+
+/**
+ * Warteschlange „Zu bestätigen“: gemeldete Tricks aller Athleten aus selbst
+ * versendeten Planfreigaben (nur dort darf der Trainer bestätigen).
+ */
+export function pendingTrickConfirmations(plans: TrainingPlan[], names: Map<string, string>): PendingConfirmation[] {
+  return plans
+    .filter((plan) => plan.shareDirection === "sent")
+    .flatMap((plan) => plan.tricks
+      .filter((trick) => trick.status === "awaiting_confirmation")
+      .map((trick) => {
+        const athleteId = trick.athleteId || plan.recipientUserId || "";
+        return {
+          id: `${plan.id}:${trick.id}`,
+          planId: plan.id,
+          planTitle: plan.title,
+          trickId: trick.id,
+          trickName: trick.name,
+          athleteId,
+          athleteName: names.get(athleteId) || "Athlet",
+        };
+      }))
+    .sort((left, right) => left.athleteName.localeCompare(right.athleteName, "de") || left.trickName.localeCompare(right.trickName, "de"));
+}

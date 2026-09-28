@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +14,9 @@ import {
   CircleDot,
   Clock3,
   Download,
+  Dumbbell,
+  FileText,
+  History,
   Mic,
   MicOff,
   Plus,
@@ -54,10 +58,12 @@ import {
   todayIso,
   withinPeriod,
   athleteTrickGoals,
+  exercisesForSkill,
   type AthleteMetrics,
   type Delta,
   type TrickGoal,
 } from "./evaluation-model";
+import { EvaluationPrint } from "./evaluation-print";
 import styles from "./evaluation-view.module.css";
 
 type ViewMode = "single" | "compare";
@@ -285,13 +291,52 @@ function serialize(form: FormSnapshot) {
   return JSON.stringify([form.title, form.conversationOn, form.squad, form.dalidStatus, form.personalNotes, form.measures, ratings, contests]);
 }
 
-const discardMessage = "Es gibt ungespeicherte Änderungen an dieser Auswertung. Trotzdem fortfahren und die Änderungen verwerfen?";
+const discardMessage = "Es gibt ungespeicherte Änderungen. Sie bleiben als Entwurf auf diesem Gerät erhalten, sind aber noch nicht gespeichert. Trotzdem fortfahren?";
 
-export function EvaluationView({ initialData }: { initialData: EvaluationDashboardData }) {
+interface StoredDraft {
+  form: FormSnapshot;
+  savedAt: string;
+}
+
+function draftStorageKey(userId: string, athleteId: string, from: string, to: string) {
+  return `trainer-hub:evaluation-draft:${userId}:${athleteId}:${from}:${to}`;
+}
+
+/* Browser-Speicher kann fehlen oder blockiert sein (privates Fenster); dann ohne Entwurf weiterarbeiten. */
+function readDraft(key: string): StoredDraft | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) as StoredDraft : null;
+    return parsed?.form?.ratings ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(key: string, draft: StoredDraft | null) {
+  try {
+    if (draft) window.localStorage.setItem(key, JSON.stringify(draft));
+    else window.localStorage.removeItem(key);
+  } catch { /* Ohne Browser-Speicher gibt es keinen Entwurf. */ }
+}
+
+function formatDraftTime(iso: string) {
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+}
+
+export function EvaluationView({
+  initialData,
+  initialAthleteId: requestedAthleteId,
+  fontClassName = "",
+}: {
+  initialData: EvaluationDashboardData;
+  initialAthleteId?: string;
+  fontClassName?: string;
+}) {
   const router = useRouter();
   const initialFrom = currentYearStart();
   const initialTo = todayIso();
-  const initialAthleteId = initialData.athletes[0]?.id || "";
+  const initialAthleteId = initialData.athletes.find((entry) => entry.id === requestedAthleteId)?.id || initialData.athletes[0]?.id || "";
   const [mode, setMode] = useState<ViewMode>("single");
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
@@ -300,6 +345,9 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
   const [form, setForm] = useState<FormSnapshot>(() => snapshotFor(initialData, initialAthleteId, initialFrom, initialTo));
   const [baseline, setBaseline] = useState(() => serialize(snapshotFor(initialData, initialAthleteId, initialFrom, initialTo)));
   const [openNote, setOpenNote] = useState<string | null>(null);
+  const [openExercises, setOpenExercises] = useState<string | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>("skateboarding");
   const [trickFilter, setTrickFilter] = useState<TrickFilter>("all");
   const [confirmedTricks, setConfirmedTricks] = useState<Record<string, true>>({});
@@ -357,11 +405,63 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
     };
   }, [dirty]);
 
+  /* ------------------------ Automatischer Entwurf ------------------------ */
+
+  const draftKey = draftStorageKey(initialData.currentUserId, athleteId, from, to);
+
+  // Entwurf erst nach dem Laden im Browser einspielen (Server kennt keinen localStorage).
+  useEffect(() => {
+    if (!canManage) return;
+    const draft = readDraft(draftKey);
+    const saved = serialize(snapshotFor(initialData, athleteId, from, to));
+    if (!draft || serialize(draft.form) === saved) {
+      writeDraft(draftKey, null);
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- einmaliges Einspielen aus dem Browser-Speicher
+    setForm(draft.form);
+    setDraftSavedAt(draft.savedAt);
+    // Nur beim Wechsel von Athlet/Zeitraum erneut prüfen, nicht bei jeder Eingabe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!canManage) return;
+    // Beides verzögert: So überschreibt das Aufräumen nicht den gerade eingespielten Entwurf.
+    const timer = window.setTimeout(() => writeDraft(draftKey, dirty ? { form, savedAt: new Date().toISOString() } : null), 600);
+    return () => window.clearTimeout(timer);
+  }, [canManage, dirty, draftKey, form]);
+
+  const discardDraft = () => {
+    const saved = snapshotFor(initialData, athleteId, from, to);
+    setForm(saved);
+    setBaseline(serialize(saved));
+    writeDraft(draftKey, null);
+    setDraftSavedAt(null);
+    setOpenNote(null);
+  };
+
+  /* --------------------------- PDF fürs Gespräch --------------------------- */
+
+  useEffect(() => {
+    if (!printing) return;
+    const done = () => setPrinting(false);
+    window.addEventListener("afterprint", done);
+    // Erst nach dem Rendern der Druckansicht den Druckdialog öffnen.
+    const frame = window.requestAnimationFrame(() => window.print());
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("afterprint", done);
+    };
+  }, [printing]);
+
   const loadContext = (nextAthleteId: string, nextFrom: string, nextTo: string) => {
     const next = snapshotFor(initialData, nextAthleteId, nextFrom, nextTo);
     setForm(next);
     setBaseline(serialize(next));
     setOpenNote(null);
+    setOpenExercises(null);
+    setDraftSavedAt(null);
     setResult(null);
   };
 
@@ -454,6 +554,19 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
     }));
   };
 
+  const prefillable = summaries.flatMap((summary) => summary.skills).filter((skill) => !ratings[skill.key]?.rating && previousRatings[skill.key]);
+
+  /** Übernimmt die Werte der letzten Auswertung für alle noch offenen Kriterien. */
+  const prefillPrevious = () => {
+    setForm((current) => {
+      const next = { ...current.ratings };
+      for (const skill of prefillable) {
+        next[skill.key] = { skillKey: skill.key, rating: previousRatings[skill.key], note: current.ratings[skill.key]?.note || "" };
+      }
+      return { ...current, ratings: next };
+    });
+  };
+
   const updateContest = (eventId: string, patch: Partial<EvaluationContestOverride>) => {
     setForm((current) => ({
       ...current,
@@ -489,6 +602,7 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
       setResult(response);
       if (response.status === "success") {
         setBaseline(serialize(submitted));
+        setDraftSavedAt(null);
         router.refresh();
       }
     });
@@ -554,6 +668,23 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
     ["Rang", "Athlet", "Overall", "Anwesenheit", "Contest-Score", "Aufgaben", "Skills"],
     ...comparison.map((entry, index) => [index + 1, entry.athlete.name, entry.overall, entry.attendance, entry.contestScore, entry.taskScore, entry.skillScore]),
   ]);
+
+  const renderTrickChip = (goal: TrickGoal) => {
+    const tip = `${goal.planTitle} · ${trickStateLabels[goal.state]}`;
+    const content = <><span className={styles.chipMark}>{trickMarks[goal.state]}</span>{goal.title}</>;
+    if (goal.state === "waiting" && canManage && goal.trickId) {
+      return (
+        <button key={goal.id} type="button" className={styles.chip} data-state={goal.state} onClick={() => confirmTrick(goal)} disabled={busyTrick === goal.id} title={`${tip} – Klick bestätigt`}>
+          {content}<span className={styles.chipAction}>{busyTrick === goal.id ? "…" : "bestätigen"}</span>
+        </button>
+      );
+    }
+    return (
+      <Link key={goal.id} className={styles.chip} data-state={goal.state} href={`/trainingsplaene?tab=fortschritt&plan=${encodeURIComponent(goal.planId)}`} title={`${tip} – im Trainingsplan öffnen`}>
+        {content}
+      </Link>
+    );
+  };
 
   if (!initialData.currentUserId) {
     return <div className={styles.page}><div className={styles.emptyState}><Trophy size={28} /><h1>Bitte anmelden</h1><p>Auswertungen sind nur für angemeldete Konten verfügbar.</p></div></div>;
@@ -623,6 +754,7 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
           {mode === "single" ? (
             <>
               <Button variant="secondary" className={`${styles.headButton} ${styles.desktopOnly}`} onClick={exportSingle}><Download size={16} aria-hidden="true" /> CSV</Button>
+              <Button variant="secondary" className={`${styles.headButton} ${styles.desktopOnly}`} onClick={() => setPrinting(true)} title="Zusammenfassung fürs Gespräch drucken oder als PDF sichern"><FileText size={16} aria-hidden="true" /> PDF</Button>
               {canManage ? (
                 <Button className={`${styles.headButton} ${styles.desktopOnly}`} onClick={save} disabled={pending}>
                   {pending ? "Speichert …" : dirty ? "Auswertung speichern •" : "Auswertung speichern"}
@@ -718,15 +850,32 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
             </nav>
           </div>
 
+          {draftSavedAt ? (
+            <div className={styles.draftBanner} role="status">
+              <span>Entwurf vom {formatDraftTime(draftSavedAt)} wiederhergestellt – noch nicht gespeichert, nur auf diesem Gerät.</span>
+              <button type="button" onClick={discardDraft}>Verwerfen</button>
+            </div>
+          ) : null}
+
           <div className={styles.layout}>
             <div className={styles.mainColumn}>
               <section className={`${styles.card} ${styles.ratingCard}`} aria-label="Bewertung">
                 <header className={`${styles.cardHead} ${styles.desktopFlex}`}>
                   <div className={styles.cardTitle}>Bewertung <span>· {ratedSkills}/{totalSkills}</span></div>
                   <div className={styles.legend}>
+                    {canManage && prefillable.length ? (
+                      <button type="button" className={styles.prefillButton} onClick={prefillPrevious} title="Offene Kriterien mit den Werten der letzten Auswertung vorbelegen">
+                        <History size={14} aria-hidden="true" /> Vorwerte übernehmen ({prefillable.length})
+                      </button>
+                    ) : null}
                     {previous ? <><span className={styles.legendSwatch} aria-hidden="true" />letzte Auswertung {formatDate(previousDate)}</> : "Noch keine frühere Auswertung"}
                   </div>
                 </header>
+                {canManage && prefillable.length ? (
+                  <button type="button" className={`${styles.prefillButton} ${styles.prefillMobile} ${styles.mobileOnly}`} onClick={prefillPrevious}>
+                    <History size={16} aria-hidden="true" /> Vorwerte vom {formatShortDate(previousDate)} übernehmen ({prefillable.length})
+                  </button>
+                ) : null}
                 <div className={`${styles.columns} ${styles.desktopGrid}`} aria-hidden="true"><span>Kriterium</span><span>1 · 2 · 3 · 4 · 5</span><span>Δ</span><span>Notiz</span></div>
 
                 {summaries.map((summary) => {
@@ -742,10 +891,26 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
                         const previousValue = previousRatings[skill.key];
                         const note = current?.note || "";
                         const isOpen = openNote === skill.key;
+                        const exercises = exercisesForSkill(skill.key, trickGoals);
+                        const exercisesDone = exercises.filter((goal) => goal.done).length;
+                        const exercisesOpen = openExercises === skill.key;
                         return (
                           <div className={styles.row} key={skill.key}>
                             <div className={styles.rowGrid}>
-                              <span className={styles.criterion}>{skill.label}</span>
+                              <span className={styles.criterion}>
+                                {skill.label}
+                                {exercises.length ? (
+                                  <button
+                                    type="button"
+                                    className={styles.exerciseLink}
+                                    aria-expanded={exercisesOpen}
+                                    onClick={() => setOpenExercises(exercisesOpen ? null : skill.key)}
+                                    title="Passende Übungen aus den Trainingsplänen"
+                                  >
+                                    <Dumbbell size={13} aria-hidden="true" /> {exercisesDone}/{exercises.length} Übungen bestätigt
+                                  </button>
+                                ) : null}
+                              </span>
                               <span className={styles.scale} role="radiogroup" aria-label={`${skill.label} bewerten`}>
                                 {[1, 2, 3, 4, 5].map((score) => {
                                   const selected = current?.rating === score;
@@ -779,6 +944,11 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
                                 {note ? `✎ ${note}` : "+ Notiz"}
                               </button>
                             </div>
+                            {exercisesOpen ? (
+                              <div className={styles.exercisePanel}>
+                                <div className={styles.chips}>{exercises.map(renderTrickChip)}</div>
+                              </div>
+                            ) : null}
                             {isOpen ? (
                               canManage
                                 ? <NoteEditor value={note} onChange={(value) => setNote(skill.key, value)} onDone={() => setOpenNote(null)} label={skill.label} />
@@ -808,22 +978,7 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
                 </header>
                 {trickGoals.length ? (
                   <div className={styles.chips}>
-                    {visibleTricks.map((goal) => {
-                      const tip = `${goal.planTitle} · ${trickStateLabels[goal.state]}`;
-                      const content = <><span className={styles.chipMark}>{trickMarks[goal.state]}</span>{goal.title}</>;
-                      if (goal.state === "waiting" && canManage && goal.trickId) {
-                        return (
-                          <button key={goal.id} type="button" className={styles.chip} data-state={goal.state} onClick={() => confirmTrick(goal)} disabled={busyTrick === goal.id} title={`${tip} – Klick bestätigt`}>
-                            {content}<span className={styles.chipAction}>{busyTrick === goal.id ? "…" : "bestätigen"}</span>
-                          </button>
-                        );
-                      }
-                      return (
-                        <Link key={goal.id} className={styles.chip} data-state={goal.state} href={`/trainingsplaene?tab=fortschritt&plan=${encodeURIComponent(goal.planId)}`} title={`${tip} – im Trainingsplan öffnen`}>
-                          {content}
-                        </Link>
-                      );
-                    })}
+                    {visibleTricks.map(renderTrickChip)}
                     {!visibleTricks.length ? <p className={styles.inlineEmpty}>Keine Trickziele in diesem Filter.</p> : null}
                   </div>
                 ) : (
@@ -858,6 +1013,9 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
                 <SpeechTextarea label="Persönliche Bemerkung" value={personalNotes} onChange={(value) => patchForm({ personalNotes: value })} placeholder="Gespräch, Umfeld, Entwicklung, nächste Schritte …" disabled={!canManage} />
                 <div className={styles.fieldTitle}>Maßnahmen</div>
                 <SpeechTextarea label="Maßnahmen" value={measures} onChange={(value) => patchForm({ measures: value })} placeholder="Vereinbarte Maßnahmen, Physio, Trainingsschwerpunkte …" disabled={!canManage} />
+                <button type="button" className={`${styles.softButton} ${styles.mobileOnly}`} onClick={() => setPrinting(true)}>
+                  <FileText size={16} aria-hidden="true" /> PDF fürs Gespräch
+                </button>
               </section>
 
               <section className={`${styles.card} ${styles.sideCard}`} data-panel="goals" aria-label="Persönliche Ziele">
@@ -888,6 +1046,30 @@ export function EvaluationView({ initialData }: { initialData: EvaluationDashboa
           </footer>
         </>
       )}
+
+      {printing && athlete && typeof document !== "undefined" ? createPortal(
+        <EvaluationPrint
+          athlete={athlete}
+          from={from}
+          to={to}
+          squad={squad}
+          conversationOn={conversationOn}
+          dalidStatus={dalidStatus}
+          metrics={selectedMetrics}
+          summaries={summaries}
+          ratings={ratings}
+          previousRatings={previousRatings}
+          previousDate={previousDate}
+          contests={visibleContests}
+          contestOverrides={contestOverrides}
+          trickGoals={trickGoals}
+          personalGoals={personalGoals}
+          personalNotes={personalNotes}
+          measures={measures}
+          fontClassName={fontClassName}
+        />,
+        document.body,
+      ) : null}
 
       {sheet === "contests" ? (
         <Sheet title={`Contests · ${visibleContests.length}`} onClose={() => setSheet(null)}>

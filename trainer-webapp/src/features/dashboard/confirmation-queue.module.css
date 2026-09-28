@@ -1,0 +1,190 @@
+/* Warteschlange „Zu bestätigen“ – gleiche Panel-Optik wie die übrigen Dashboard-Karten. */
+
+.queue {
+  overflow: hidden;
+  margin-bottom: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.head {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.08rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.head h2 span {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0 7px;
+  border-radius: 12px;
+  background: #fdf1e1;
+  color: #9a5600;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.head > a {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-navy);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.text strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 0.92rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text small {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text small a {
+  color: var(--color-blue-dark);
+  font-weight: 600;
+}
+
+.text small a:hover {
+  text-decoration: underline;
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.primary {
+  background: #1f9d6b;
+  color: #fff;
+}
+
+.primary:hover:not(:disabled) {
+  background: #188559;
+}
+
+.primary:disabled {
+  background: #e6ebf0;
+  color: #9aa6b4;
+  cursor: not-allowed;
+}
+
+.secondary {
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.secondary:hover {
+  background: var(--color-blue-soft);
+}
+
+.empty,
+.message {
+  padding: 12px 16px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.message {
+  border-top: 1px solid var(--color-border);
+  color: #157a52;
+  font-weight: 600;
+}
+
+.more {
+  display: block;
+  padding: 12px 16px;
+  color: var(--color-blue-dark);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+@media (max-width: 920px) {
+  .list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .primary,
+  .secondary {
+    min-height: 44px;
+  }
+
+  /* Auf dem Handy nur Icon für „Ansehen“, damit „Bestätigen“ Platz behält. */
+  .secondary span {
+    display: none;
+  }
+}

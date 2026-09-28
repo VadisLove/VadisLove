@@ -98,3 +98,23 @@ a {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/*
+ * Eigene Druckansichten (z. B. Auswertungs-PDF) hängen sich mit
+ * data-print-root direkt unter <body>; dann wird nur diese Ansicht gedruckt.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 14mm 16mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  body:has(> [data-print-root]) > :not([data-print-root]) {
+    display: none !important;
+  }
+}
