@@ -84,7 +84,8 @@ export interface ParkSceneProps {
   /** Obstacles dürfen gezogen und transformiert werden (nur im Park-Bearbeitungsmodus). */
   editable: boolean;
   selectedObstacleId: string | null;
-  onObstacleClick?: (id: string) => void;
+  /** Tipp auf ein Obstacle; `point` ist die Tippposition (bei Bereichen auf dem Gelände). */
+  onObstacleClick?: (id: string, point: Point) => void;
   /** Änderung an einem Obstacle: Vorschau während des Ziehens, dann Bestätigung oder Abbruch. */
   onObstacleEdit?: (next: Obstacle, phase: EditPhase) => void;
   /** Tipp auf den Boden (Position auf Gelände bzw. Scan). */
@@ -94,12 +95,22 @@ export interface ParkSceneProps {
   pickThrough?: boolean;
   /** Bodenmarkierung unter dem Mauszeiger (zeigt, wo ein Klick landet). */
   showCursor?: boolean;
+  /** Ausgewählte Eckpunkte des gewählten Bereichs (G/R/S wirken dann auf diese Punkte). */
+  selectedVertices?: number[];
+  onSelectVertices?: (indices: number[]) => void;
   /** Punkte eines Bereichs, der gerade gezeichnet wird. */
   draftPolygon?: Point[] | null;
   showGrid?: boolean;
+  /** Meldet die Maße eines hochgeladenen Park-Modells (für den Größenhinweis im Editor). */
+  onModelBounds?: (bounds: ModelBounds | null) => void;
   command?: SceneCommand | null;
   onTransformState?: (state: TransformState | null) => void;
-  run?: { start: Point; end: Point; steps: Pick<RunStep, "obstacle_id">[]; via?: Waypoint[] } | null;
+  run?: {
+    start: Point | null;
+    end: Point | null;
+    steps: (Pick<RunStep, "obstacle_id"> & { point?: Point | null })[];
+    via?: Waypoint[];
+  } | null;
   /** Start, Ziel und Zwischenpunkte der Fahrlinie ziehbar machen (Run planen). */
   onRunPathEdit?: (patch: RunPathEdit, phase: EditPhase) => void;
   /** Run-Animation: jede neue Zahl startet sie neu, null = aus. */
@@ -140,26 +151,33 @@ function labelTexture(text: string, color: string, ring = false) {
   return texture;
 }
 
+/**
+ * Beschriftung mit fester Bildschirmgröße (Anteil der Canvas-Höhe): Pins und S/Z bleiben
+ * lesbar – unabhängig von Parkgröße und Zoom.
+ */
 function Label({
   text,
   color,
   position,
-  scale = 1.3,
+  size = 0.05,
   ring = false,
 }: {
   text: string;
   color: string;
   position: [number, number, number];
-  scale?: number;
+  size?: number;
   ring?: boolean;
 }) {
   const texture = useMemo(() => labelTexture(text, color, ring), [text, color, ring]);
   return (
-    <sprite position={position} scale={[scale, scale, scale]} renderOrder={10}>
-      <spriteMaterial map={texture} depthTest={false} transparent />
+    <sprite position={position} scale={[size, size, 1]} renderOrder={10}>
+      <spriteMaterial map={texture} depthTest={false} transparent sizeAttenuation={false} />
     </sprite>
   );
 }
+
+/** Höhe (m), in der Pins und Start/Ziel-Labels über ihrem Punkt schweben. */
+const LABEL_LIFT = 1.2;
 
 /** Lädt eine Bildtextur (Luftbild) und löst beim Eintreffen ein Neuzeichnen aus. */
 function useTexture(url: string | null | undefined) {
@@ -308,11 +326,13 @@ function GroundModel({
   url,
   size,
   onHeights,
+  onBounds,
 }: {
   ground: Extract<NonNullable<ParkContent["ground"]>, { kind: "model" }>;
   url: string;
   size: ParkContent["size"];
   onHeights: (grid: TerrainGrid | null) => void;
+  onBounds?: (bounds: ModelBounds | null) => void;
 }) {
   const [object, setObject] = useState<THREE.Object3D | null>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -355,6 +375,15 @@ function GroundModel({
       });
       // Außerhalb des Scans liegt die flache Grundfläche (y ≈ 0).
       onHeights(raster.finish(0));
+      const box = new THREE.Box3().setFromObject(group);
+      if (!box.isEmpty())
+        onBounds?.({
+          minX: box.min.x,
+          maxX: box.max.x,
+          minZ: box.min.z,
+          maxZ: box.max.z,
+          height: box.max.y - box.min.y,
+        });
     }, 120);
     return () => clearTimeout(timer);
   }, [
@@ -367,6 +396,7 @@ function GroundModel({
     size.width,
     size.length,
     onHeights,
+    onBounds,
   ]);
   useEffect(() => () => onHeights(null), [onHeights]);
 
@@ -479,6 +509,7 @@ function ObstacleMesh({
   controlsRef,
   onClick,
   onEdit,
+  pickGround,
 }: {
   obstacle: Obstacle;
   /** Unterkante in Weltkoordinaten (Gelände + Höhenversatz). */
@@ -492,8 +523,10 @@ function ObstacleMesh({
   parkSize: ParkContent["size"];
   consumed: WeakSet<Event>;
   controlsRef: React.MutableRefObject<OrbitControls | null>;
-  onClick?: (id: string) => void;
+  onClick?: (id: string, point: Point) => void;
   onEdit?: (next: Obstacle, phase: EditPhase) => void;
+  /** Bodenpunkt unter dem Zeiger (Höhenfeld), für Tipps in Bereiche. */
+  pickGround: (clientX: number, clientY: number) => { x: number; y: number; z: number } | null;
 }) {
   const drag = useRef<{ dx: number; dz: number; moved: boolean } | null>(null);
   // Gezogen wird auf der Ebene der Unterkante, damit das Obstacle unter dem Zeiger bleibt.
@@ -541,16 +574,23 @@ function ObstacleMesh({
     );
   }
 
+  // Griffe (Eckpunkte, Kurvenpunkte) liegen auf bzw. vor dem Obstacle: Ein Treffer darauf
+  // hat Vorrang, auch wenn die Oberfläche des Bereichs minimal näher an der Kamera liegt.
+  const onHandle = (e: ThreeEvent<MouseEvent>) => e.intersections.some((i) => i.object.userData?.handle);
   const handlers = interactive
     ? {
         onClick: (e: ThreeEvent<MouseEvent>) => {
-          if (e.delta > 6) return;
+          if (e.delta > 6 || onHandle(e)) return;
           e.stopPropagation();
           consumed.add(e.nativeEvent);
-          onClick?.(obstacle.id);
+          // Bereiche sind durchsichtige Kästen: maßgeblich ist der Geländepunkt unter dem Finger,
+          // nicht der Treffer auf der Oberseite des Kastens (sonst perspektivisch versetzt).
+          const ground = obstacle.type === "zone" ? pickGround(e.nativeEvent.clientX, e.nativeEvent.clientY) : null;
+          const hit = ground ?? e.point;
+          onClick?.(obstacle.id, { x: Math.round(hit.x * 100) / 100, z: Math.round(hit.z * 100) / 100 });
         },
         onPointerDown: (e: ThreeEvent<PointerEvent>) => {
-          if (!editable || !onEdit || e.button !== 0) return;
+          if (!editable || !onEdit || e.button !== 0 || onHandle(e)) return;
           e.stopPropagation();
           const p = groundPoint(e);
           if (!p) return;
@@ -558,7 +598,7 @@ function ObstacleMesh({
           if (controlsRef.current) controlsRef.current.enabled = false;
           (e.target as Element).setPointerCapture?.(e.pointerId);
           drag.current = { dx: obstacle.x - p.x, dz: obstacle.z - p.z, moved: false };
-          onClick?.(obstacle.id);
+          onClick?.(obstacle.id, { x: e.point.x, z: e.point.z });
         },
         onPointerMove: (e: ThreeEvent<PointerEvent>) => {
           if (!drag.current) return;
@@ -620,6 +660,15 @@ function Ribbon({ points, width }: { points: THREE.Vector3[]; width: number }) {
       <meshBasicMaterial color={COLORS.path} transparent opacity={0.85} depthTest={false} side={THREE.DoubleSide} />
     </mesh>
   );
+}
+
+/** Umriss des hochgeladenen Park-Modells in Parkkoordinaten (für Größenhinweise). */
+export interface ModelBounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  height: number;
 }
 
 export interface RunPathEdit {
@@ -732,9 +781,12 @@ function RunOverlay({
   const { curve, samples, length, anchorsU } = useMemo(() => {
     const points = controls.map((c) => {
       const o = c.obstacleId ? byId.get(c.obstacleId) : null;
-      const y = o ? baseOf(o) + Math.min(o.height, 2) : groundAt(c);
+      // Bereiche: am Tipppunkt auf dem Gelände; feste Obstacles: auf der Oberkante.
+      const y = o && o.type !== "zone" ? baseOf(o) + Math.min(o.height, 2) : groundAt(c);
       return new THREE.Vector3(c.x, y + 0.06, c.z);
     });
+    // Noch kein Abschnitt (z. B. nur Start gesetzt): keine Linie.
+    if (points.length < 2) return { curve: null, samples: [], length: 0, anchorsU: points.map(() => 0) };
     const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.5);
     const length = curve.getLength();
     const count = Math.min(1500, Math.max(24, Math.ceil(length / 0.25)));
@@ -754,6 +806,7 @@ function RunOverlay({
 
   // Ein Pfeil in der Mitte jedes Abschnitts zwischen Start, Obstacles und Ziel.
   const arrows = useMemo(() => {
+    if (!curve) return [];
     const anchors = controls.map((c, i) => ({ c, u: anchorsU[i] })).filter((a) => a.c.kind !== "via");
     const out: { position: THREE.Vector3; angle: number }[] = [];
     for (let i = 1; i < anchors.length; i++) {
@@ -774,12 +827,10 @@ function RunOverlay({
   );
 
   const pins = useMemo(() => pinLayout(run.steps, obstacles), [run.steps, obstacles]);
-  const startY = groundAt(run.start);
-  const endY = groundAt(run.end);
 
   return (
     <group>
-      <Ribbon points={samples} width={0.16 * unit} />
+      {samples.length ? <Ribbon points={samples} width={0.16 * unit} /> : null}
       {arrows.map((a, i) => (
         <mesh
           key={i}
@@ -794,45 +845,49 @@ function RunOverlay({
       ))}
       {pins.map((pin) => {
         const o = byId.get(pin.obstacleId);
-        const base = o ? baseOf(o) : 0;
-        const top = base + (o?.height ?? 0);
-        // Abstand nebeneinanderliegender Pins und Schwebehöhe wachsen mit dem Maßstab.
-        const x = o ? o.x + (pin.x - o.x) * unit : pin.x;
-        const y = top + (pin.y - (o?.height ?? 0)) * unit;
+        // Fußpunkt: bei Bereichen das Gelände am Tipppunkt, sonst die Oberkante des Obstacles.
+        const top =
+          o && o.type === "zone" && pin.spot
+            ? groundAt({ x: pin.x, z: pin.z })
+            : (o ? baseOf(o) : 0) + (o?.height ?? 0);
+        const y = top + LABEL_LIFT;
+        const active = activeStep === pin.number - 1;
         return (
           <group key={pin.number}>
-            {o ? (
-              <mesh position={[x, (top + y) / 2, pin.z]}>
-                <cylinderGeometry args={[0.02 * unit, 0.02 * unit, y - top, 4]} />
-                <meshBasicMaterial color={COLORS.pin} />
-              </mesh>
-            ) : null}
+            <mesh position={[pin.x, (top + y) / 2, pin.z]}>
+              <cylinderGeometry args={[0.02, 0.02, y - top, 4]} />
+              <meshBasicMaterial color={COLORS.pin} />
+            </mesh>
             <Label
               text={String(pin.number)}
               color={COLORS.pin}
-              position={[x, y, pin.z]}
-              scale={(activeStep === pin.number - 1 ? 1.6 : 1.3) * unit}
-              ring={activeStep === pin.number - 1}
+              position={[pin.x, y, pin.z]}
+              size={active ? 0.06 : 0.045}
+              ring={active}
             />
           </group>
         );
       })}
       {/* Start/Ziel: Ring genau am gesetzten Punkt, Stab nach oben zum Label. */}
       {[
-        { text: "S", color: COLORS.start, p: run.start, y: startY },
-        { text: "Z", color: COLORS.end, p: run.end, y: endY },
-      ].map((m) => (
-        <group key={m.text}>
-          <GroundMarker point={new THREE.Vector3(m.p.x, m.y, m.p.z)} unit={unit * 0.8} color={m.color} />
-          <mesh position={[m.p.x, m.y + 0.6 * unit, m.p.z]} renderOrder={7}>
-            <cylinderGeometry args={[0.03 * unit, 0.03 * unit, 1.2 * unit, 6]} />
-            <meshBasicMaterial color={m.color} depthTest={false} transparent />
-          </mesh>
-          <Label text={m.text} color={m.color} position={[m.p.x, m.y + 1.6 * unit, m.p.z]} scale={1.5 * unit} />
-        </group>
-      ))}
-      {editing ? <PathHandles controls={controls} curve={curve} via={via} groundAt={groundAt} {...editing} /> : null}
-      {play !== null ? (
+        { text: "S", color: COLORS.start, p: run.start },
+        { text: "Z", color: COLORS.end, p: run.end },
+      ].map((m) => {
+        if (!m.p) return null;
+        const y = groundAt(m.p);
+        return (
+          <group key={m.text}>
+            <GroundMarker point={new THREE.Vector3(m.p.x, y, m.p.z)} unit={unit * 0.8} color={m.color} />
+            <mesh position={[m.p.x, y + LABEL_LIFT / 2, m.p.z]} renderOrder={7}>
+              <cylinderGeometry args={[0.03, 0.03, LABEL_LIFT, 6]} />
+              <meshBasicMaterial color={m.color} depthTest={false} transparent />
+            </mesh>
+            <Label text={m.text} color={m.color} position={[m.p.x, y + LABEL_LIFT, m.p.z]} size={0.05} />
+          </group>
+        );
+      })}
+      {editing && curve ? <PathHandles controls={controls} curve={curve} via={via} groundAt={groundAt} {...editing} /> : null}
+      {play !== null && curve ? (
         <PlayMarker
           curve={curve}
           stops={stops}
@@ -983,7 +1038,26 @@ function SceneContent(
   const pick = useGroundPick(heightAt, grid ? Math.min(0.25, grid.width / grid.cols) : 0.25);
   const { width, length } = content.size;
   const aerialUrl = content.aerial ? (assetUrls[content.aerial.path] ?? null) : null;
-  const unit = Math.max(1, Math.max(width, length) / 45);
+  // Maßstab für Linie, Pfeile und Markierungen aus dem tatsächlich genutzten Bereich
+  // (Obstacles, Start/Ziel) – nicht aus der Grundfläche, die viel größer sein kann als ein Scan.
+  const unit = useMemo(() => {
+    const xs: number[] = [];
+    const zs: number[] = [];
+    for (const o of content.obstacles) {
+      const r = Math.max(o.width, o.length) / 2;
+      xs.push(o.x - r, o.x + r);
+      zs.push(o.z - r, o.z + r);
+    }
+    for (const p of [run?.start, run?.end]) {
+      if (!p) continue;
+      xs.push(p.x);
+      zs.push(p.z);
+    }
+    const extent = xs.length
+      ? Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs))
+      : Math.max(width, length);
+    return Math.min(3, Math.max(0.5, extent / 40));
+  }, [content.obstacles, run?.start, run?.end, width, length]);
 
   // Gewähltes Obstacle (mit berechneter Bereichshöhe) für Werkzeuge und „Auswahl zentrieren“.
   const selected = obstacles.find((o) => o.id === selectedObstacleId) ?? null;
@@ -1034,7 +1108,13 @@ function SceneContent(
           </mesh>
           {content.aerial && aerialUrl ? <AerialPlane url={aerialUrl} aerial={content.aerial} /> : null}
           {ground?.kind === "model" && assetUrls[ground.path] ? (
-            <GroundModel ground={ground} url={assetUrls[ground.path]} size={content.size} onHeights={onModelHeights} />
+            <GroundModel
+              ground={ground}
+              url={assetUrls[ground.path]}
+              size={content.size}
+              onHeights={onModelHeights}
+              onBounds={props.onModelBounds}
+            />
           ) : null}
         </>
       )}
@@ -1059,6 +1139,7 @@ function SceneContent(
           consumed={consumed}
           controlsRef={controlsRef}
           onClick={props.onObstacleClick}
+          pickGround={pick}
           // Mit der Maus gezogen wird das Original (ohne berechnete Bereichshöhe) geändert.
           onEdit={(next, phase) => {
             const raw = content.obstacles.find((x) => x.id === next.id);
@@ -1070,6 +1151,8 @@ function SceneContent(
         <ZoneHandles
           zone={selectedRaw}
           top={selectedBase + selected.height}
+          selected={props.selectedVertices ?? []}
+          onSelect={(indices) => props.onSelectVertices?.(indices)}
           pick={pick}
           consumed={consumed}
           controlsRef={controlsRef}
@@ -1078,6 +1161,7 @@ function SceneContent(
       ) : null}
       <TransformTool
         selected={selectedRaw}
+        vertices={props.selectedVertices ?? []}
         base={selectedBase}
         enabled={editable && !draft && Boolean(props.onObstacleEdit)}
         command={props.command ?? null}

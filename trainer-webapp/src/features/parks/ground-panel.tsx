@@ -18,6 +18,7 @@ import {
   type ModelCheck,
   type ModelUnit,
 } from "./model-assets";
+import { InfoTip } from "./info-tip";
 import styles from "./parks.module.css";
 
 interface GeocodeResult {
@@ -374,11 +375,23 @@ function ModelGroundUpload({
   );
 }
 
+/** Erklärungen zu den Feldern des Park-Modells („i“ neben der Beschriftung). */
+const GROUND_INFO = {
+  scale: "Meter pro Modelleinheit: 1 = Datei in Metern, 0,01 = Zentimeter, 0,001 = Millimeter. Ist der Scan viel zu klein oder zu groß, stimmt dieser Wert nicht.",
+  rotation: "Dreht das ganze Modell um die Hochachse, z. B. um es nach Norden oder am Luftbild auszurichten.",
+  offsetY: "Hebt oder senkt das ganze Modell.",
+  offsetX: "Verschiebt das ganze Modell nach Osten (+) bzw. Westen (−).",
+  offsetZ: "Verschiebt das ganze Modell nach Süden (+) bzw. Norden (−).",
+} as const;
+
 /** Feinjustierung eines Park-Modells: Maßstab, Drehung und Versatz. */
 function ModelGroundSettings({ ground, onChange }: { ground: ModelGround; onChange: (g: ModelGround) => void }) {
   const field = (label: string, key: "scale" | "rotation" | "offsetX" | "offsetY" | "offsetZ", step: number) => (
     <label className={styles.field}>
-      {label}
+      <span>
+        {label}
+        <InfoTip text={GROUND_INFO[key]} />
+      </span>
       <input
         type="number"
         step={step}

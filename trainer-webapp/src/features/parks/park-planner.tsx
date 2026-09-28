@@ -4,12 +4,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { zoneFromPolygon } from "@/domain/park-geometry";
-import { normalizeWaypoints, runControls } from "@/domain/run-path";
+import { removeZoneVertices, zoneFromPolygon, zoneOutline } from "@/domain/park-geometry";
+import { normalizeWaypoints, runControls, segmentCount } from "@/domain/run-path";
 import {
   clampToPark,
   createObstacle,
-  defaultRunPoints,
   formatScore,
   missingObstacleSteps,
   obstacleName,
@@ -23,7 +22,7 @@ import {
   type TrickCategory,
 } from "@/domain/parks";
 import { ParkEditorPanel, type ParkDraft } from "./park-editor-panel";
-import type { RunPathEdit, ScenePlacement } from "./park-scene";
+import type { ModelBounds, RunPathEdit, ScenePlacement } from "./park-scene";
 import { RunEditorPanel, type RunDraft } from "./run-editor-panel";
 import { makeCommand, type EditPhase, type SceneCommand, type SceneCommandInput, type TransformState } from "./scene-commands";
 import { StageToolbar, ShortcutHelp } from "./stage-toolbar";
@@ -53,7 +52,7 @@ function runToDraft(run: ParkRun): RunDraft {
     target_score: run.target_score === null ? "" : String(run.target_score).replace(".", ","),
     actual_score: run.actual_score === null ? "" : String(run.actual_score).replace(".", ","),
     note: run.note,
-    steps: run.steps.map((s) => ({
+    steps: run.steps.map((s, i) => ({
       key: crypto.randomUUID(),
       obstacle_id: s.obstacle_id,
       trick_id: s.trick_id,
@@ -61,6 +60,7 @@ function runToDraft(run: ParkRun): RunDraft {
       stance: s.stance,
       direction: s.direction,
       note: s.note,
+      point: run.start_point.spots?.[i] ?? null,
     })),
   };
 }
@@ -90,7 +90,14 @@ export function ParkPlannerView({
       ? { name: initial.park.name, location: initial.park.location, content: structuredClone(latest.content) }
       : null,
   );
-  const [selectedObstacle, setSelectedObstacle] = useState<string | null>(null);
+  const [selectedObstacle, setSelectedObstacleState] = useState<string | null>(null);
+  /** Ausgewählte Eckpunkte des gewählten Bereichs (Punktmodus für G/R/S und Entf). */
+  const [selectedVertices, setSelectedVertices] = useState<number[]>([]);
+  // Beim Wechsel des Obstacles gilt die Punktauswahl nicht mehr.
+  const setSelectedObstacle = (id: string | null) => {
+    if (id !== selectedObstacle) setSelectedVertices([]);
+    setSelectedObstacleState(id);
+  };
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [runDraft, setRunDraft] = useState<RunDraft | null>(null);
   const [placing, setPlacing] = useState<ScenePlacement>(null);
@@ -118,6 +125,8 @@ export function ParkPlannerView({
   const sendCommand = (c: SceneCommandInput) => setSceneCommand(makeCommand(c));
   // Rückgängig/Wiederholen für den Park-Entwurf. `previewBase` hält den Stand vor einer
   // laufenden Vorschau (Ziehen, G/R/S), damit die ganze Bewegung ein Schritt ist.
+  /** Maße des hochgeladenen Park-Modells (meldet die Szene nach dem Laden). */
+  const [modelBounds, setModelBounds] = useState<ModelBounds | null>(null);
   const [past, setPast] = useState<ParkDraft[]>([]);
   const [future, setFuture] = useState<ParkDraft[]>([]);
   const previewBase = useRef<ParkDraft | null>(null);
@@ -270,6 +279,31 @@ export function ParkPlannerView({
     // Erst nach dem Rendern der Kopie verschieben.
     setTimeout(() => sendCommand({ type: "transform", kind: "move" }), 0);
   }
+  /**
+   * Grundfläche auf das Park-Modell zuschneiden (plus 3 m Rand) und alles so verschieben,
+   * dass das Modell in der Parkmitte liegt. Obstacles und Luftbild wandern mit.
+   */
+  function fitParkToModel() {
+    if (!parkDraft || !modelBounds || parkDraft.content.ground?.kind !== "model") return;
+    const round = (v: number) => Math.round(v * 100) / 100;
+    const dx = -(modelBounds.minX + modelBounds.maxX) / 2;
+    const dz = -(modelBounds.minZ + modelBounds.maxZ) / 2;
+    const fit = (v: number) => Math.min(300, Math.max(10, Math.ceil(v + 6)));
+    const { content } = parkDraft;
+    const ground = content.ground as Extract<NonNullable<typeof content.ground>, { kind: "model" }>;
+    updateParkDraft({
+      ...parkDraft,
+      content: {
+        ...content,
+        size: { width: fit(modelBounds.maxX - modelBounds.minX), length: fit(modelBounds.maxZ - modelBounds.minZ) },
+        ground: { ...ground, offsetX: round(ground.offsetX + dx), offsetZ: round(ground.offsetZ + dz) },
+        obstacles: content.obstacles.map((o) => ({ ...o, x: round(o.x + dx), z: round(o.z + dz) })),
+        aerial: content.aerial
+          ? { ...content.aerial, offsetX: round(content.aerial.offsetX + dx), offsetZ: round(content.aerial.offsetZ + dz) }
+          : content.aerial,
+      },
+    });
+  }
   // ----- Bereich zeichnen (Punkte setzen wie mit dem Zeichenstift) -----
   function startDrawing() {
     setSelectedObstacle(null);
@@ -326,7 +360,6 @@ export function ParkPlannerView({
   function startRun() {
     setPlay(null);
     setPlayStep(null);
-    const points = defaultRunPoints(latest.content.size);
     setRunDraft({
       run_id: crypto.randomUUID(),
       revision: 0,
@@ -334,16 +367,18 @@ export function ParkPlannerView({
       athlete_user_id: detail.athletes[0]?.id ?? detail.user.id,
       title: `Run ${detail.runs.length + 1}`,
       event_id: null,
-      start: points.start,
+      // Start und Ziel setzt der Nutzer selbst (kein automatisches Ziel mehr).
+      start: null,
       via: [],
-      end: points.end,
+      end: null,
       target_score: "",
       actual_score: "",
       note: "",
       steps: [],
     });
     setActiveStep(null);
-    setPlacing(null);
+    // Neuer Run beginnt mit dem Setzen des Startpunkts.
+    setPlacing("start");
     selectRun(null);
     setMode("run");
   }
@@ -359,13 +394,23 @@ export function ParkPlannerView({
     setRunDraft(next);
     setDirty(true);
   }
-  function addStep(obstacleId: string) {
+  /** Trick an der getippten Stelle eines Obstacles bzw. Bereichs hinzufügen. */
+  function addStep(obstacleId: string, point?: Point) {
     if (!runDraft) return;
     updateRunDraft({
       ...runDraft,
       steps: [
         ...runDraft.steps,
-        { key: crypto.randomUUID(), obstacle_id: obstacleId, trick_id: null, trick_name: "", stance: null, direction: null, note: "" },
+        {
+          key: crypto.randomUUID(),
+          obstacle_id: obstacleId,
+          trick_id: null,
+          trick_name: "",
+          stance: null,
+          direction: null,
+          note: "",
+          point: point ? clampToPark(point, content.size) : null,
+        },
       ],
     });
     setActiveStep(runDraft.steps.length);
@@ -418,6 +463,11 @@ export function ParkPlannerView({
     }
     if (target === "invalid" || actual === "invalid")
       return command.setMessage("Scores müssen Zahlen zwischen 0 und 1000 sein.");
+    if (!runDraft.start || !runDraft.end) {
+      setPlacing(runDraft.start ? "end" : "start");
+      return command.setMessage(`Bitte ${runDraft.start ? "das Ziel" : "den Start"} im Park setzen.`);
+    }
+    const spots = runDraft.steps.map((s) => s.point ?? null);
     const outcome = await command.run(
       "run_save",
       {
@@ -427,16 +477,19 @@ export function ParkPlannerView({
         athlete_user_id: runDraft.athlete_user_id,
         title: runDraft.title.trim(),
         event_id: runDraft.event_id,
-        // Zwischenpunkte reisen im Startpunkt mit (keine Schemaänderung nötig).
-        start: runDraft.via.length
-          ? {
-              ...runDraft.start,
-              path: normalizeWaypoints(
-                runDraft.via,
-                runControls(runDraft.start, runDraft.end, runDraft.steps, content.obstacles).at(-1)!.seg,
-              ),
-            }
-          : runDraft.start,
+        // Zwischenpunkte und Tipppositionen reisen im Startpunkt mit (keine Schemaänderung nötig).
+        start: {
+          ...runDraft.start,
+          ...(runDraft.via.length
+            ? {
+                path: normalizeWaypoints(
+                  runDraft.via,
+                  segmentCount(runControls(runDraft.start, runDraft.end, runDraft.steps, content.obstacles)),
+                ),
+              }
+            : {}),
+          ...(spots.some(Boolean) ? { spots } : {}),
+        },
         end: runDraft.end,
         target_score: target,
         actual_score: actual,
@@ -481,7 +534,7 @@ export function ParkPlannerView({
         ? {
             start: selectedRun.start_point,
             end: selectedRun.end_point,
-            steps: selectedRun.steps,
+            steps: selectedRun.steps.map((s, i) => ({ ...s, point: selectedRun.start_point.spots?.[i] ?? null })),
             via: selectedRun.start_point.path ?? [],
           }
         : null;
@@ -534,11 +587,28 @@ export function ParkPlannerView({
       e.preventDefault();
       return startDrawing();
     }
+    const zone = parkDraft?.content.obstacles.find((o) => o.id === selectedObstacle && o.type === "zone");
+    if (key === "a" && zone) {
+      // Alle Eckpunkte des Bereichs auswählen (bzw. Auswahl aufheben, wie in Blender).
+      e.preventDefault();
+      const count = zoneOutline(zone).length;
+      return setSelectedVertices(selectedVertices.length === count ? [] : Array.from({ length: count }, (_, i) => i));
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && zone && selectedVertices.length) {
+      e.preventDefault();
+      const next = removeZoneVertices(zone, selectedVertices);
+      if (next === zone) return command.setMessage("Ein Bereich braucht mindestens 3 Punkte.");
+      setSelectedVertices([]);
+      return editObstacle(next, "commit");
+    }
     if ((e.key === "Delete" || e.key === "Backspace") && selectedObstacle) {
       e.preventDefault();
       return removeSelected();
     }
-    if (e.key === "Escape") setSelectedObstacle(null);
+    if (e.key === "Escape") {
+      if (selectedVertices.length) setSelectedVertices([]);
+      else setSelectedObstacle(null);
+    }
   };
   useLayoutEffect(() => {
     keyHandler.current = handleKey;
@@ -637,6 +707,7 @@ export function ParkPlannerView({
             topView={topView}
             onTopViewChange={setTopView}
             showGrid={showGrid}
+            onModelBounds={setModelBounds}
             command={sceneCommand}
             onTransformState={setTransform}
             editable={mode === "park"}
@@ -649,6 +720,8 @@ export function ParkPlannerView({
             showCursor={Boolean((mode === "run" && placing) || drawing)}
             draftPolygon={drawing}
             onGroundDoubleClick={drawing ? () => finishDrawing() : undefined}
+            selectedVertices={selectedVertices}
+            onSelectVertices={setSelectedVertices}
             onGroundClick={
               mode === "run"
                 ? placing
@@ -657,7 +730,8 @@ export function ParkPlannerView({
                 : mode === "park"
                   ? drawing
                     ? (p, info) => addDrawingPoint(p, info.closesPolygon)
-                    : () => setSelectedObstacle(null)
+                    : // Erst die Punktauswahl aufheben, dann das Obstacle.
+                      () => (selectedVertices.length ? setSelectedVertices([]) : setSelectedObstacle(null))
                   : undefined
             }
             run={sceneRun}
@@ -701,6 +775,8 @@ export function ParkPlannerView({
               busy={command.busy}
               onChange={(next) => updateParkDraft(next)}
               onDrawZone={startDrawing}
+              modelBounds={modelBounds}
+              onFitToModel={fitParkToModel}
               onAdd={(type, patch) => {
                 const obstacle = { ...createObstacle(type, { x: 0, z: 0 }, crypto.randomUUID()), ...patch };
                 updateParkDraft({

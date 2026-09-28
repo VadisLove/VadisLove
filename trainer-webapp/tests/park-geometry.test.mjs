@@ -8,6 +8,8 @@ import {
   localToWorld,
   moveZoneVertex,
   removeZoneVertex,
+  removeZoneVertices,
+  transformVertices,
   scaleObstacle,
   worldToLocal,
   zoneFromPolygon,
@@ -121,4 +123,25 @@ test("Bereiche mit Umriss werten nur Geländepunkte innerhalb aus", () => {
   // Dreieck in der Südwesthälfte berührt die hohe Ecke nicht.
   const triangle = { ...square, points: [{ x: -5, z: -2 }, { x: 2, z: 5 }, { x: -5, z: 5 }] };
   assert.equal(footprintRange(grid, triangle).max, 0);
+});
+
+test("Punktmodus: ausgewählte Eckpunkte verschieben, drehen, skalieren und löschen", () => {
+  const square = zoneFromPolygon([{ x: 0, z: 0 }, { x: 4, z: 0 }, { x: 4, z: 4 }, { x: 0, z: 4 }], "q");
+  const world = (z) => zoneOutline(z).map((p) => localToWorld(z, p));
+  // G mit zwei Punkten: nur diese wandern 1 m nach Osten.
+  const moved = transformVertices(square, [1, 2], { kind: "move", axis: "x", typed: 1, snap: true }).zone;
+  assert.deepEqual(world(moved).map((p) => [p.x, p.z]), [[0, 0], [5, 0], [5, 4], [0, 4]]);
+  // R 90° um den Schwerpunkt der Auswahl (Punkte 1 und 2 → Mitte 4/2).
+  const turned = world(transformVertices(square, [1, 2], { kind: "rotate", axis: null, typed: 90, snap: true }).zone);
+  close(turned[1].x, 6);
+  close(turned[1].z, 2);
+  close(turned[2].x, 2);
+  close(turned[2].z, 2);
+  // S 2 auf X streckt nur die Auswahl.
+  const scaled = world(transformVertices(square, [0, 1], { kind: "scale", axis: "x", typed: 2, snap: true }).zone);
+  assert.deepEqual([scaled[0].x, scaled[1].x], [-2, 6]);
+  // Achse Z ist für Umrisspunkte wirkungslos; Löschen lässt mindestens drei Punkte.
+  assert.equal(transformVertices(square, [0], { kind: "move", axis: "z", typed: 1, snap: true }).zone, square);
+  assert.equal(zoneOutline(removeZoneVertices(square, [0])).length, 3);
+  assert.equal(removeZoneVertices(square, [0, 1]), square);
 });

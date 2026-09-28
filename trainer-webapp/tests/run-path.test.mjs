@@ -9,6 +9,7 @@ import {
   playState,
   removeWaypoint,
   runControls,
+  segmentCount,
 } from "../src/domain/run-path.ts";
 
 const obstacles = [
@@ -72,4 +73,22 @@ test("Animation: Fahrt, Pause je Trick und Ende", () => {
   // Kurze Runs dauern mindestens 4 s Fahrt.
   const short = playSchedule(2, []);
   assert.equal(short[0].duration, 4);
+});
+
+test("Tipppositionen: jeder Trick liegt dort, wo getippt wurde; Start/Ziel dürfen fehlen", () => {
+  const spotted = [
+    { obstacle_id: "a", point: { x: -1, z: 2 } },
+    { obstacle_id: "a", point: { x: 1.5, z: -1 } },
+    { obstacle_id: "b" },
+  ];
+  const controls = runControls(null, null, spotted, obstacles);
+  assert.deepEqual(
+    controls.map((c) => [c.kind, c.x, c.z]),
+    [
+      ["obstacle", -1, 2],
+      ["obstacle", 1.5, -1],
+      ["obstacle", 10, 0],
+    ],
+  );
+  assert.equal(segmentCount(controls), 4);
 });

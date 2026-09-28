@@ -29,6 +29,16 @@ export interface RunControl {
   viaIndex?: number;
   /** Schritte (Index in der Trickfolge), die an diesem Obstacle gefahren werden. */
   steps?: number[];
+  /** Punkt stammt aus der gespeicherten Tippposition des Tricks (nicht aus der Obstacle-Mitte). */
+  spotted?: boolean;
+}
+
+/** Schritt mit optionaler Tippposition (dort wird der Trick gefahren). */
+export type SpottedStep = Pick<RunStep, "obstacle_id"> & { point?: Point | null };
+
+/** Anzahl der Abschnitte (Start → Tricks → Ziel) für eine Kontrollpunktliste. */
+export function segmentCount(controls: RunControl[]): number {
+  return controls.filter((c) => c.kind === "obstacle").length + 1;
 }
 
 /** Zwischenpunkte stabil nach Abschnitt sortieren und auf gültige Abschnitte begrenzen. */
@@ -42,13 +52,15 @@ export function normalizeWaypoints(via: Waypoint[], segments: number): Waypoint[
 }
 
 /**
- * Kontrollpunkte der Linie: Start → (Zwischenpunkte) → Obstacles in Schrittreihenfolge →
- * (Zwischenpunkte) → Ziel. Aufeinanderfolgende Schritte am selben Obstacle zählen einmal.
+ * Kontrollpunkte der Linie: Start → (Zwischenpunkte) → Tricks in Schrittreihenfolge →
+ * (Zwischenpunkte) → Ziel. Ein Trick mit Tippposition liegt genau dort; ohne Tippposition
+ * (ältere Runs) zählen aufeinanderfolgende Schritte am selben Obstacle einmal (Mitte).
+ * Start/Ziel dürfen fehlen, solange sie beim Planen noch nicht gesetzt sind.
  */
 export function runControls(
-  start: Point,
-  end: Point,
-  steps: Pick<RunStep, "obstacle_id">[],
+  start: Point | null,
+  end: Point | null,
+  steps: SpottedStep[],
   obstacles: Obstacle[],
   via: Waypoint[] = [],
 ): RunControl[] {
@@ -57,13 +69,23 @@ export function runControls(
   steps.forEach((step, index) => {
     const o = byId.get(step.obstacle_id);
     if (!o) return;
+    const spot = step.point ?? null;
     const previous = visits[visits.length - 1];
-    if (previous && previous.obstacleId === o.id) previous.steps!.push(index);
-    else visits.push({ x: o.x, z: o.z, kind: "obstacle", seg: visits.length + 1, obstacleId: o.id, steps: [index] });
+    if (previous && !spot && !previous.spotted && previous.obstacleId === o.id) previous.steps!.push(index);
+    else
+      visits.push({
+        x: spot?.x ?? o.x,
+        z: spot?.z ?? o.z,
+        kind: "obstacle",
+        seg: visits.length + 1,
+        obstacleId: o.id,
+        steps: [index],
+        spotted: Boolean(spot),
+      });
   });
   const segments = visits.length + 1;
   const sorted = normalizeWaypoints(via, segments);
-  const controls: RunControl[] = [{ x: start.x, z: start.z, kind: "start", seg: 0 }];
+  const controls: RunControl[] = start ? [{ x: start.x, z: start.z, kind: "start", seg: 0 }] : [];
   let v = 0;
   for (let seg = 0; seg < segments; seg++) {
     while (v < sorted.length && sorted[v].seg === seg) {
@@ -72,7 +94,7 @@ export function runControls(
     }
     if (seg < visits.length) controls.push(visits[seg]);
   }
-  controls.push({ x: end.x, z: end.z, kind: "end", seg: segments });
+  if (end) controls.push({ x: end.x, z: end.z, kind: "end", seg: segments });
   return controls;
 }
 
@@ -84,7 +106,7 @@ export function insertWaypoint(
   point: Point,
 ): { via: Waypoint[]; index: number } {
   const c = controls[after];
-  const segments = controls[controls.length - 1].seg;
+  const segments = segmentCount(controls);
   const sorted = normalizeWaypoints(via, segments);
   if (sorted.length >= MAX_WAYPOINTS) return { via: sorted, index: -1 };
   const index = c.kind === "via" ? c.viaIndex! + 1 : sorted.filter((w) => w.seg < c.seg).length;

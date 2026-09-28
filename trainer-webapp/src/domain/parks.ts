@@ -174,7 +174,11 @@ export interface ParkRun {
   event: CalendarEventOption | null;
   event_id: string | null;
   /** Startpunkt; `path` enthält optionale Zwischenpunkte der Fahrlinie (siehe run-path.ts). */
-  start_point: Point & { path?: { x: number; z: number; seg: number }[] };
+  start_point: Point & {
+    path?: { x: number; z: number; seg: number }[];
+    /** Tippposition je Schritt (gleiche Reihenfolge wie `steps`, null = Obstacle-Mitte). */
+    spots?: (Point | null)[];
+  };
   end_point: Point;
   target_score: number | string | null;
   actual_score: number | string | null;
@@ -337,19 +341,25 @@ export const PIN_SPACING = 1.5;
  * Draufsicht lesbar bleiben.
  */
 export function pinLayout(
-  steps: Pick<RunStep, "obstacle_id">[],
+  steps: (Pick<RunStep, "obstacle_id"> & { point?: Point | null })[],
   obstacles: Obstacle[],
-): { number: number; obstacleId: string; x: number; y: number; z: number }[] {
+): { number: number; obstacleId: string; x: number; y: number; z: number; spot: boolean }[] {
   const byId = new Map(obstacles.map((o) => [o.id, o]));
   const total = new Map<string, number>();
   for (const step of steps)
-    if (byId.has(step.obstacle_id))
+    if (byId.has(step.obstacle_id) && !step.point)
       total.set(step.obstacle_id, (total.get(step.obstacle_id) ?? 0) + 1);
   const seen = new Map<string, number>();
   const pins = [];
   for (let i = 0; i < steps.length; i++) {
     const obstacle = byId.get(steps[i].obstacle_id);
     if (!obstacle) continue;
+    const point = steps[i].point;
+    if (point) {
+      // Tippposition gespeichert: Pin genau dort.
+      pins.push({ number: i + 1, obstacleId: obstacle.id, x: point.x, y: pinBaseHeight(obstacle), z: point.z, spot: true });
+      continue;
+    }
     const level = seen.get(obstacle.id) ?? 0;
     seen.set(obstacle.id, level + 1);
     const count = total.get(obstacle.id) ?? 1;
@@ -359,6 +369,7 @@ export function pinLayout(
       x: obstacle.x + (level - (count - 1) / 2) * PIN_SPACING,
       y: pinBaseHeight(obstacle),
       z: obstacle.z,
+      spot: false,
     });
   }
   return pins;

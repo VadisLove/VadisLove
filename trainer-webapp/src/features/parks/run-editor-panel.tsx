@@ -17,6 +17,7 @@ import {
 } from "@/domain/parks";
 import type { Waypoint } from "@/domain/run-path";
 import type { ScenePlacement } from "./park-scene";
+import { InfoTip } from "./info-tip";
 import styles from "./parks.module.css";
 
 export interface DraftStep {
@@ -28,6 +29,8 @@ export interface DraftStep {
   stance: Stance | null;
   direction: Direction | null;
   note: string;
+  /** Tippposition des Tricks im Park (null = Mitte des Obstacles, z. B. ältere Runs). */
+  point?: Point | null;
 }
 
 export interface RunDraft {
@@ -37,10 +40,11 @@ export interface RunDraft {
   athlete_user_id: string;
   title: string;
   event_id: string | null;
-  start: Point;
+  /** Start und Ziel setzt der Nutzer selbst; bis dahin null. */
+  start: Point | null;
   /** Zwischenpunkte der Fahrlinie (kurvige Linie). */
   via: Waypoint[];
-  end: Point;
+  end: Point | null;
   target_score: string;
   actual_score: string;
   note: string;
@@ -244,7 +248,10 @@ export function RunEditorPanel({
       </div>
 
       <section className={styles.form}>
-        <h3>Start und Ziel</h3>
+        <h3>
+          Start und Ziel
+          <InfoTip text="Start: wo der Run beginnt, Ziel: wo er endet. Beide setzt du selbst über die Knöpfe; danach kannst du S und Z in der Ansicht direkt ziehen." />
+        </h3>
         <div className={styles.points}>
           {(["start", "end"] as const).map((kind) => (
             <button
@@ -275,7 +282,10 @@ export function RunEditorPanel({
       </section>
 
       <section className={styles.form}>
-        <h3>Trickfolge ({draft.steps.length})</h3>
+        <h3>
+          Trickfolge ({draft.steps.length})
+          <InfoTip text="Tippe im Park genau auf die Stelle, an der der Trick gefahren wird – dort erscheint der Pin und die Linie führt hindurch. Mehrere Tricks am selben Obstacle sind möglich." />
+        </h3>
         {draft.steps.length === 0 ? (
           <p className={styles.hint}>Noch keine Tricks. Tippe im Park auf das erste Obstacle.</p>
         ) : null}

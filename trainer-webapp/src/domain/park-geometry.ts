@@ -217,7 +217,7 @@ export function applyTransform(original: Obstacle, t: TransformInput): Obstacle 
 
 /** Kurze deutsche Beschreibung der laufenden Transformation für die Statuszeile. */
 export function describeTransform(original: Obstacle, next: Obstacle, kind: TransformKind, axis: TransformAxis): string {
-  const n = (v: number, digits = 2) => v.toLocaleString("de-DE", { maximumFractionDigits: digits });
+  const n = (v: number, digits = 2) => (v || 0).toLocaleString("de-DE", { maximumFractionDigits: digits });
   const axisLabel = axis ? ` · Achse ${axis.toUpperCase()}` : "";
   if (kind === "move") {
     if (axis === "z") return `Verschieben${axisLabel} · Höhe ${n((next.elevation ?? 0) - (original.elevation ?? 0))} m`;
@@ -229,4 +229,88 @@ export function describeTransform(original: Obstacle, next: Obstacle, kind: Tran
     return `Drehen · ${n(next.rotation, 1)}°`;
   }
   return `Skalieren${axisLabel} · ${n(next.width)} × ${n(next.length)} × ${n(next.height)} m`;
+}
+
+/** Entfernt mehrere Eckpunkte; mindestens drei bleiben erhalten (sonst unverändert). */
+export function removeZoneVertices(o: Obstacle, indices: number[]): Obstacle {
+  const drop = new Set(indices);
+  const outline = zoneOutline(o);
+  const kept = outline.filter((_, i) => !drop.has(i));
+  if (kept.length < 3 || kept.length === outline.length) return o;
+  return normalizeZone({ ...o, points: kept });
+}
+
+/** Verschiebt ausgewählte Eckpunkte um einen Weltvektor (Ziehen mehrerer Punkte). */
+export function moveZoneVertices(o: Obstacle, indices: number[], delta: Point): Obstacle {
+  const pick = new Set(indices);
+  const origin = worldToLocal(o, { x: o.x, z: o.z });
+  const moved = worldToLocal(o, { x: o.x + delta.x, z: o.z + delta.z });
+  const d = { x: moved.x - origin.x, z: moved.z - origin.z };
+  const points = zoneOutline(o).map((p, i) => (pick.has(i) ? { x: p.x + d.x, z: p.z + d.z } : p));
+  return normalizeZone({ ...o, points });
+}
+
+/**
+ * G/R/S auf ausgewählte Eckpunkte eines Bereichs (wie der Bearbeitungsmodus in Blender):
+ * Verschieben um einen Weltvektor, Drehen und Skalieren um den Schwerpunkt der Auswahl.
+ * Achse Z hat für Umrisspunkte keine Wirkung. Liefert auch die angewandten Werte.
+ */
+export function transformVertices(
+  o: Obstacle,
+  indices: number[],
+  t: TransformInput,
+): { zone: Obstacle; text: string } {
+  const outline = zoneOutline(o);
+  const pick = new Set(indices.filter((i) => i >= 0 && i < outline.length));
+  // `|| 0` verhindert die Anzeige „-0“.
+  const n = (v: number, digits = 2) => (v || 0).toLocaleString("de-DE", { maximumFractionDigits: digits });
+  const label = `${pick.size} ${pick.size === 1 ? "Punkt" : "Punkte"}`;
+  const axisLabel = t.axis ? ` · Achse ${t.axis.toUpperCase()}` : "";
+  const typed = t.typed ?? null;
+  if (!pick.size || t.axis === "z") return { zone: o, text: `${label} · Achse Z nicht möglich` };
+
+  if (t.kind === "move") {
+    let dx = t.ground?.x ?? 0;
+    let dz = t.ground?.z ?? 0;
+    if (typed !== null) {
+      dx = t.axis === "y" ? 0 : typed;
+      dz = t.axis === "y" ? -typed : 0;
+    } else {
+      if (t.axis === "x") dz = 0;
+      if (t.axis === "y") dx = 0;
+      if (t.snap) {
+        dx = snapTo(dx, 0.1);
+        dz = snapTo(dz, 0.1);
+      }
+    }
+    return {
+      zone: moveZoneVertices(o, [...pick], { x: dx, z: dz }),
+      text: `${label} verschieben${axisLabel} · X ${n(dx)} m · Y ${n(-dz)} m`,
+    };
+  }
+
+  const selected = outline.filter((_, i) => pick.has(i));
+  const cx = selected.reduce((s, p) => s + p.x, 0) / selected.length;
+  const cz = selected.reduce((s, p) => s + p.z, 0) / selected.length;
+  if (t.kind === "rotate") {
+    let angle = typed ?? t.angle ?? 0;
+    if (t.snap && typed === null) angle = snapTo(angle, 5);
+    // Positiv = im Uhrzeigersinn von oben (gleiche Richtung wie beim Drehen von Obstacles).
+    const r = (angle * Math.PI) / 180;
+    const cos = Math.cos(r);
+    const sin = Math.sin(r);
+    const points = outline.map((p, i) => {
+      if (!pick.has(i)) return p;
+      const x = p.x - cx;
+      const z = p.z - cz;
+      return { x: cx + x * cos - z * sin, z: cz + x * sin + z * cos };
+    });
+    return { zone: normalizeZone({ ...o, points }), text: `${label} drehen · ${n(angle, 1)}°` };
+  }
+  let factor = typed ?? t.factor ?? 1;
+  if (t.snap && typed === null) factor = Math.max(0.05, snapTo(factor, 0.05));
+  const fx = t.axis === "y" ? 1 : factor;
+  const fz = t.axis === "x" ? 1 : factor;
+  const points = outline.map((p, i) => (pick.has(i) ? { x: cx + (p.x - cx) * fx, z: cz + (p.z - cz) * fz } : p));
+  return { zone: normalizeZone({ ...o, points }), text: `${label} skalieren${axisLabel} · ${n(factor)}×` };
 }

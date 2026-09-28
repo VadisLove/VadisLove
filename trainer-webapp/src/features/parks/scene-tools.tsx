@@ -10,10 +10,12 @@ import {
   describeTransform,
   insertZoneVertex,
   localToWorld,
-  moveZoneVertex,
+  moveZoneVertices,
   removeZoneVertex,
+  transformVertices,
   zoneOutline,
   type TransformAxis,
+  type TransformInput,
   type TransformKind,
 } from "@/domain/park-geometry";
 import type { Obstacle, Point } from "@/domain/parks";
@@ -641,7 +643,8 @@ function HandleSprite({
 }) {
   const texture = useMemo(() => handleTexture(color, hollow), [color, hollow]);
   return (
-    <sprite position={position} scale={[size, size, 1]} renderOrder={12} {...events}>
+    // userData.handle: Obstacles darunter lassen Klicks auf Griffe durch (siehe ObstacleMesh).
+    <sprite position={position} scale={[size, size, 1]} renderOrder={12} userData={{ handle: true }} {...events}>
       <spriteMaterial map={texture} sizeAttenuation={false} depthTest={false} transparent />
     </sprite>
   );
@@ -726,13 +729,20 @@ export function DragHandle({
   );
 }
 
+/** Farbe ausgewählter Eckpunkte (wie die aktive Auswahl in Blender). */
+const SELECTED_COLOR = "#f59f00";
+
 /**
- * Eckpunkte eines gewählten Bereichs wie in Illustrator: Punkte ziehen, auf die Mitte
- * einer Kante ziehen fügt einen Punkt ein, Doppelklick bzw. Alt-Klick entfernt ihn.
+ * Eckpunkte eines gewählten Bereichs wie in Illustrator/Blender:
+ * Klick wählt einen Punkt, Umschalt+Klick erweitert die Auswahl, Ziehen verschiebt alle
+ * ausgewählten Punkte gemeinsam; danach wirken G/R/S auf die Auswahl. Ziehen an der
+ * Kantenmitte fügt einen Punkt ein, Doppelklick bzw. Alt-Klick entfernt ihn.
  */
 export function ZoneHandles({
   zone,
   top,
+  selected,
+  onSelect,
   pick,
   consumed,
   controlsRef,
@@ -741,26 +751,30 @@ export function ZoneHandles({
   zone: Obstacle;
   /** Höhe der Oberkante des Bereichs in Weltkoordinaten. */
   top: number;
+  /** Ausgewählte Eckpunkte (Indizes im Umriss). */
+  selected: number[];
+  onSelect: (indices: number[]) => void;
   pick: (clientX: number, clientY: number) => { x: number; y: number; z: number } | null;
   consumed: WeakSet<Event>;
   controlsRef: React.MutableRefObject<OrbitControls | null>;
   onEdit: (next: Obstacle, phase: EditPhase) => void;
 }) {
-  const drag = useRef<{ index: number; dx: number; dz: number; moved: boolean } | null>(null);
+  const drag = useRef<{ group: number[]; origin: Obstacle; start: Point; moved: boolean } | null>(null);
   const zoneRef = useRef(zone);
   useLayoutEffect(() => {
     zoneRef.current = zone;
   }, [zone]);
   const outline = zoneOutline(zone);
   const world = outline.map((p) => localToWorld(zone, p));
+  const chosen = new Set(selected);
 
-  const begin = (e: ThreeEvent<PointerEvent>, index: number, from: Point) => {
+  const begin = (e: ThreeEvent<PointerEvent>, group: number[], origin: Obstacle, from: Point) => {
     e.stopPropagation();
     consumed.add(e.nativeEvent);
     const ground = pick(e.nativeEvent.clientX, e.nativeEvent.clientY);
     if (controlsRef.current) controlsRef.current.enabled = false;
     (e.target as Element).setPointerCapture?.(e.pointerId);
-    drag.current = { index, dx: ground ? from.x - ground.x : 0, dz: ground ? from.z - ground.z : 0, moved: false };
+    drag.current = { group, origin, start: ground ? { x: ground.x, z: ground.z } : from, moved: false };
   };
   const move = (e: ThreeEvent<PointerEvent>) => {
     const d = drag.current;
@@ -769,7 +783,8 @@ export function ZoneHandles({
     const ground = pick(e.nativeEvent.clientX, e.nativeEvent.clientY);
     if (!ground) return;
     d.moved = true;
-    onEdit(moveZoneVertex(zoneRef.current, d.index, { x: ground.x + d.dx, z: ground.z + d.dz }), "preview");
+    const delta = { x: ground.x - d.start.x, z: ground.z - d.start.z };
+    onEdit(moveZoneVertices(d.origin, d.group, delta), "preview");
   };
   const end = (e: ThreeEvent<PointerEvent>) => {
     const d = drag.current;
@@ -779,6 +794,10 @@ export function ZoneHandles({
     if (controlsRef.current) controlsRef.current.enabled = true;
     onEdit(zoneRef.current, d.moved ? "commit" : "cancel");
   };
+  const swallow = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    consumed.add(e.nativeEvent);
+  };
 
   return (
     <group>
@@ -786,26 +805,35 @@ export function ZoneHandles({
         <HandleSprite
           key={`v${i}`}
           position={new THREE.Vector3(p.x, top, p.z)}
-          size={0.04}
-          color={TOOL_COLOR}
+          size={chosen.has(i) ? 0.046 : 0.04}
+          color={chosen.has(i) ? SELECTED_COLOR : TOOL_COLOR}
           onPointerDown={(e) => {
-            if (e.nativeEvent.altKey) {
+            const native = e.nativeEvent;
+            if (native.altKey) {
               e.stopPropagation();
-              consumed.add(e.nativeEvent);
+              consumed.add(native);
+              onSelect([]);
               onEdit(removeZoneVertex(zoneRef.current, i), "commit");
               return;
             }
-            begin(e, i, p);
+            if (native.shiftKey) {
+              // Auswahl erweitern bzw. Punkt abwählen, ohne zu ziehen.
+              e.stopPropagation();
+              consumed.add(native);
+              onSelect(chosen.has(i) ? selected.filter((x) => x !== i) : [...selected, i]);
+              return;
+            }
+            // Ausgewählten Punkt ziehen: ganze Auswahl mitnehmen; sonst nur diesen Punkt.
+            const group = chosen.has(i) ? selected : [i];
+            if (!chosen.has(i)) onSelect([i]);
+            begin(e, group, zoneRef.current, p);
           }}
           onPointerMove={move}
           onPointerUp={end}
-          onClick={(e) => {
-            e.stopPropagation();
-            consumed.add(e.nativeEvent);
-          }}
+          onClick={swallow}
           onDoubleClick={(e) => {
-            e.stopPropagation();
-            consumed.add(e.nativeEvent);
+            swallow(e);
+            onSelect([]);
             onEdit(removeZoneVertex(zoneRef.current, i), "commit");
           }}
         />
@@ -821,19 +849,17 @@ export function ZoneHandles({
             color={TOOL_COLOR}
             hollow
             onPointerDown={(e) => {
-              // Neuen Punkt einfügen und direkt weiterziehen.
+              // Neuen Punkt einfügen, auswählen und direkt weiterziehen.
               const inserted = insertZoneVertex(zoneRef.current, i, mid);
               onEdit(inserted, "preview");
               zoneRef.current = inserted;
-              begin(e, i + 1, mid);
+              onSelect([i + 1]);
+              begin(e, [i + 1], inserted, mid);
               if (drag.current) drag.current.moved = true;
             }}
             onPointerMove={move}
             onPointerUp={end}
-            onClick={(e) => {
-              e.stopPropagation();
-              consumed.add(e.nativeEvent);
-            }}
+            onClick={swallow}
           />
         );
       })}
@@ -849,6 +875,8 @@ interface Operation {
   kind: TransformKind;
   axis: TransformAxis;
   original: Obstacle;
+  /** Ausgewählte Eckpunkte eines Bereichs (leer = ganzes Obstacle). */
+  vertices: number[];
   /** Bildschirmpunkt, an dem die Mausbewegung beginnt (null = wartet auf Ziehen). */
   start: { x: number; y: number } | null;
   pointer: { x: number; y: number } | null;
@@ -869,6 +897,7 @@ interface Operation {
  */
 export function TransformTool({
   selected,
+  vertices,
   base,
   enabled,
   command,
@@ -877,6 +906,8 @@ export function TransformTool({
   onState,
 }: {
   selected: Obstacle | null;
+  /** Ausgewählte Eckpunkte des gewählten Bereichs (Punktmodus). */
+  vertices: number[];
   /** Unterkante des gewählten Obstacles in Weltkoordinaten. */
   base: number;
   enabled: boolean;
@@ -890,9 +921,9 @@ export function TransformTool({
   const op = useRef<Operation | null>(null);
   const hover = useRef<{ x: number; y: number } | null>(null);
   const swallowClick = useRef(false);
-  const props = useRef({ selected, base, enabled, onEdit, onState });
+  const props = useRef({ selected, vertices, base, enabled, onEdit, onState });
   useLayoutEffect(() => {
-    props.current = { selected, base, enabled, onEdit, onState };
+    props.current = { selected, vertices, base, enabled, onEdit, onState };
   });
 
   const api = useMemo(() => {
@@ -912,17 +943,29 @@ export function TransformTool({
       plane.constant = -props.current.base;
       return raycaster.ray.intersectPlane(plane, hit) ? { x: hit.x, z: hit.z } : null;
     };
-    const center = (o: Obstacle) => {
+    /** Bildschirmmitte der Operation: Obstacle-Mitte bzw. Schwerpunkt der ausgewählten Punkte. */
+    const center = (o: Operation) => {
       const rect = gl.domElement.getBoundingClientRect();
-      const v = new THREE.Vector3(o.x, props.current.base + o.height / 2, o.z).project(camera);
+      let x = o.original.x;
+      let z = o.original.z;
+      if (o.vertices.length) {
+        const outline = zoneOutline(o.original);
+        const pts = o.vertices.filter((i) => i < outline.length).map((i) => localToWorld(o.original, outline[i]));
+        if (pts.length) {
+          x = pts.reduce((sum, p) => sum + p.x, 0) / pts.length;
+          z = pts.reduce((sum, p) => sum + p.z, 0) / pts.length;
+        }
+      }
+      const v = new THREE.Vector3(x, props.current.base + o.original.height / 2, z).project(camera);
       return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height };
     };
 
-    const compute = (o: Operation) => {
+    /** Mausbewegung bzw. Eingabe → Transformationswerte (unabhängig davon, was bewegt wird). */
+    const input = (o: Operation): TransformInput => {
       const typedValue = o.typed && o.typed !== "-" ? Number(o.typed.replace(",", ".")) : null;
       const typed = typedValue !== null && Number.isFinite(typedValue) ? typedValue : null;
       const base = { kind: o.kind, axis: o.axis, typed, snap: !o.noSnap };
-      if (!o.start || !o.pointer) return applyTransform(o.original, base);
+      if (!o.start || !o.pointer) return base;
       if (o.kind === "move") {
         if (o.axis === "z") {
           const rect = gl.domElement.getBoundingClientRect();
@@ -931,14 +974,13 @@ export function TransformTool({
           );
           const fov = ((camera as THREE.PerspectiveCamera).fov * Math.PI) / 180;
           const perPixel = (2 * distance * Math.tan(fov / 2)) / rect.height;
-          return applyTransform(o.original, { ...base, lift: -(o.pointer.y - o.start.y) * perPixel });
+          return { ...base, lift: -(o.pointer.y - o.start.y) * perPixel };
         }
         const a = onPlane(o.start);
         const b = onPlane(o.pointer);
-        const ground = a && b ? { x: b.x - a.x, z: b.z - a.z } : { x: 0, z: 0 };
-        return applyTransform(o.original, { ...base, ground });
+        return { ...base, ground: a && b ? { x: b.x - a.x, z: b.z - a.z } : { x: 0, z: 0 } };
       }
-      const c = center(o.original);
+      const c = center(o);
       if (o.kind === "rotate") {
         const current = Math.atan2(o.pointer.y - c.y, o.pointer.x - c.x);
         if (o.lastAngle === null) o.lastAngle = Math.atan2(o.start.y - c.y, o.start.x - c.x);
@@ -947,23 +989,34 @@ export function TransformTool({
         if (delta < -Math.PI) delta += Math.PI * 2;
         o.angle += delta;
         o.lastAngle = current;
-        return applyTransform(o.original, { ...base, angle: (o.angle * 180) / Math.PI });
+        return { ...base, angle: (o.angle * 180) / Math.PI };
       }
       const d0 = Math.max(8, Math.hypot(o.start.x - c.x, o.start.y - c.y));
       const d1 = Math.hypot(o.pointer.x - c.x, o.pointer.y - c.y);
-      return applyTransform(o.original, { ...base, factor: d1 / d0 });
+      return { ...base, factor: d1 / d0 };
+    };
+
+    /** Ergebnis: ganzes Obstacle oder (im Punktmodus) nur die ausgewählten Eckpunkte. */
+    const compute = (o: Operation): { next: Obstacle; text: string } => {
+      const t = input(o);
+      if (o.vertices.length) {
+        const result = transformVertices(o.original, o.vertices, t);
+        return { next: result.zone, text: result.text };
+      }
+      const next = applyTransform(o.original, t);
+      return { next, text: describeTransform(o.original, next, o.kind, o.axis) };
     };
 
     const report = () => {
       const o = op.current;
       if (!o) return props.current.onState(null);
-      const next = compute(o);
+      const { next, text } = compute(o);
       props.current.onEdit(next, "preview");
       const typed = o.typed ? ` · Eingabe: ${o.typed}` : "";
       props.current.onState({
         kind: o.kind,
         axis: o.axis,
-        text: describeTransform(o.original, next, o.kind, o.axis) + typed,
+        text: text + typed,
         awaitingDrag: !o.start,
       });
     };
@@ -983,10 +1036,13 @@ export function TransformTool({
       }
       if (controlsRef.current) controlsRef.current.enabled = false;
       const pointer = viaKeyboard ? hover.current : null;
+      // Im Punktmodus (Bereich mit ausgewählten Eckpunkten) wirken G/R/S nur auf diese Punkte.
+      const vertices = sel.type === "zone" ? props.current.vertices : [];
       op.current = {
         kind,
         axis: null,
         original: sel,
+        vertices,
         start: pointer,
         pointer,
         angle: 0,
@@ -1003,7 +1059,7 @@ export function TransformTool({
       if (!o) return;
       op.current = null;
       if (controlsRef.current) controlsRef.current.enabled = true;
-      if (commit) props.current.onEdit(compute(o), "commit");
+      if (commit) props.current.onEdit(compute(o).next, "commit");
       else props.current.onEdit(o.original, "cancel");
       props.current.onState(null);
     };

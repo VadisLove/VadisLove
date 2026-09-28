@@ -14,6 +14,8 @@ import {
 } from "@/domain/parks";
 import { uploadAerialImage } from "./aerial-upload";
 import { GroundPanel } from "./ground-panel";
+import { InfoTip } from "./info-tip";
+import type { ModelBounds } from "./park-scene";
 import { MODEL_UNITS, checkModelFile, uploadModelFile, type ModelCheck, type ModelUnit } from "./model-assets";
 import styles from "./parks.module.css";
 
@@ -26,6 +28,7 @@ export interface ParkDraft {
 /** Zahleneingabe, die erst beim Verlassen bzw. Enter übernimmt und Grenzen einhält. */
 function NumberField({
   label,
+  info,
   value,
   min,
   max,
@@ -33,6 +36,8 @@ function NumberField({
   onChange,
 }: {
   label: string;
+  /** Kurze Erklärung hinter dem „i“ neben der Beschriftung. */
+  info?: string;
   value: number;
   min: number;
   max: number;
@@ -50,7 +55,10 @@ function NumberField({
   };
   return (
     <label className={styles.field}>
-      {label}
+      <span>
+        {label}
+        {info ? <InfoTip text={info} /> : null}
+      </span>
       <input
         type="number"
         inputMode="decimal"
@@ -63,6 +71,45 @@ function NumberField({
         onKeyDown={(e) => e.key === "Enter" && commit()}
       />
     </label>
+  );
+}
+
+/**
+ * Hinweis, wenn Park-Modell und Grundfläche nicht zusammenpassen: Ein sehr kleines Modell
+ * deutet auf einen falschen Maßstab hin, eine viel größere Grundfläche macht Raster,
+ * Kamera und Markierungen unübersichtlich.
+ */
+function ModelSizeHint({
+  bounds,
+  size,
+  onFit,
+}: {
+  bounds: ModelBounds;
+  size: ParkContent["size"];
+  onFit: () => void;
+}) {
+  const w = bounds.maxX - bounds.minX;
+  const l = bounds.maxZ - bounds.minZ;
+  const m = (v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 1 });
+  if (Math.max(w, l) < 3)
+    return (
+      <p className={styles.hint} style={{ marginTop: 8 }}>
+        Dein Modell ist nur ca. {m(w)} × {m(l)} m groß. Vermutlich stimmt der Maßstab nicht –
+        prüfe unter „Untergrund“ den Wert „Maßstab (m/Einheit)“ (z. B. 1 statt 0,01).
+      </p>
+    );
+  const tooBig = size.width > w * 1.6 + 10 || size.length > l * 1.6 + 10;
+  if (!tooBig) return null;
+  return (
+    <div className={styles.hint} style={{ marginTop: 8 }}>
+      Die Grundfläche ({m(size.width)} × {m(size.length)} m) ist deutlich größer als dein Modell (ca.{" "}
+      {m(w)} × {m(l)} m). Das macht Raster und Ansicht unübersichtlich.
+      <div className={styles.row} style={{ marginTop: 8 }}>
+        <button type="button" className={styles.button} onClick={onFit}>
+          Grundfläche an Modell anpassen
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -80,6 +127,8 @@ export function ParkEditorPanel({
   onAdd,
   onSelect,
   onDrawZone,
+  modelBounds,
+  onFitToModel,
   onAssetPreview,
   onSave,
   onCancel,
@@ -95,6 +144,10 @@ export function ParkEditorPanel({
   onSelect: (id: string | null) => void;
   /** Startet das Zeichnen eines Bereichs mit frei gesetzten Punkten. */
   onDrawZone: () => void;
+  /** Tatsächliche Maße eines hochgeladenen Park-Modells (für den Größenhinweis). */
+  modelBounds: ModelBounds | null;
+  /** Grundfläche auf das Modell zuschneiden und alles mittig ausrichten. */
+  onFitToModel: () => void;
   onAssetPreview: (urls: Record<string, string>) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -267,7 +320,10 @@ export function ParkEditorPanel({
             </p>
             <div className={styles.twoCols}>
               <label className={styles.field}>
-                Einheit
+                <span>
+                  Einheit
+                  <InfoTip text="In welcher Einheit die Datei misst. Ist das Modell viel zu klein oder zu groß, stimmt meist die Einheit nicht (z. B. Zentimeter statt Meter)." />
+                </span>
                 <select value={customUnit} onChange={(e) => setCustomUnit(e.target.value as ModelUnit)}>
                   {Object.entries(MODEL_UNITS).map(([key, u]) => (
                     <option key={key} value={key}>{u.label}</option>
@@ -334,18 +390,19 @@ export function ParkEditorPanel({
             </div>
             <div className={styles.threeCols}>
               {/* Über scaleObstacle, damit ein gezeichneter Umriss mitskaliert. */}
-              <NumberField label="Breite m" value={selected.width} min={0.1} max={60} onChange={(width) => updateObstacle(scaleObstacle(selected, width / selected.width, 1, 1))} />
+              <NumberField label="Breite m" info="Maße in Metern. Bei Bereichen wird die Höhe automatisch aus dem Gelände darunter berechnet (vom tiefsten bis zum höchsten Punkt) – der Wert hier ist nur das Minimum." value={selected.width} min={0.1} max={60} onChange={(width) => updateObstacle(scaleObstacle(selected, width / selected.width, 1, 1))} />
               <NumberField label="Tiefe m" value={selected.length} min={0.1} max={60} onChange={(length) => updateObstacle(scaleObstacle(selected, 1, length / selected.length, 1))} />
               <NumberField label="Höhe m" value={selected.height} min={0.05} max={10} step={0.05} onChange={(height) => updateObstacle({ height })} />
             </div>
             <div className={styles.threeCols}>
               {/* Achsen wie im Gizmo: X = Osten, Y = Norden (intern −z). */}
-              <NumberField label="X m (Ost)" value={selected.x} min={-200} max={200} onChange={(x) => updateObstacle({ x })} />
+              <NumberField label="X m (Ost)" info="Lage der Obstacle-Mitte, gemessen von der Parkmitte (0/0): X = Richtung Osten, Y = Richtung Norden. Tipp: G, dann X oder Y und eine Zahl verschiebt exakt." value={selected.x} min={-200} max={200} onChange={(x) => updateObstacle({ x })} />
               <NumberField label="Y m (Nord)" value={-selected.z || 0} min={-200} max={200} onChange={(y) => updateObstacle({ z: -y || 0 })} />
-              <NumberField label="Drehung °" value={selected.rotation} min={-360} max={360} step={5} onChange={(rotation) => updateObstacle({ rotation: normalizeRotation(rotation) })} />
+              <NumberField label="Drehung °" info="Drehung um die Hochachse. Positive Werte drehen im Uhrzeigersinn (von oben gesehen)." value={selected.rotation} min={-360} max={360} step={5} onChange={(rotation) => updateObstacle({ rotation: normalizeRotation(rotation) })} />
             </div>
             <NumberField
               label={content.ground ? "Höhenversatz zum Gelände m" : "Höhenversatz m"}
+              info="Hebt (+) oder senkt (−) das Obstacle. Bei 0 steht es auf dem tiefsten Geländepunkt unter seiner Grundfläche. Nutze das, wenn ein Obstacle in einer Senke schwebt oder im Gelände versinkt – z. B. +0,3 für ein Podest."
               value={selected.elevation ?? 0}
               min={-20}
               max={20}
@@ -356,17 +413,21 @@ export function ParkEditorPanel({
               <p className={styles.muted}>
                 Ein Bereich markiert ein Gelände-Element (z. B. Bowl oder Snake Run), an das
                 Tricks angepinnt werden können. Eckpunkte in der 3D-Ansicht ziehen; an der
-                Kantenmitte ziehen fügt einen Punkt ein, Doppelklick entfernt ihn.
+                Kantenmitte ziehen fügt einen Punkt ein, Doppelklick entfernt ihn. Punkte per
+                Klick bzw. Umschalt+Klick auswählen (A = alle) und mit G, R oder S bewegen.
               </p>
             ) : (
               <div className={styles.twoCols}>
-                <NumberField label="Neigung X °" value={selected.pitch ?? 0} min={-80} max={80} step={1} onChange={(pitch) => updateObstacle({ pitch: pitch || undefined })} />
+                <NumberField label="Neigung X °" info="Kippt das Obstacle um seine Breitenachse (X) bzw. Längsachse (Y), z. B. für schräge Rails oder Banks. Wirkt nur auf die Darstellung; Pins und Fahrlinie bleiben gleich." value={selected.pitch ?? 0} min={-80} max={80} step={1} onChange={(pitch) => updateObstacle({ pitch: pitch || undefined })} />
                 <NumberField label="Neigung Y °" value={selected.roll ?? 0} min={-80} max={80} step={1} onChange={(roll) => updateObstacle({ roll: roll || undefined })} />
               </div>
             )}
             {selected.type === "custom" ? (
               <label className={styles.field}>
-                Hochachse der Datei
+                <span>
+                  Hochachse der Datei
+                  <InfoTip text="CAD-Programme (z. B. SketchUp, Revit) speichern oft mit Z nach oben. Liegt das Modell auf der Seite, hier „Z“ wählen." />
+                </span>
                 <select value={selected.upAxis ?? "y"} onChange={(e) => updateObstacle({ upAxis: e.target.value as "y" | "z" })}>
                   <option value="y">Y</option>
                   <option value="z">Z (CAD)</option>
@@ -402,10 +463,13 @@ export function ParkEditorPanel({
           </p>
         ) : (
           <div className={styles.twoCols}>
-            <NumberField label="Breite m" value={content.size.width} min={10} max={300} step={1} onChange={(width) => setContent({ size: { ...content.size, width } })} />
+            <NumberField label="Breite m" info="Größe der Parkfläche in Metern. Sie bestimmt Raster, Kameraausschnitt und wo Punkte gesetzt werden können. Sie sollte nur etwas größer sein als dein Park bzw. Modell." value={content.size.width} min={10} max={300} step={1} onChange={(width) => setContent({ size: { ...content.size, width } })} />
             <NumberField label="Tiefe m" value={content.size.length} min={10} max={300} step={1} onChange={(length) => setContent({ size: { ...content.size, length } })} />
           </div>
         )}
+        {content.ground?.kind === "model" && modelBounds ? (
+          <ModelSizeHint bounds={modelBounds} size={content.size} onFit={onFitToModel} />
+        ) : null}
       </section>
 
       <GroundPanel
@@ -445,13 +509,16 @@ export function ParkEditorPanel({
               ist für alle angemeldeten Nutzer im Park sichtbar.
             </label>
             <div className={styles.twoCols}>
-              <NumberField label="Bildbreite m" value={aerial.width} min={5} max={400} step={0.5} onChange={(width) => setAerial({ width })} />
+              <NumberField label="Bildbreite m" info="Wie breit der Bildausschnitt in Wirklichkeit ist (Meter). Bestimmt den Maßstab – am besten eine bekannte Strecke im Bild nachmessen." value={aerial.width} min={5} max={400} step={0.5} onChange={(width) => setAerial({ width })} />
               <NumberField label="Drehung °" value={aerial.rotation} min={-360} max={360} step={1} onChange={(rotation) => setAerial({ rotation })} />
-              <NumberField label="Versatz X m" value={aerial.offsetX} min={-200} max={200} step={0.5} onChange={(offsetX) => setAerial({ offsetX })} />
+              <NumberField label="Versatz X m" info="Verschiebt das Luftbild, bis es mit Modell bzw. Obstacles übereinstimmt." value={aerial.offsetX} min={-200} max={200} step={0.5} onChange={(offsetX) => setAerial({ offsetX })} />
               <NumberField label="Versatz Z m" value={aerial.offsetZ} min={-200} max={200} step={0.5} onChange={(offsetZ) => setAerial({ offsetZ })} />
             </div>
             <label className={styles.field}>
-              Deckkraft
+              <span>
+                Deckkraft
+                <InfoTip text="Wie durchsichtig das Luftbild ist – niedriger Wert, um Obstacles darunter besser zu sehen." />
+              </span>
               <input
                 type="range"
                 min={0.1}

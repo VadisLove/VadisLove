@@ -35,6 +35,7 @@ before(async () => {
   );
   // Zwischenpunkte der Fahrlinie (start_point.path).
   await db.exec(await read("../supabase/migrations/20260926225228_park_run_path.sql"));
+  await db.exec(await read("../supabase/migrations/20260928092218_park_run_spots.sql"));
   await db.query(
     "insert into public.profiles values($1,'Alex','athlete'),($2,'Kim','athlete'),($3,'Trainer','trainer'),($4,'Mama','guardian'),($5,'Vorstand','athlete'),($6,'Gesperrt','athlete')",
     [A, B, T, G, S, X],
@@ -542,6 +543,20 @@ test("Zwischenpunkte der Fahrlinie werden gespeichert und begrenzt", async () =>
   ]) {
     await assert.rejects(
       cmd(A, "run_save", { ...payload, run_id: randomUUID(), start: { ...payload.start, path: bad } }),
+    );
+  }
+});
+
+test("Tipppositionen je Trick werden gespeichert und geprüft", async () => {
+  const p = await park(A);
+  const payload = await runPayload(p);
+  const spots = payload.steps.map((_, i) => (i === 1 ? null : { x: i, z: i * 2 }));
+  await cmd(A, "run_save", { ...payload, start: { ...payload.start, spots } });
+  const detail = await rpc(A, "select public.park_detail($1) data", [p.id]);
+  assert.deepEqual(detail.runs.find((r) => r.id === payload.run_id).start_point.spots, spots);
+  for (const bad of [[{ x: 999, z: 0 }], ["x"], Array.from({ length: 61 }, () => null)]) {
+    await assert.rejects(
+      cmd(A, "run_save", { ...payload, run_id: randomUUID(), start: { ...payload.start, spots: bad } }),
     );
   }
 });
