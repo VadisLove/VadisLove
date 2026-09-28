@@ -702,6 +702,12 @@ function PlayMarker({
   const lastStep = useRef<number | null>(null);
   const finished = useRef(false);
   const schedule = useMemo(() => playSchedule(length, stops), [length, stops]);
+  // Zeitplan per Ref lesen: Neuzeichnen (z. B. durch die Hervorhebung des aktiven Tricks)
+  // darf die laufende Animation nicht zurücksetzen – nur ein neuer Start (`play`).
+  const scheduleRef = useRef(schedule);
+  useLayoutEffect(() => {
+    scheduleRef.current = schedule;
+  }, [schedule]);
   const invalidate = useThree((s) => s.invalidate);
   const callbacks = useRef({ onStep, onEnd });
   useLayoutEffect(() => {
@@ -712,10 +718,10 @@ function PlayMarker({
     lastStep.current = null;
     finished.current = false;
     invalidate();
-  }, [play, schedule, invalidate]);
+  }, [play, invalidate]);
   useFrame(() => {
     if (finished.current || !ref.current) return;
-    const state = playState(schedule, (performance.now() - started.current) / 1000);
+    const state = playState(scheduleRef.current, (performance.now() - started.current) / 1000);
     const p = curve.getPointAt(Math.min(1, Math.max(0, state.at)));
     ref.current.position.set(p.x, Math.max(p.y, groundAt({ x: p.x, z: p.z }) + 0.06), p.z);
     if (state.step !== lastStep.current) {

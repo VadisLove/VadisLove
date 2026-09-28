@@ -527,17 +527,22 @@ export function ParkPlannerView({
     }
   }
 
-  const sceneRun =
-    mode === "run" && runDraft
-      ? { start: runDraft.start, end: runDraft.end, steps: runDraft.steps, via: runDraft.via }
-      : mode === "view" && selectedRun
-        ? {
-            start: selectedRun.start_point,
-            end: selectedRun.end_point,
-            steps: selectedRun.steps.map((s, i) => ({ ...s, point: selectedRun.start_point.spots?.[i] ?? null })),
-            via: selectedRun.start_point.path ?? [],
-          }
-        : null;
+  // Nur neu aufbauen, wenn sich der angezeigte Run ändert: Die Szene (u. a. die Run-Animation)
+  // erkennt Änderungen an neuen Objekten und würde sonst bei jedem Neuzeichnen neu beginnen.
+  const sceneRun = useMemo(
+    () =>
+      mode === "run" && runDraft
+        ? { start: runDraft.start, end: runDraft.end, steps: runDraft.steps, via: runDraft.via }
+        : mode === "view" && selectedRun
+          ? {
+              start: selectedRun.start_point,
+              end: selectedRun.end_point,
+              steps: selectedRun.steps.map((s, i) => ({ ...s, point: selectedRun.start_point.spots?.[i] ?? null })),
+              via: selectedRun.start_point.path ?? [],
+            }
+          : null,
+    [mode, runDraft, selectedRun],
+  );
 
   // Tastenkürzel des Planers (G/R/S, Ansichten und Achsen verarbeitet die Szene selbst).
   const keyHandler = useRef<(e: KeyboardEvent) => void>(() => {});
