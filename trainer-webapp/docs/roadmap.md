@@ -45,6 +45,7 @@ Familienübersicht, Offline und Videos bleiben als spätere Schritte 11–13 gep
 - **Schritt 7b (26.09.2026):** Park-Untergrund aus amtlichen Daten (Bayern, Sachsen)
   und Upload eigener 3D-Modelle (OBJ, glTF/GLB). Technisch produktiv veröffentlicht,
   Praxisabnahme offen. [Umfang und Nachweis](park-ground-step-7b.md).
+- **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
   bleiben bestehen. Sie ändern die vereinbarte Produktreihenfolge nicht.

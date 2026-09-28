@@ -536,6 +536,17 @@ Schritt 2 ist vom späteren umfangreichen Trainingspaket in Schritt 5 abzugrenze
 Betreiber-, Anschrift- und Kontaktdaten sowie finale Rechtstexte bleiben
 Veröffentlichungsblocker. Schritt 1 bleibt fachlich offen.
 
+Vorgemerkt (28.09.2026): Rollenmodell für Mehrfachfunktionen überarbeiten. Eine
+Person soll gleichzeitig Verbandsvorstand sein, einen Verband und einen Verein
+leiten und als Trainer arbeiten können, ohne dass eine Funktion die andere
+ersetzt. Ausgangslage: Für den Landesverband gibt es nur die Rolle `specialist`
+als höchste Landesrolle, keine eigene Vorstandsrolle. Der Testaccount von Ingo
+Naschold (Rollsportverband Nordrhein Westfalen) nutzt sie stellvertretend. Zu
+klären und zu prüfen: eigene Vorstandsrolle auf Landesebene, mehrere
+Mitgliedschaften und Rollen pro Person und Organisation (Datenbank-Constraints,
+Berechtigungsprüfungen, Einladungslogik) sowie die Anzeige bei Rollenwechsel.
+Reihenfolge der Schritte bleibt unverändert; Umsetzung vor dem Rollout.
+
 ## Festlegungen für Google- und Apple-Anmeldung
 
 - Google und Apple erscheinen auf der Anmeldung als gleichwertige, einfache
