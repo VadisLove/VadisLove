@@ -11,7 +11,7 @@ export const de = {
   },
   navigation: {
     family: "Familie",
-    dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne", evaluations: "Auswertung",
+    dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne", plansShort: "Pläne", createPlan: "Plan erstellen", parks: "Runbuilder", evaluations: "Auswertung",
     people: "Personen", inbox: "Postfach", organization: "Organisation", profile: "Profil", createEvent: "Event erstellen",
     settings: "Einstellungen", logout: "Abmelden", main: "Hauptnavigation",
     open: "Navigation öffnen", close: "Navigation schließen",

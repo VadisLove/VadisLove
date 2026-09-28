@@ -230,6 +230,16 @@ export interface TrainingPlan {
   sharedTrainers: string[];
   goals: TrainingGoal[];
   tricks: TrainingTrick[];
+  /** Niveau aus dem Erstellen-Flow (Einsteiger, Fortgeschritten, Profi). */
+  level?: string;
+  /**
+   * Nur bei geladenen Freigaben gesetzt, nie im Snapshot gespeichert:
+   * Richtung, Empfänger und Zeitpunkt der persönlichen Freigabe.
+   */
+  shareDirection?: "received" | "sent";
+  recipientUserId?: string;
+  sharedById?: string;
+  sharedAt?: string;
 }
 
 export type GoalCadence = "daily" | "weekly" | "monthly" | "yearly";
@@ -279,11 +289,19 @@ export interface TrainingVideoEvidence {
   planId: string;
   trickId: string;
   athleteId: string;
-  provider: "youtube";
-  videoId: string;
+  /** youtube = Link, upload = eigenes Video im privaten Bucket, note = nur Notiz. */
+  provider: "youtube" | "upload" | "note";
+  videoId: string | null;
+  /** Pfad im Bucket `training-evidence-videos` (nur bei Uploads, bis zur Löschung). */
+  storagePath?: string;
+  /** Kurzlebiger signierter Link zum Abspielen (serverseitig erzeugt). */
+  videoUrl?: string;
+  durationSeconds?: number;
+  /** Gesetzt, sobald das Video nach 14 Tagen automatisch gelöscht wurde. */
+  videoRemovedAt?: string;
   athleteComment: string;
-  attemptCount: number;
-  selfRating: 1 | 2 | 3 | 4 | 5;
+  attemptCount: number | null;
+  selfRating: 1 | 2 | 3 | 4 | 5 | null;
   submittedAt: string;
   reviewStatus: "pending" | "approved" | "changes_requested";
   trainerFeedback: string;

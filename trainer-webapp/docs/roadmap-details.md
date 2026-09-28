@@ -536,6 +536,17 @@ Schritt 2 ist vom späteren umfangreichen Trainingspaket in Schritt 5 abzugrenze
 Betreiber-, Anschrift- und Kontaktdaten sowie finale Rechtstexte bleiben
 Veröffentlichungsblocker. Schritt 1 bleibt fachlich offen.
 
+Vorgemerkt (28.09.2026): Rollenmodell für Mehrfachfunktionen überarbeiten. Eine
+Person soll gleichzeitig Verbandsvorstand sein, einen Verband und einen Verein
+leiten und als Trainer arbeiten können, ohne dass eine Funktion die andere
+ersetzt. Ausgangslage: Für den Landesverband gibt es nur die Rolle `specialist`
+als höchste Landesrolle, keine eigene Vorstandsrolle. Der Testaccount von Ingo
+Naschold (Rollsportverband Nordrhein Westfalen) nutzt sie stellvertretend. Zu
+klären und zu prüfen: eigene Vorstandsrolle auf Landesebene, mehrere
+Mitgliedschaften und Rollen pro Person und Organisation (Datenbank-Constraints,
+Berechtigungsprüfungen, Einladungslogik) sowie die Anzeige bei Rollenwechsel.
+Reihenfolge der Schritte bleibt unverändert; Umsetzung vor dem Rollout.
+
 ## Festlegungen für Google- und Apple-Anmeldung
 
 - Google und Apple erscheinen auf der Anmeldung als gleichwertige, einfache
@@ -605,6 +616,17 @@ Vereinsseitige Anlage wird später behandelt. [Arbeitsstand Schritt 11](family-s
   eine nachvollziehbare strategische Grundlage.
 - Modellversionen werden gespeichert, damit bestehende Runs auch nach einer
   Überarbeitung des Parkmodells verständlich und auswertbar bleiben.
+
+**Bestätigte Präzisierung vom 24.09.2026 (Schritt 7):**
+Parks sind für alle angemeldeten Nutzer öffentlich; ändern dürfen Ersteller,
+Trainer und Funktionäre, jede Änderung ist eine neue Version. Erster Umfang:
+3D mit hochgeladenem Luftbild als Boden; GLB/glTF und Heightmaps folgen als 7b.
+Gemeinsamer, vorbefüllter Trick-Katalog; Vorschläge sind sofort selbst nutzbar
+und für alle nach Freigabe. Pins gelten für das ganze Obstacle, mehrere Pins je
+Obstacle, Nummerierung, Richtungslinie sowie Start- und Endpunkt. Ein Run gehört
+einem Athleten und kann einem Trainings- oder Contest-Termin zugeordnet werden;
+Athlet und Trainer bearbeiten, Eltern lesen. Ziel- und Ist-Score sind optionale
+Felder, Vergleiche folgen in Schritt 8. Details: [Schritt 7](park-run-planner-step-7.md).
 
 ## Festlegungen für Wettbewerbsformate
 

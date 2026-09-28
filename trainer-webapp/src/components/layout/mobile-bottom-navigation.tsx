@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDays,
-  ChartNoAxesCombined,
+  ClipboardList,
   House,
   Plus,
   UserRound,
@@ -15,7 +15,7 @@ import styles from "./mobile-bottom-navigation.module.css";
 const mobileDestinations = [
   { href: "/", labelKey: "navigation.dashboard", icon: House },
   { href: "/kalender", labelKey: "navigation.calendar", icon: CalendarDays },
-  { href: "/auswertung", labelKey: "navigation.evaluations", icon: ChartNoAxesCombined },
+  { href: "/trainingsplaene", labelKey: "navigation.plansShort", icon: ClipboardList },
   { href: "/profil", labelKey: "navigation.profile", icon: UserRound },
 ] as const;
 
@@ -35,6 +35,14 @@ export function MobileBottomNavigation() {
   function openCreateEvent() {
     router.push(`/kalender?neu=${Date.now()}`);
   }
+
+  // Im Planbereich erstellt der zentrale Button einen Plan statt eines Events.
+  const onPlans = pathname.startsWith("/trainingsplaene");
+  function openCreate() {
+    if (onPlans) router.push(`/trainingsplaene?neu=${Date.now()}`);
+    else openCreateEvent();
+  }
+  const createLabel = t(onPlans ? "navigation.createPlan" : "navigation.createEvent");
 
   const renderDestination = (
     destination: (typeof mobileDestinations)[number],
@@ -64,9 +72,9 @@ export function MobileBottomNavigation() {
       <button
         type="button"
         className={styles.createAction}
-        aria-label={t("navigation.createEvent")}
-        title={t("navigation.createEvent")}
-        onClick={openCreateEvent}
+        aria-label={createLabel}
+        title={createLabel}
+        onClick={openCreate}
       >
         <Plus size={27} strokeWidth={2.4} aria-hidden="true" />
       </button>

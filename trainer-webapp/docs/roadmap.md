@@ -39,6 +39,14 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
   Die Bestätigung ergänzt die historischen Nachweise, ohne einzelne Prüfergebnisse
   oder eine neue technische Prüfung zu behaupten.
 - **Schritt 6 technisch veröffentlicht (24.09.2026):** Session-Abschluss und Fortschrittsverlauf. Deployment-Build erfolgreich, Produktionsalias bestätigt. Umfang und bestätigte Regeln stehen in [roadmap-details.md](roadmap-details.md#arbeitsschritt-6-session-abschluss-und-fortschrittsverlauf). Praxisabnahme bleibt offen.
+- **Schritt 7 (24.09.2026):** 3D-Park- und Run-Planer fachlich festgelegt, implementiert,
+  lokal geprüft und auf Wunsch des Nutzers produktiv veröffentlicht (App bisher nur für
+  den Nutzer selbst im Einsatz). [Umfang](park-run-planner-step-7.md),
+  [Nachweis und Praxisprüfliste](park-run-planner-step-7-release.md). Praxisabnahme offen.
+- **Schritt 7b (26.09.2026):** Park-Untergrund aus amtlichen Daten (Bayern, Sachsen)
+  und Upload eigener 3D-Modelle (OBJ, glTF/GLB). Technisch produktiv veröffentlicht,
+  Praxisabnahme offen. [Umfang und Nachweis](park-ground-step-7b.md).
+- **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
   bleiben bestehen. Sie ändern die vereinbarte Produktreihenfolge nicht.
@@ -50,6 +58,8 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
 - [Fachlicher Umfang, bestätigte Entscheidungen und bisherige Nachweise](roadmap-details.md).
 - [Schritt 5: Umfang und Praxisprüfliste](training-step-5.md).
 - [Schritt 5: technischer Release-Nachweis](training-step-5-release.md).
+- [Schritt 7: Umfang und Entscheidungen](park-run-planner-step-7.md) ·
+  [technischer Nachweis](park-run-planner-step-7-release.md).
 - [Qualitätsrahmen](ISO_IEC_25002_Zusammenfassung.md).
 
 Vor Umsetzung eines Pakets Ziel, Rollen, Umfang, Ausschlüsse und Abnahmekriterien

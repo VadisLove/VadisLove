@@ -18,7 +18,7 @@ export async function addReview(_previous: { message: string }, form: FormData) 
       ? "Bitte zuerst eine Bestätigung für diese Übung anfragen."
       : error.code === "42501" ? "Die aktuellen Berechtigungen erlauben diese Ergänzung nicht."
       : "Nicht gespeichert. Prüfe Übung, Eintragsart und Korrekturverweis; lade gegebenenfalls den aktuellen Stand." };
-    revalidatePath("/trainingsplaene/verlauf");
+    revalidatePath("/trainingsplaene");
     return { message: "Ergänzung gespeichert." };
   } catch {
     // Dieselbe Request-ID bleibt im Formular für eine sichere Wiederholung erhalten.

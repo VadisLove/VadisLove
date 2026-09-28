@@ -88,3 +88,33 @@ a {
     font-size: 16px !important;
   }
 }
+
+/* Nur für Screenreader sichtbar (z. B. Tabellenköpfe ohne sichtbaren Text). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/*
+ * Eigene Druckansichten (z. B. Auswertungs-PDF) hängen sich mit
+ * data-print-root direkt unter <body>; dann wird nur diese Ansicht gedruckt.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 14mm 16mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  body:has(> [data-print-root]) > :not([data-print-root]) {
+    display: none !important;
+  }
+}

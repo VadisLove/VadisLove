@@ -26,11 +26,14 @@ import { useCurrentUser } from "@/components/auth/current-user-context";
 import { useI18n } from "@/i18n/i18n-provider";
 import styles from "./dashboard.module.css";
 import { CarpoolEntry } from "@/features/carpools/carpool-entry";
+import type { PendingConfirmation } from "@/features/evaluations/evaluation-model";
+import { ConfirmationQueue } from "./confirmation-queue";
 
 interface DashboardProps {
   events: CalendarEvent[];
   plans: TrainingPlan[];
   regions: Region[];
+  confirmations?: PendingConfirmation[];
 }
 
 /**
@@ -55,7 +58,7 @@ function createInitials(name: string) {
  * direkt darüber angezeigt wird. Neue Einladungen werden per Server Action
  * dauerhaft in Supabase gespeichert.
  */
-export function Dashboard({ events, plans, regions }: DashboardProps) {
+export function Dashboard({ events, plans, regions, confirmations = [] }: DashboardProps) {
   const router = useRouter();
   const currentUser = useCurrentUser();
   const { dictionary, locale, t } = useI18n();
@@ -170,6 +173,8 @@ export function Dashboard({ events, plans, regions }: DashboardProps) {
           </Link>
         </section>
       )}
+
+      <ConfirmationQueue items={confirmations} />
 
       <div className={styles.dashboardGrid}>
         <section className={styles.panel}>

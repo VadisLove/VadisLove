@@ -1,0 +1,80 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:focus-visible {
+  outline: 3px solid rgba(20, 140, 242, 0.35);
+  outline-offset: 2px;
+}
+
+/* Deaktiviert wie im Design: graue Fläche statt halbtransparenter Farbe. */
+.button:disabled {
+  border-color: transparent;
+  background: #e6ebf0;
+  color: #9aa6b4;
+  cursor: not-allowed;
+}
+
+.md {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.lg {
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-size: 0.98rem;
+}
+
+.primary {
+  background: var(--color-blue);
+  color: white;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-blue-dark);
+}
+
+.secondary {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--color-blue-soft);
+}
+
+.danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.success {
+  background: #1f9d6b;
+  color: white;
+}
+
+.success:hover:not(:disabled) {
+  background: #188559;
+}
