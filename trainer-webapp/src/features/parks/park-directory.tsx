@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 import {
   TRICK_CATEGORY_LABELS,
@@ -53,6 +53,11 @@ export function ParkDirectoryView({ initial }: { initial: ParkDirectory | null }
     });
     // Neue Parks öffnen direkt im Bearbeitungsmodus, damit sie nachgebaut werden können.
     if (outcome.ok) router.push(`/runbuilder/${parkId}?bearbeiten=1`);
+  }
+
+  async function restore(parkId: string) {
+    const outcome = await command.run("park_restore", { park_id: parkId }, null);
+    if (outcome.ok && outcome.state) setData(outcome.state);
   }
 
   async function review(trickId: string, decision: "approved" | "rejected") {
@@ -142,6 +147,33 @@ export function ParkDirectoryView({ initial }: { initial: ParkDirectory | null }
           </div>
         )}
       </section>
+
+      {data.trash?.length ? (
+        <section className={styles.section}>
+          <h2>Papierkorb</h2>
+          <p className={styles.muted} style={{ marginBottom: 10 }}>
+            Gelöschte Parks sind für andere unsichtbar und werden nach 30 Tagen mit ihren
+            Dateien endgültig entfernt.
+          </p>
+          <ul className={styles.list}>
+            {data.trash.map((park) => (
+              <li key={park.id} className={styles.listItem}>
+                <div>
+                  <strong>{park.name}</strong>
+                  <span className={styles.muted}>
+                    Gelöscht am {dateFormat.format(new Date(park.deleted_at))}
+                    {park.deleted_by_name ? ` von ${park.deleted_by_name}` : ""} · endgültig ab{" "}
+                    {dateFormat.format(new Date(park.purge_at))}
+                  </span>
+                </div>
+                <button type="button" className={styles.button} disabled={command.busy} onClick={() => restore(park.id)}>
+                  <RotateCcw size={16} /> Wiederherstellen
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {data.is_curator && data.pending_tricks.length > 0 ? (
         <section className={styles.section}>

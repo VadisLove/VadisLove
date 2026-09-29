@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { removeZoneVertices, zoneFromPolygon, zoneOutline } from "@/domain/park-geometry";
 import { normalizeWaypoints, runControls, segmentCount } from "@/domain/run-path";
@@ -112,6 +113,7 @@ export function ParkPlannerView({
   }, [missedTap]);
   const [conflict, setConflict] = useState(false);
   const command = useParkCommand<ParkDetail>();
+  const router = useRouter();
   // ----- Steuerung der 3D-Ansicht -----
   const [showGrid, setShowGrid] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -527,6 +529,26 @@ export function ParkPlannerView({
     }
   }
 
+  // ----- Park löschen (Papierkorb, 30 Tage) -----
+  async function deletePark() {
+    const foreign = detail.park.foreign_run_count;
+    if (foreign > 0)
+      return command.setMessage(
+        `Dieser Park hat ${foreign === 1 ? "einen Run" : `${foreign} Runs`} anderer Athleten und kann nicht gelöscht werden.`,
+      );
+    if (
+      !window.confirm(
+        "Park in den Papierkorb legen? Er ist dann für alle unsichtbar und wird nach 30 Tagen mit deinen Runs und allen Dateien endgültig gelöscht. Bis dahin kannst du ihn im Runbuilder wiederherstellen.",
+      )
+    )
+      return;
+    const outcome = await command.run("park_delete", {
+      park_id: detail.park.id,
+      revision: detail.park.latest_version,
+    });
+    if (applyOutcome(outcome)) router.push("/runbuilder");
+  }
+
   // Nur neu aufbauen, wenn sich der angezeigte Run ändert: Die Szene (u. a. die Run-Animation)
   // erkennt Änderungen an neuen Objekten und würde sonst bei jedem Neuzeichnen neu beginnen.
   const sceneRun = useMemo(
@@ -673,10 +695,19 @@ export function ParkPlannerView({
             Version {detail.park.latest_version} · {latest.content.obstacles.length} Obstacles
           </p>
         </div>
-        {mode === "view" && detail.park.can_edit ? (
-          <button type="button" className={styles.ghost} onClick={startParkEdit}>
-            <Pencil size={16} /> Park bearbeiten
-          </button>
+        {mode === "view" && (detail.park.can_edit || detail.park.can_delete) ? (
+          <div className={styles.row}>
+            {detail.park.can_delete ? (
+              <button type="button" className={styles.ghost} disabled={command.busy} onClick={deletePark}>
+                <Trash2 size={16} /> Löschen
+              </button>
+            ) : null}
+            {detail.park.can_edit ? (
+              <button type="button" className={styles.ghost} onClick={startParkEdit}>
+                <Pencil size={16} /> Park bearbeiten
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

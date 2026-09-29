@@ -196,8 +196,20 @@ export interface ParkSummary {
   latest_version: number;
   updated_at: string;
   can_edit: boolean;
+  /** Löschen dürfen nur die Person, die den Park angelegt hat, und Fachreferenten. */
+  can_delete: boolean;
   obstacle_count: number | null;
   run_count: number;
+}
+
+/** Park im Papierkorb; wird 30 Tage nach dem Löschen endgültig entfernt. */
+export interface TrashedPark {
+  id: string;
+  name: string;
+  location: string;
+  deleted_at: string;
+  purge_at: string;
+  deleted_by_name: string | null;
 }
 
 export interface ParkDirectory {
@@ -205,6 +217,8 @@ export interface ParkDirectory {
   parks: ParkSummary[];
   runs: ParkRun[];
   pending_tricks: Trick[];
+  /** Nur Parks, die der Nutzer wiederherstellen darf. */
+  trash: TrashedPark[];
 }
 
 export interface ParkDetail {
@@ -215,12 +229,15 @@ export interface ParkDetail {
     latest_version: number;
     created_by: string | null;
     can_edit: boolean;
+    can_delete: boolean;
+    /** Runs anderer Athleten; solange es welche gibt, ist Löschen gesperrt. */
+    foreign_run_count: number;
   };
   versions: ParkVersion[];
   runs: ParkRun[];
   tricks: Trick[];
   events: CalendarEventOption[];
-  /** Kurzlebige, serverseitig signierte URLs je Storage-Pfad (Luftbilder, Modelle, Raster). */
+  /** Serverseitig signierte URLs je Storage-Pfad (Luftbilder, Modelle, Raster), 7 Tage gültig. */
   assetUrls: Record<string, string>;
   /** Athleten, für die der Nutzer Runs anlegen darf (er selbst zuerst). */
   athletes: { id: string; name: string }[];
@@ -265,6 +282,9 @@ export const TRICK_CATEGORY_LABELS: Record<TrickCategory, string> = {
   transition: "Transition",
   other: "Sonstiges",
 };
+
+/** Parkdateien ändern sich unter ihrem Pfad nie; Browser und CDN dürfen sie ein Jahr halten. */
+export const PARK_FILE_CACHE_SECONDS = "31536000";
 
 export const DEFAULT_PARK_SIZE = { width: 40, length: 30 };
 

@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { createClient } from "@/lib/supabase/client";
-import type { ModelFormat } from "@/domain/parks";
+import { PARK_FILE_CACHE_SECONDS, type ModelFormat } from "@/domain/parks";
 
 /**
  * Schritt 7b – eigene 3D-Modelle und Höhenraster im Browser.
@@ -147,7 +147,7 @@ export async function uploadModelFile(file: File, userId: string, format: ModelF
   const path = `${userId}/${crypto.randomUUID()}.${format}`;
   const { error } = await createClient()
     .storage.from(MODEL_BUCKET)
-    .upload(path, file, { contentType: CONTENT_TYPES[format], upsert: false });
+    .upload(path, file, { contentType: CONTENT_TYPES[format], upsert: false, cacheControl: PARK_FILE_CACHE_SECONDS });
   if (error) throw new Error("Das Modell konnte nicht hochgeladen werden.");
   return { path, previewUrl: URL.createObjectURL(file) };
 }

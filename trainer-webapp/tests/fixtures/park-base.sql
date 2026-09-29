@@ -17,7 +17,9 @@ create function private.calendar_event_visible(target uuid, actor uuid default a
 create schema storage;
 grant usage on schema storage to authenticated;
 create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
-create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text);
+create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text,created_at timestamptz not null default now());
+-- Schritt 7c: Aufräumfunktionen sind nur für die Service-Rolle freigegeben.
+create role service_role;
 alter table storage.objects enable row level security;
 grant select,insert on storage.objects to authenticated;
 -- Wie in Produktion: Termine sind per RLS nur für berechtigte Personen lesbar.

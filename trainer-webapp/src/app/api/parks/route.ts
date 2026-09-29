@@ -30,6 +30,10 @@ export async function GET(request: Request) {
 function describe(error: { code?: string; message: string }) {
   if (error.code === "40001")
     return "Anderswo geändert. Lade den aktuellen Stand und prüfe deine Eingabe.";
+  if (error.message.includes("PARK_HAS_RUNS"))
+    return "Dieser Park hat Runs anderer Athleten und kann nicht gelöscht werden.";
+  if (error.message.includes("PARK_DELETED"))
+    return "Dieser Park liegt im Papierkorb. Stelle ihn zuerst wieder her.";
   if (error.code === "42501") return "Für diese Aktion fehlen dir die Rechte.";
   if (error.message.includes("TRICK_PENDING"))
     return "Dieser Trick wurde bereits vorgeschlagen und wird gerade geprüft.";

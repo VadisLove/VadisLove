@@ -46,6 +46,11 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
 - **Schritt 7b (26.09.2026):** Park-Untergrund aus amtlichen Daten (Bayern, Sachsen)
   und Upload eigener 3D-Modelle (OBJ, glTF/GLB). Technisch produktiv veröffentlicht,
   Praxisabnahme offen. [Umfang und Nachweis](park-ground-step-7b.md).
+- **Schritt 7c (29.09.2026):** Parks löschen (Papierkorb, 30 Tage), tägliche
+  Speicherbereinigung der Park-Buckets und Caching der Parkdateien. Vom Nutzer am
+  28.09.2026 vorgemerkt, am 29.09.2026 beauftragt und entschieden. Implementiert und
+  lokal geprüft; Migration und Veröffentlichung durch den Nutzer offen.
+  [Umfang, Entscheidungen und Nachweis](park-cleanup-step-7c.md).
 - **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
@@ -60,6 +65,7 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
 - [Schritt 5: technischer Release-Nachweis](training-step-5-release.md).
 - [Schritt 7: Umfang und Entscheidungen](park-run-planner-step-7.md) ·
   [technischer Nachweis](park-run-planner-step-7-release.md).
+- [Schritt 7c: Parks löschen, Speicherbereinigung, Caching](park-cleanup-step-7c.md).
 - [Qualitätsrahmen](ISO_IEC_25002_Zusammenfassung.md).
 
 Vor Umsetzung eines Pakets Ziel, Rollen, Umfang, Ausschlüsse und Abnahmekriterien

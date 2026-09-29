@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { PARK_FILE_CACHE_SECONDS } from "@/domain/parks";
 
 const MAX_INPUT_BYTES = 20 * 1024 * 1024;
 const MAX_EDGE = 2400;
@@ -37,7 +38,7 @@ export async function uploadAerialImage(
   const supabase = createClient();
   const { error } = await supabase.storage
     .from("skatepark-aerials")
-    .upload(path, blob, { contentType: "image/webp", upsert: false });
+    .upload(path, blob, { contentType: "image/webp", upsert: false, cacheControl: PARK_FILE_CACHE_SECONDS });
   if (error) throw new Error("Das Luftbild konnte nicht hochgeladen werden.");
   return { path, aspect, previewUrl: URL.createObjectURL(blob) };
 }

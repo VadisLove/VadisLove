@@ -11,6 +11,7 @@ const A = "00000000-0000-0000-0000-000000000001", // Athlet Alex
   T = "00000000-0000-0000-0000-000000000003", // Trainer von Alex
   G = "00000000-0000-0000-0000-000000000004", // Elternteil von Alex
   S = "00000000-0000-0000-0000-000000000005", // Vereinsvorstand ohne Trainerrolle
+  F = "00000000-0000-0000-0000-000000000006", // Fachreferent (specialist)
   X = "00000000-0000-0000-0000-000000000009"; // deaktiviertes Konto
 
 let db;
@@ -36,9 +37,11 @@ before(async () => {
   // Zwischenpunkte der Fahrlinie (start_point.path).
   await db.exec(await read("../supabase/migrations/20260926225228_park_run_path.sql"));
   await db.exec(await read("../supabase/migrations/20260928092218_park_run_spots.sql"));
+  // Schritt 7c: Papierkorb, Löschrechte und Speicherbereinigung.
+  await db.exec(await read("../supabase/migrations/20260929120000_step_7c_park_trash_storage.sql"));
   await db.query(
-    "insert into public.profiles values($1,'Alex','athlete'),($2,'Kim','athlete'),($3,'Trainer','trainer'),($4,'Mama','guardian'),($5,'Vorstand','athlete'),($6,'Gesperrt','athlete')",
-    [A, B, T, G, S, X],
+    "insert into public.profiles values($1,'Alex','athlete'),($2,'Kim','athlete'),($3,'Trainer','trainer'),($4,'Mama','guardian'),($5,'Vorstand','athlete'),($6,'Gesperrt','athlete'),($7,'Fachreferent','athlete')",
+    [A, B, T, G, S, X, F],
   );
   await db.query(
     "insert into public.relationships(trainer_id,athlete_id,active) values($1,$2,true)",
@@ -49,8 +52,8 @@ before(async () => {
     [G, A],
   );
   await db.query(
-    "insert into public.organization_memberships(organization_id,user_id,role) values(gen_random_uuid(),$1,'club_board')",
-    [S],
+    "insert into public.organization_memberships(organization_id,user_id,role) values(gen_random_uuid(),$1,'club_board'),(gen_random_uuid(),$2,'specialist')",
+    [S, F],
   );
 });
 after(async () => db?.close());
@@ -559,4 +562,100 @@ test("Tipppositionen je Trick werden gespeichert und geprüft", async () => {
       cmd(A, "run_save", { ...payload, run_id: randomUUID(), start: { ...payload.start, spots: bad } }),
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// Schritt 7c: Parks löschen (Papierkorb), endgültiges Löschen, Speicherbereinigung
+// ---------------------------------------------------------------------------
+
+const asService = (sql, params = []) =>
+  db.transaction(async (tx) => {
+    await tx.exec("set local role service_role");
+    return (await tx.query(sql, params)).rows;
+  });
+
+test("Löschen dürfen nur Ersteller und Fachreferenten, nicht Trainer oder Vorstand", async () => {
+  const p = await park(A);
+  const detail = await rpc(A, "select public.park_detail($1) data", [p.id]);
+  assert.equal(detail.park.can_delete, true);
+  assert.equal((await rpc(T, "select public.park_detail($1) data", [p.id])).park.can_delete, false);
+  assert.equal((await rpc(F, "select public.park_detail($1) data", [p.id])).park.can_delete, true);
+  for (const actor of [T, S, B])
+    await assert.rejects(cmd(actor, "park_delete", { park_id: p.id, revision: 1 }), /PARK_FORBIDDEN/);
+  await cmd(F, "park_delete", { park_id: p.id, revision: 1 });
+  // Im Papierkorb unsichtbar, aber für Ersteller und Fachreferent wiederherstellbar.
+  assert.equal(await rpc(B, "select public.park_detail($1) data", [p.id]), null);
+  assert.ok(!(await rpc(B, "select public.park_directory() data")).parks.some((x) => x.id === p.id));
+  assert.ok(!(await rpc(B, "select public.park_directory() data")).trash.some((x) => x.id === p.id));
+  const trash = (await rpc(A, "select public.park_directory() data")).trash.find((x) => x.id === p.id);
+  assert.equal(trash.deleted_by_name, "Fachreferent");
+  await assert.rejects(cmd(T, "park_restore", { park_id: p.id }), /PARK_FORBIDDEN/);
+  await cmd(A, "park_restore", { park_id: p.id });
+  assert.ok((await rpc(B, "select public.park_directory() data")).parks.some((x) => x.id === p.id));
+});
+
+test("Runs anderer Athleten sperren das Löschen, eigene nicht", async () => {
+  const own = await park(A);
+  await cmd(A, "run_save", await runPayload(own, A));
+  const foreign = await park(T);
+  await cmd(T, "run_save", await runPayload(foreign, A));
+  assert.equal((await rpc(T, "select public.park_detail($1) data", [foreign.id])).park.foreign_run_count, 1);
+  await assert.rejects(cmd(T, "park_delete", { park_id: foreign.id, revision: 1 }), /PARK_HAS_RUNS/);
+  await cmd(A, "park_delete", { park_id: own.id, revision: 1 });
+  // Eigene Runs bleiben bis zum endgültigen Löschen erhalten, sind aber ausgeblendet.
+  assert.ok(!(await rpc(A, "select public.park_directory() data")).runs.some((r) => r.park_id === own.id));
+  assert.equal((await db.query("select count(*)::int n from public.park_runs where park_id=$1", [own.id])).rows[0].n, 1);
+});
+
+test("Im Papierkorb sind keine neuen Versionen oder Runs möglich; veraltete Revision wird abgelehnt", async () => {
+  const p = await park(A);
+  await assert.rejects(cmd(A, "park_delete", { park_id: p.id, revision: 7 }), /PARK_CONFLICT/);
+  await cmd(A, "park_delete", { park_id: p.id, revision: 1 });
+  await assert.rejects(
+    cmd(A, "park_save", { park_id: p.id, revision: 1, name: "X", content: content() }),
+    /PARK_DELETED/,
+  );
+  await assert.rejects(cmd(A, "run_save", await runPayload(p, A)), /PARK_DELETED/);
+  // Idempotent: dieselbe Request-ID liefert dasselbe Ergebnis.
+  const key = randomUUID();
+  const first = await cmd(A, "park_restore", { park_id: p.id }, key);
+  assert.deepEqual(await cmd(A, "park_restore", { park_id: p.id }, key), first);
+});
+
+test("Nach 30 Tagen löscht der Worker Park, Versionen und eigene Runs; Dateien werden verwaist", async () => {
+  const aerial = `${A}/${randomUUID()}.webp`;
+  await db.query("insert into storage.objects(bucket_id,name,owner_id,created_at) values('skatepark-aerials',$1,$2,now()-interval '3 days')", [aerial, A]);
+  const p = await park(A, {
+    content: { ...content(), aerial: { path: aerial, width: 40, aspect: 0.75, rotation: 0, offsetX: 0, offsetZ: 0, opacity: 1, rightsConfirmed: true } },
+  });
+  await cmd(A, "run_save", await runPayload(p, A));
+  const orphans = async () => (await asService("select * from public.park_orphan_objects(1000)")).map((o) => o.name);
+  assert.ok(!(await orphans()).includes(aerial));
+
+  await cmd(A, "park_delete", { park_id: p.id, revision: 1 });
+  // Im Papierkorb bleibt die Datei referenziert.
+  assert.equal((await asService("select public.park_purge_trash(50) n"))[0].n, 0);
+  assert.ok(!(await orphans()).includes(aerial));
+
+  await db.query("update public.skateparks set deleted_at=now()-interval '31 days' where id=$1", [p.id]);
+  assert.equal((await asService("select public.park_purge_trash(50) n"))[0].n, 1);
+  assert.equal((await db.query("select count(*)::int n from public.skateparks where id=$1", [p.id])).rows[0].n, 0);
+  assert.equal((await db.query("select count(*)::int n from public.park_runs where park_id=$1", [p.id])).rows[0].n, 0);
+  assert.ok((await orphans()).includes(aerial));
+});
+
+test("Speicherbereinigung: nur unbenutzte Dateien älter als 24 Stunden, nur für die Service-Rolle", async () => {
+  const fresh = `${A}/${randomUUID()}.glb`;
+  const old = `${A}/${randomUUID()}.glb`;
+  const video = `${A}/${randomUUID()}.mp4`;
+  await db.query(
+    "insert into storage.objects(bucket_id,name,created_at) values('skatepark-models',$1,now()-interval '2 hours'),('skatepark-models',$2,now()-interval '2 days'),('training-evidence-videos',$3,now()-interval '9 days')",
+    [fresh, old, video],
+  );
+  const names = (await asService("select * from public.park_orphan_objects(1000)")).map((o) => o.name);
+  assert.ok(names.includes(old));
+  assert.ok(!names.includes(fresh));
+  assert.ok(!names.includes(video));
+  await assert.rejects(user(A, (tx) => tx.query("select * from public.park_orphan_objects(10)")), /permission denied/);
+  await assert.rejects(user(F, (tx) => tx.query("select public.park_purge_trash(10)")), /permission denied/);
 });

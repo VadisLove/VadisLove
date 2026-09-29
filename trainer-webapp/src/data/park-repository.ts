@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getPeopleDirectory } from "@/data/supabase-people-repository";
+import { signParkAssets } from "@/data/park-asset-urls";
 import type { ParkDetail, ParkDirectory, ParkVersion } from "@/domain/parks";
 
 export const AERIAL_BUCKET = "skatepark-aerials";
@@ -19,7 +20,7 @@ export async function getParkDirectory(): Promise<ParkDirectory> {
 
 /**
  * Parkdetail mit allen benötigten Versionen. Luftbilder liegen in einem privaten
- * Bucket; die Seite erhält nur kurzlebige, signierte URLs.
+ * Bucket; die Seite erhält signierte URLs, die für den Cache stabil bleiben.
  * Liefert `null`, wenn der Park nicht existiert.
  */
 export async function getParkDetail(parkId: string): Promise<ParkDetail | null> {
@@ -46,7 +47,12 @@ export async function getParkDetail(parkId: string): Promise<ParkDetail | null> 
       ...v.content.obstacles.map((o) => o.modelPath),
     ]),
   );
-  const assetUrls: Record<string, string> = {};
+  const [aerialUrls, modelUrls] = await Promise.all([
+    signParkAssets(AERIAL_BUCKET, aerialPaths),
+    signParkAssets(MODEL_BUCKET, modelPaths),
+  ]);
+  const assetUrls: Record<string, string> = { ...aerialUrls, ...modelUrls };
+  // Rückfall ohne Service-Rolle (z. B. lokal): kurzlebige Links mit der Nutzersitzung.
   await Promise.all(
     (
       [
@@ -54,8 +60,9 @@ export async function getParkDetail(parkId: string): Promise<ParkDetail | null> 
         [MODEL_BUCKET, modelPaths],
       ] as const
     ).map(async ([bucket, paths]) => {
-      if (!paths.length) return;
-      const { data } = await supabase.storage.from(bucket).createSignedUrls(paths, 60 * 60);
+      const missing = paths.filter((path) => !assetUrls[path]);
+      if (!missing.length) return;
+      const { data } = await supabase.storage.from(bucket).createSignedUrls(missing, 60 * 60);
       for (const entry of data ?? [])
         if (entry.path && entry.signedUrl) assetUrls[entry.path] = entry.signedUrl;
     }),

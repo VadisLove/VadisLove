@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthenticatedUserId } from "@/lib/supabase/auth";
 import { OFFICIAL_SOURCES, type OfficialState } from "@/domain/geodata";
+import { PARK_FILE_CACHE_SECONDS } from "@/domain/parks";
 import { loadOfficialGround } from "@/lib/official-geodata";
 
 // Kachelabruf und Rasterung können bei großen Ausschnitten einige Sekunden dauern.
@@ -57,10 +58,12 @@ export async function POST(request: Request) {
       supabase.storage.from("skatepark-models").upload(heightPath, Buffer.from(ground.heights.buffer), {
         contentType: "application/octet-stream",
         upsert: false,
+        cacheControl: PARK_FILE_CACHE_SECONDS,
       }),
       supabase.storage.from("skatepark-aerials").upload(aerialPath, Buffer.from(ground.aerial), {
         contentType: "image/jpeg",
         upsert: false,
+        cacheControl: PARK_FILE_CACHE_SECONDS,
       }),
     ]);
     if (heightUpload.error || aerialUpload.error) throw new Error("GEODATA_STORE");

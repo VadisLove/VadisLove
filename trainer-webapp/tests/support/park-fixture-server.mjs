@@ -15,6 +15,9 @@ await db.exec(await read("../../supabase/migrations/20260923202413_step_5_traini
 await db.exec(await read("../fixtures/park-base.sql"));
 await db.exec(await read("../../supabase/migrations/20260924135627_step_7_park_run_planner.sql"));
 await db.exec(await read("../../supabase/migrations/20260926002019_step_7b_park_ground.sql"));
+await db.exec(await read("../../supabase/migrations/20260926225228_park_run_path.sql"));
+await db.exec(await read("../../supabase/migrations/20260928092218_park_run_spots.sql"));
+await db.exec(await read("../../supabase/migrations/20260929120000_step_7c_park_trash_storage.sql"));
 
 const users = [
   ["athlete", "00000000-0000-4000-8000-000000000001", "Alex", "athlete"],
