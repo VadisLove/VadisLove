@@ -693,7 +693,7 @@ export function PlanWizard({
                       { value: false, label: "Nur für mich", sub: "Niemand sonst sieht den Plan" },
                       {
                         value: true,
-                        label: "Mit deinem Trainer teilen",
+                        label: `Mit ${w.dat} teilen`,
                         sub: hasTrainer ? `${w.nom[0].toUpperCase()}${w.nom.slice(1)} sieht den Plan und kann bestätigen` : "Verbinde dich zuerst mit einem Trainer",
                       },
                     ].map((option) => {

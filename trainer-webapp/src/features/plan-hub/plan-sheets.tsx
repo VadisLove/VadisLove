@@ -361,7 +361,7 @@ export function PermissionsSheet({
   const sections = permissionSections(context);
   return (
     <Sheet label="Wer darf Pläne erstellen?" onClose={onClose}>
-      <h2 className={styles.sheetTitle}>Wer darf Pläne erstellen?</h2>
+      <h2 className={styles.sheetHeading}>Wer darf Pläne erstellen?</h2>
       <p className={styles.sheetLead}>
         {board
           ? "Trainer und Vorstand dürfen immer. Du kannst das Recht zusätzlich an Athleten geben."
@@ -431,7 +431,7 @@ export function SalutationSheet({
   return (
     <Sheet label="Wie sollen wir dich ansprechen?" onClose={onLater} closable={false}>
       <span className={styles.sheetKicker}>Einmalig</span>
-      <h2 className={styles.sheetTitle}>Wie sollen wir dich ansprechen?</h2>
+      <h2 className={styles.sheetHeading}>Wie sollen wir dich ansprechen?</h2>
       <p className={styles.sheetLead}>Nur für Texte in der App. Jederzeit im Profil änderbar.</p>
       <div className={styles.salutationList}>
         {salutationOptions(role).map((option) => (

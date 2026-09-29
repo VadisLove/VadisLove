@@ -420,7 +420,11 @@ function Notes({ recap }: { recap: SessionRecap }) {
             <small>
               {review.author_name} · {reviewLabels[review.kind]}
               {review.exercise_id ? ` · ${recap.exercises.find((e) => e.id === review.exercise_id)?.name ?? "Übung"}` : ""}
-              {coachesOnly ? <b className={styles.noteTag}> · Nur Trainer</b> : null}
+              {coachesOnly ? (
+                <b className={styles.noteTag}> · Nur Trainer</b>
+              ) : review.kind === "hint" || review.kind === "goal" ? (
+                ` · Für ${recap.is_self ? "dich" : firstName}`
+              ) : null}
             </small>
           </div>
         );

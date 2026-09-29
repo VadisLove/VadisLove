@@ -1841,6 +1841,15 @@ button.cell {
   text-transform: uppercase;
 }
 
+/* Handoff: Titel von „Wer darf Pläne erstellen?“ und Anrede-Abfrage (20/700). */
+.sheetHeading {
+  padding-right: 44px;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .sheetLead {
   margin-top: -8px;
   color: var(--muted);
