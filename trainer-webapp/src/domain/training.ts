@@ -38,6 +38,13 @@ export interface TrainingSession {
   note: string;
   started_at: string;
   completed_at: string | null;
+  /** Pausiert, solange gesetzt; das Training bleibt dabei offen (`running`). */
+  paused_at: string | null;
+  /** Summe aller abgeschlossenen Pausen – zählt nicht zur aktiven Zeit. */
+  paused_ms: number;
+  pause_count: number;
+  /** Übung, deren Timer beim Pausieren lief und beim Fortsetzen weiterläuft. */
+  resume_exercise_id: string | null;
   participants: SessionParticipant[];
   exercises: SessionExercise[];
   totals: {
@@ -46,19 +53,37 @@ export interface TrainingSession {
     attempts: number;
     landed: number;
   }[];
+  /** Nicht komplette Line-Versuche je Bruchstelle (`null` = ohne Angabe). */
+  breaks: {
+    participant_id: string;
+    exercise_id: string;
+    broke_at: number | null;
+    attempts: number;
+  }[];
+  /** Letzte gültige Eingabe je Übung – Grundlage für „Rückgängig“. */
+  recent: {
+    exercise_id: string;
+    participant_id: string;
+    landed: boolean;
+    broke_at: number | null;
+    recorded_at: string;
+  }[];
 }
 export interface TrainingWorkspace {
   plans: SavedPlan[];
   shares: TrainingPlan[];
   sessions: TrainingSession[];
   sharePeople: { id: string; name: string }[];
-  people: { id: string; name: string }[];
+  /** Eigene Athleten; `group` = erster Verein bzw. erste Gruppe für die Auswahl. */
+  people: { id: string; name: string; group?: string }[];
   user: { id: string; displayName: string; accountType: string };
 }
 export interface TrainingCommand {
   request_id: string;
   operation: string;
   payload: Record<string, unknown>;
+  /** Nur Client: lesbares Label für Kopfzeile, Banner und betroffene Zeile. */
+  label?: string;
 }
 export type TrainingReply =
   | {

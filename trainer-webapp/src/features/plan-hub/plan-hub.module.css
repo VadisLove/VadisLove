@@ -2617,9 +2617,9 @@ button.cell {
   cursor: pointer;
 }
 
-/* Live-Training im Planbereich */
+/* Live-Training im Planbereich (Layout in training.module.css) */
 .trainingScreen {
-  max-width: 1120px;
+  max-width: 1320px;
 }
 
 /* ------------------------------------------------------------------ */

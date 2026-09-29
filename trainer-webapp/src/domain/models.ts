@@ -283,6 +283,13 @@ export interface TrainingTrick {
   /** Nur bei geladenen Freigaben: Herkunft einer Bestätigung („recap“ = aus dem Session-Rückblick). */
   confirmedSource?: "review" | "recap";
   confirmedAt?: string;
+  /**
+   * Plan-Eintrag: einzelner Trick (Standard) oder Line = Serie aus 2–5 Tricks
+   * am Stück. `trickIds`/`trickNames` sind parallel und geordnet.
+   */
+  type?: "trick" | "line";
+  trickIds?: string[];
+  trickNames?: string[];
 }
 
 /**

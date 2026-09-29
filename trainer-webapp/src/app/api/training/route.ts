@@ -59,7 +59,11 @@ export async function POST(request: Request) {
               ? "Für diese Aktion fehlen dir die aktuellen Trainingsrechte."
               : error.message.includes("TRAINING_COMPLETED")
                 ? "Dieses Training ist bereits abgeschlossen und unveränderlich."
-                : "Die Eingabe konnte nicht gespeichert werden. Prüfe den aktuellen Stand und deine Angaben.",
+                : error.message.includes("TRAINING_PAUSED")
+                  ? "Das Training ist pausiert. Setze es fort, um weiter zu erfassen."
+                  : error.message.includes("TRAINING_NOT_READY")
+                    ? "Noch nicht bereit: Quote oder Anzahl der Versuche reicht nicht."
+                    : "Die Eingabe konnte nicht gespeichert werden. Prüfe den aktuellen Stand und deine Angaben.",
         },
         { status: conflict ? 409 : 400 },
       );

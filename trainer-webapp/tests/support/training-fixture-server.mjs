@@ -19,6 +19,15 @@ await db.exec(
     "utf8",
   ),
 );
+  await db.exec(
+  await readFile(
+    new URL(
+      "../../supabase/migrations/20260929130000_live_training_redesign.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);
 const users = [
   ["athlete", "00000000-0000-0000-0000-000000000001", "Alex", "athlete"],
   ["kim", "00000000-0000-0000-0000-000000000002", "Kim", "athlete"],
