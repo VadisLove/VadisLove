@@ -1,7 +1,9 @@
 "use client";
 
-import { Check, ChevronLeft, Play } from "lucide-react";
+import { Check, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { TrainingSession } from "@/domain/training";
+import { NoStartCard, RunningCard, StartCard } from "@/features/training/live-entry";
 import {
   cellKey,
   confirmedCount,
@@ -10,6 +12,7 @@ import {
   daysUntil,
   formatDay,
   formatDecimal,
+  isLineTrick,
   levelOf,
   myAssignment,
   planPercent,
@@ -31,12 +34,23 @@ const toneClass = ["toneOpen", "tonePracticed", "toneReported", "toneConfirmed"]
 export function PlanDetail({
   plan,
   role,
+  accountType,
+  canCreate,
+  openSession,
+  busy,
   actions,
   hasEvidence,
   onBack,
 }: {
   plan: HubPlan;
   role: HubRole;
+  /** Startrecht: Trainer (Start-Screen) und Skater (Selbsttraining). */
+  accountType: string;
+  /** Erstellrecht (Trainer, Vorstand, Skater mit übertragenem Recht). */
+  canCreate: boolean;
+  /** Laufendes oder pausiertes Training dieses Plans. */
+  openSession?: TrainingSession;
+  busy: boolean;
   actions: HubActions;
   hasEvidence: (key: string) => boolean;
   onBack: () => void;
@@ -56,6 +70,9 @@ export function PlanDetail({
         : staff
           ? [assigned ? `${plan.assignments.length} ${plan.assignments.length === 1 ? "Athlet" : "Athleten"}` : "Noch nicht zugewiesen", `${plan.tricks.length} Tricks`].join(" · ")
           : `${mine ? "Dein Pfad" : "Eigener Plan"} · ${plan.tricks.length} Tricks`;
+
+  // Trainer, Vorstand und Skater mit Erstellrecht; nur eigene (versionierte) Pläne.
+  const canCreateLine = canCreate && Boolean(plan.editable);
 
   const nowCard = (
     <NowCard plan={plan} role={role} current={current} mine={mine} actions={actions} hasEvidence={hasEvidence} />
@@ -94,6 +111,11 @@ export function PlanDetail({
           <p className={styles.planSub}>{sub}</p>
         </div>
         <div className={styles.detailActions}>
+          {canCreateLine ? (
+            <button type="button" className={styles.createLineDesk} onClick={() => actions.createLine(plan)}>
+              + Line erstellen
+            </button>
+          ) : null}
           {staff && plan.editable ? (
             <Button variant="secondary" className={styles.desktopOnly} onClick={() => actions.edit(plan)}>
               Bearbeiten
@@ -109,13 +131,16 @@ export function PlanDetail({
               Mein Fortschritt
             </Button>
           ) : null}
-          {plan.startId && role !== "viewer" ? (
-            <Button onClick={() => actions.startTraining(plan)} disabled={!plan.tricks.length}>
-              <Play size={16} aria-hidden="true" /> Training starten
-            </Button>
-          ) : null}
         </div>
       </header>
+
+      <LiveEntry
+        plan={plan}
+        accountType={accountType}
+        session={openSession}
+        busy={busy}
+        actions={actions}
+      />
 
       <LevelBar plan={plan} staff={staff} mine={mine} />
 
@@ -130,13 +155,19 @@ export function PlanDetail({
                 aria-current={index === current ? "step" : undefined}
               >
                 <span
-                  className={`${styles.node} ${styles[toneClass[node.tone]]} ${index === current ? styles.nodeCurrent : ""}`}
+                  className={`${styles.node} ${styles[toneClass[node.tone]]} ${index === current ? styles.nodeCurrent : ""} ${isLineTrick(trick) ? styles.nodeLine : ""}`}
                   aria-hidden="true"
                 >
-                  {node.label}
+                  <span>{node.label}</span>
                 </span>
                 <div className={styles.nodeText}>
-                  <strong>{trick.name}</strong>
+                  <strong>
+                    {trick.name}
+                    {isLineTrick(trick) ? <span className={styles.lineBadge}>LINE</span> : null}
+                  </strong>
+                  {isLineTrick(trick) ? (
+                    <span className={styles.lineChain}>{trick.parts?.map((part) => part.name).join(" → ")}</span>
+                  ) : null}
                   <small className={node.warn ? styles.textWarn : undefined}>{node.sub}</small>
                 </div>
                 {index === current ? <div className={styles.inlineNow}>{nowCard}</div> : null}
@@ -147,6 +178,12 @@ export function PlanDetail({
       ) : (
         <p className={styles.empty}>Dieser Plan enthält noch keine Tricks.</p>
       )}
+
+      {canCreateLine ? (
+        <button type="button" className={styles.createLine} onClick={() => actions.createLine(plan)}>
+          + Line erstellen <small>Tricks zu Serie verbinden</small>
+        </button>
+      ) : null}
 
       <div className={styles.detailGrid}>
         <div className={styles.desktopNow}>{nowCard}</div>
@@ -180,7 +217,12 @@ function nodeOf(
   if (mine) {
     const step = mine.steps[trick.id] ?? 0;
     if (step === 3) {
-      const sub = trick.id in mine.recapConfirmed ? "Bestätigt aus Session-Rückblick" : "Bestätigt";
+      const sub =
+        trick.id in mine.recapConfirmed
+          ? "Bestätigt aus Session-Rückblick"
+          : trick.id in (mine.liveConfirmed ?? {})
+            ? "Bestätigt aus Live-Training"
+            : "Bestätigt";
       return { label: <Check size={18} strokeWidth={3} />, tone: 3, sub, warn: false, lineDone: true };
     }
     if (step === 2) return { label: "…", tone: 2, sub: `Gemeldet · wartet auf ${trainerAcc}`, warn: true, lineDone: false };
@@ -405,5 +447,42 @@ function InfoCard({ plan, staff, mine }: { plan: HubPlan; staff: boolean; mine: 
         </div>
       ))}
     </dl>
+  );
+}
+
+/** Einstieg ins Live-Training je Rolle; ein offenes Training geht immer vor. */
+function LiveEntry({
+  plan,
+  accountType,
+  session,
+  busy,
+  actions,
+}: {
+  plan: HubPlan;
+  accountType: string;
+  session?: TrainingSession;
+  busy: boolean;
+  actions: HubActions;
+}) {
+  const canStart = accountType === "trainer" || accountType === "athlete";
+  if (session && canStart) {
+    return <RunningCard session={session} onResume={(index) => actions.resumeTraining(session.id, index)} />;
+  }
+  if (canStart) {
+    if (!plan.startId) return null;
+    return (
+      <StartCard
+        athlete={accountType === "athlete"}
+        disabled={busy || !plan.tricks.length}
+        onStart={() => actions.startTraining(plan)}
+      />
+    );
+  }
+  return (
+    <NoStartCard
+      parent={accountType === "guardian"}
+      athleteName={plan.assignments.length === 1 ? plan.assignments[0].athleteName : null}
+      onReview={actions.showRecap}
+    />
   );
 }

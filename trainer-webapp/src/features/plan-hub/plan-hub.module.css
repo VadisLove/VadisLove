@@ -3062,3 +3062,430 @@ button.cell {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Lines (Serien aus Tricks) – Referenz Trainingspläne B v4 / 2a         */
+/* ------------------------------------------------------------------ */
+
+.hub {
+  --line: #7c5cd6;
+  --line-text: #5b3fa3;
+  --line-soft: #efe9fb;
+  --line-bg: #faf8fe;
+}
+
+.lineBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--line-soft);
+  color: var(--line-text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: 2px;
+}
+
+.textDanger {
+  color: var(--danger) !important;
+}
+
+.hub .kindSwitch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--canvas);
+}
+
+.hub .kindSwitch button {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hub .kindSwitch button[aria-selected="true"] {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(16, 34, 56, 0.12);
+  color: var(--ink);
+}
+
+.kindCount {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--border);
+  color: var(--secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.kindSwitch button[aria-selected="true"][data-kind="trick"] .kindCount {
+  background: var(--primary);
+  color: #fff;
+}
+
+.kindSwitch button[aria-selected="true"][data-kind="line"] .kindCount {
+  background: var(--line);
+  color: #fff;
+}
+
+.trickEditor > .lineItem,
+.trickEditor > .lineItem.trickOpen {
+  border: 1.5px solid var(--line);
+}
+
+.trickEditor > .lineItem[data-invalid] {
+  border-color: var(--danger);
+}
+
+.lineItem .trickNumber {
+  background: var(--line);
+}
+
+.lineParts {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+}
+
+.lineParts li {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 12px;
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.linePartNumber {
+  width: 14px;
+  color: var(--line);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.linePartName {
+  min-width: 0;
+  flex: 1;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hub .lineParts button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--secondary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hub .lineParts button:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+
+.hub .lineParts button[data-remove] {
+  color: var(--danger);
+}
+
+.lineChips {
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lineChip {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 12px;
+  border-radius: 16px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lineChip b {
+  color: var(--navy-accent);
+}
+
+.hub .lineChip button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.lineEmpty {
+  padding: 12px;
+  border: 1.5px dashed #c9d2dc;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.hub .chipLine {
+  border: 1px dashed var(--line);
+  background: #fff;
+  color: var(--line-text);
+}
+
+.hub .chipLibrary {
+  border: 1px dashed #b9c4d0;
+  background: #fff;
+  color: var(--link);
+}
+
+.trickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hub .toLineButton {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+  background: var(--line-bg);
+  color: var(--line-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hub .addLineButton {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  background: var(--line-bg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.addLineButton > span:first-child {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--line);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.addLineButton strong {
+  display: block;
+  color: var(--line-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.addLineButton small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* „+ Line erstellen“ im Plan-Detail (mobil unter dem Pfad, Desktop im Kopf). */
+.hub .createLine {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  background: var(--line-bg);
+  color: var(--line-text);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.createLine small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hub .createLineDesk {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  background: var(--line-bg);
+  color: var(--line-text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Line im Pfad: lila Raute statt Kreis. */
+.nodeLine {
+  border-radius: 10px !important;
+  transform: rotate(45deg) scale(0.86);
+}
+
+.nodeLine > * {
+  transform: rotate(-45deg);
+}
+
+.nodeLine.toneOpen {
+  background: var(--line) !important;
+  color: #fff !important;
+}
+
+.lineChain {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Session-Rückblick: Line-Karte, Bruchstellen, „in Lines“. */
+.inLines {
+  display: block;
+  color: var(--line);
+  font-size: 11px !important;
+  font-weight: 600;
+}
+
+.lineSkill {
+  border: 1.5px solid var(--line);
+}
+
+.lineSkillBody {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.lineSkillBody > strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.lineSkillQuote {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.lineSkillQuote small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lineSkillBody > small {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.breakBar {
+  display: flex;
+  height: 8px;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--divider);
+}
+
+.breakComplete {
+  background: var(--st-confirmed);
+}
+
+.breakEarly {
+  background: var(--st-reported);
+}
+
+.breakLast {
+  background: #e5484d;
+}
+
+.breakUnknown {
+  background: #c9d2dc;
+}
+
+.lineExercise {
+  padding-top: 10px;
+  border-top: 1px solid var(--divider);
+}
+
+.lineExerciseName {
+  color: var(--line-text);
+  font-weight: 700;
+}
+
+.lineSubRows {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 6px;
+  padding-left: 10px;
+  list-style: none;
+}
+
+.lineSubRows li {
+  font-size: 12px !important;
+}
+
+.exerciseBarThin {
+  height: 5px;
+}
+
+@media (min-width: 921px) {
+  .lineParts {
+    display: none;
+  }
+
+  .lineChips {
+    display: flex;
+  }
+}
+
+@media (max-width: 920px) {
+  .createLineDesk {
+    display: none !important;
+  }
+}
+
+@media (min-width: 921px) {
+  .createLine {
+    display: none !important;
+  }
+}

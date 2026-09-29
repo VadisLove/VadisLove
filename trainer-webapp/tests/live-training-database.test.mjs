@@ -265,3 +265,40 @@ test("Brücke zum Plan: Bereit-Regel serverseitig, Rollen und Nachweis der Best�
     /TRAINING_INVALID/,
   );
 });
+
+test("Rückblick: Line-Art, Bruchstellen und aktive Zeit (Migration 20260929130100)", async () => {
+  // Minimale Stubs der Schritt-6-Objekte, damit die Projektion kompiliert.
+  await db.exec(`
+    create function private.training_recap_access(u uuid) returns boolean language sql stable as $$ select true $$;
+    create function private.training_recap_has_trainer(u uuid) returns boolean language sql stable as $$ select false $$;
+    create table public.training_session_reviews(id uuid primary key,participant_id uuid,exercise_id uuid,kind text,body text,author_id uuid,author_role text,created_at timestamptz default now(),supersedes uuid,visibility text default 'athlete');
+    grant select on public.training_session_reviews to authenticated;
+    create table public.skateparks(id uuid primary key,name text);
+    alter table public.training_sessions add column skatepark_id uuid references public.skateparks(id);
+  `);
+  await db.exec(await read("../supabase/migrations/20260929130100_live_training_recap_lines.sql"));
+  const id = await start(A, "self");
+  let s = await workspace(A, id);
+  const p = s.participants[0].id;
+  const ex = s.exercises[2].id;
+  await run(A, id, "attempt", { participant_id: p, exercise_id: ex, landed: true });
+  await run(A, id, "attempt", { participant_id: p, exercise_id: ex, landed: false, broke_at: 1 });
+  await run(A, id, "attempt", { participant_id: p, exercise_id: ex, landed: false, broke_at: null });
+  await run(A, id, "session_pause");
+  await db.query("update public.training_sessions set started_at=now()-interval '30 minutes',paused_at=now()-interval '10 minutes' where id=$1", [id]);
+  await run(A, id, "complete");
+  const recaps = (await user(A, (tx) => tx.query("select private.training_recaps() r"))).rows[0].r;
+  const recap = recaps.find((r) => r.session_id === id);
+  const line = recap.exercises.find((e) => e.id === ex);
+  assert.equal(line.kind, "line");
+  assert.deepEqual(line.line_tricks, ["Ollie", "Kickturn 180", "Pop Shove-it"]);
+  assert.deepEqual([line.attempts, line.landed], [3, 1]);
+  assert.deepEqual(
+    line.breaks.sort((a, b) => (a.broke_at ?? -1) - (b.broke_at ?? -1)),
+    [{ broke_at: null, attempts: 1 }, { broke_at: 1, attempts: 1 }],
+  );
+  assert.equal(recap.exercises[0].kind, "trick");
+  assert.equal(recap.exercises[0].breaks, null);
+  // 30 Min seit Start, davon 10 Min pausiert.
+  assert.ok(Math.abs(Number(recap.active_ms) - 20 * 60000) < 5000);
+});

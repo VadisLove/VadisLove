@@ -32,6 +32,9 @@ const users = [
   ["athlete", "00000000-0000-0000-0000-000000000001", "Alex", "athlete"],
   ["kim", "00000000-0000-0000-0000-000000000002", "Kim", "athlete"],
   ["trainer", "00000000-0000-0000-0000-000000000003", "Trainer", "trainer"],
+  // Rollen ohne Startrecht (Info-Karte statt Startknopf).
+  ["parent", "00000000-0000-0000-0000-000000000006", "Petra", "guardian"],
+  ["board", "00000000-0000-0000-0000-000000000007", "Thomas", "organization_staff"],
 ].map(([key, id, display_name, account_type]) => ({
   key,
   id,

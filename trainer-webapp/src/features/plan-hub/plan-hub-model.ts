@@ -225,7 +225,13 @@ export interface HubTrick {
   name: string;
   goal: string;
   hint: string;
+  /** Line = Serie aus 2–5 Tricks am Stück; eigener Status wie ein Trick. */
+  type?: "line";
+  /** Geordnete Glieder einer Line (Trick-ID und Name). */
+  parts?: { id: string; name: string }[];
 }
+
+export const isLineTrick = (trick: HubTrick) => trick.type === "line";
 
 /** Eine persönliche Freigabe = ein Athlet mit eigenem Fortschritt. */
 export interface HubAssignment {
@@ -238,6 +244,8 @@ export interface HubAssignment {
   steps: Record<string, Step | undefined>;
   /** Tricks, die direkt aus dem Session-Rückblick bestätigt wurden (Zeitpunkt). */
   recapConfirmed: Record<string, string>;
+  /** Tricks/Lines, die im Live-Training bestätigt wurden (Zeitpunkt). */
+  liveConfirmed?: Record<string, string>;
 }
 
 export interface HubPlan {
@@ -299,16 +307,43 @@ export function shortName(name: string) {
 function tricksOf(plan: TrainingPlan): HubTrick[] {
   return [...plan.tricks]
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-    .map((trick) => ({
-      id: trick.id,
-      name: trick.name,
-      goal: trick.targetValue ?? "",
-      hint: trick.trainerNote ?? "",
-    }));
+    .map((trick) =>
+      trick.type === "line"
+        ? {
+            id: trick.id,
+            name: trick.name,
+            goal: trick.targetValue ?? "",
+            hint: trick.trainerNote ?? "",
+            type: "line" as const,
+            parts: (trick.trickIds ?? []).map((id, index) => ({ id, name: trick.trickNames?.[index] ?? id })),
+          }
+        : {
+            id: trick.id,
+            name: trick.name,
+            goal: trick.targetValue ?? "",
+            hint: trick.trainerNote ?? "",
+          },
+    );
+}
+
+/**
+ * Lines stehen in Pfad und Matrix hinter den Einzeltricks; die Reihenfolge
+ * innerhalb der beiden Arten bleibt erhalten.
+ */
+export function tricksThenLines<T extends { type?: string }>(items: T[]) {
+  return [...items.filter((item) => item.type !== "line"), ...items.filter((item) => item.type === "line")];
 }
 
 function stepsOf(plan: TrainingPlan): Record<string, Step> {
   return Object.fromEntries(plan.tricks.map((trick) => [trick.id, stepOf[trick.status] ?? 0]));
+}
+
+function liveConfirmedOf(plan: TrainingPlan): Record<string, string> {
+  return Object.fromEntries(
+    plan.tricks.flatMap((trick) =>
+      trick.status === "confirmed" && trick.confirmedSource === "live" ? [[trick.id, trick.confirmedAt ?? ""]] : [],
+    ),
+  );
 }
 
 function recapConfirmedOf(plan: TrainingPlan): Record<string, string> {
@@ -327,6 +362,7 @@ function assignmentOf(share: TrainingPlan, athleteId: string, athleteName: strin
     initials: initialsOf(athleteName),
     steps: stepsOf(share),
     recapConfirmed: recapConfirmedOf(share),
+    liveConfirmed: liveConfirmedOf(share),
   };
 }
 
@@ -834,6 +870,45 @@ export interface SkillSummary {
   series: number[];
   /** Letzte minus erste Session-Quote, null bei nur einer Session. */
   trend: number | null;
+  /** Line: Quote = komplette Lines; `lineTricks`/`breaks` für die Bruchstellen. */
+  kind?: "trick" | "line";
+  lineTricks?: string[];
+  /** Nicht komplette Line-Versuche je Bruchstelle (Index; -1 = ohne Angabe). */
+  breaks?: Record<number, number>;
+  /** Einzeltrick: Quote dieses Tricks innerhalb von Lines (getrennt von `quote`). */
+  inLines?: number | null;
+}
+
+type RecapExercise = SessionRecap["exercises"][number];
+
+/**
+ * Je Trick einer Line: erreicht = kam bis zu diesem Trick (komplett oder erst
+ * an oder nach ihm gebrochen), gestanden = kam darüber hinaus. Versuche ohne
+ * Angabe der Bruchstelle zählen für keinen Trick.
+ */
+export function lineTrickStats(exercise: Pick<RecapExercise, "landed" | "line_tricks" | "breaks">) {
+  const names = exercise.line_tricks ?? [];
+  const brokeAt = (k: number) =>
+    (exercise.breaks ?? []).filter((entry) => entry.broke_at === k).reduce((sum, entry) => sum + entry.attempts, 0);
+  return names.map((name, index) => {
+    let reached = exercise.landed;
+    let landed = exercise.landed;
+    for (let k = index; k < names.length; k++) reached += brokeAt(k);
+    for (let k = index + 1; k < names.length; k++) landed += brokeAt(k);
+    return { name, reached, landed };
+  });
+}
+
+/** Häufigste Bruchstelle einer Line als „bricht meist bei …“. */
+export function lineBreakText(skill: Pick<SkillSummary, "breaks" | "lineTricks">) {
+  let best = -1;
+  let count = 0;
+  for (const [index, n] of Object.entries(skill.breaks ?? {})) {
+    if (Number(index) < 0 || n <= count) continue;
+    best = Number(index);
+    count = n;
+  }
+  return best >= 0 ? `bricht meist bei ${skill.lineTricks?.[best] ?? `Trick ${best + 1}`}` : "";
 }
 
 /**
@@ -843,9 +918,12 @@ export interface SkillSummary {
 export function skillSummaries(recaps: SessionRecap[]): SkillSummary[] {
   const chronological = [...recaps].sort((a, b) => a.completed_at.localeCompare(b.completed_at));
   const skills = new Map<string, SkillSummary>();
+  // Trickquoten innerhalb von Lines, getrennt nach Name (nie in die Trickquote gemischt).
+  const inLines = new Map<string, { reached: number; landed: number }>();
   for (const recap of chronological) {
     for (const exercise of recap.exercises) {
       if (!exercise.attempts) continue;
+      const line = exercise.kind === "line";
       const skill = skills.get(exercise.skill_id) ?? {
         skillId: exercise.skill_id,
         name: exercise.name,
@@ -854,19 +932,37 @@ export function skillSummaries(recaps: SessionRecap[]): SkillSummary[] {
         quote: null,
         series: [],
         trend: null,
+        ...(line ? { kind: "line" as const, lineTricks: exercise.line_tricks ?? [], breaks: {} } : {}),
       };
       skill.attempts += exercise.attempts;
       skill.landed += exercise.landed;
       skill.series.push(quoteOf(exercise.attempts, exercise.landed) ?? 0);
+      if (line) {
+        for (const entry of exercise.breaks ?? []) {
+          const key = entry.broke_at ?? -1;
+          skill.breaks![key] = (skill.breaks![key] ?? 0) + entry.attempts;
+        }
+        for (const stat of lineTrickStats(exercise)) {
+          const key = stat.name.trim().toLowerCase();
+          const sum = inLines.get(key) ?? { reached: 0, landed: 0 };
+          sum.reached += stat.reached;
+          sum.landed += stat.landed;
+          inLines.set(key, sum);
+        }
+      }
       skills.set(exercise.skill_id, skill);
     }
   }
   return [...skills.values()]
-    .map((skill) => ({
-      ...skill,
-      quote: quoteOf(skill.attempts, skill.landed),
-      trend: skill.series.length > 1 ? skill.series[skill.series.length - 1] - skill.series[0] : null,
-    }))
+    .map((skill) => {
+      const lines = skill.kind === "line" ? undefined : inLines.get(skill.name.trim().toLowerCase());
+      return {
+        ...skill,
+        quote: quoteOf(skill.attempts, skill.landed),
+        trend: skill.series.length > 1 ? skill.series[skill.series.length - 1] - skill.series[0] : null,
+        ...(lines ? { inLines: quoteOf(lines.reached, lines.landed) } : {}),
+      };
+    })
     .sort((a, b) => b.attempts - a.attempts);
 }
 

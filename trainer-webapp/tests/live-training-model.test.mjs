@@ -95,3 +95,38 @@ test("Labels für Banner, Zeile und Rückgängig", () => {
   assert.equal(attemptLabel(line, false, null, null), "Line nicht komplett");
   assert.equal(attemptLabel(line, true, null, null), "Line komplett");
 });
+
+import { lineBreakText, skillSummaries, tricksThenLines } from "../src/features/plan-hub/plan-hub-model.ts";
+
+test("Rückblick: Line mit 3 Tricks – Quote, Bruchstellen, Trickquote bleibt getrennt", () => {
+  // Rohdaten: Ollie einzeln 4/5. Line: 2 komplett, 1× raus bei Kickturn (1),
+  // 2× raus bei Pop Shove-it (2), 1× ohne Angabe → 6 Versuche.
+  const recap = {
+    completed_at: "2026-09-29T15:00:00Z",
+    exercises: [
+      { id: "e1", skill_id: "ollie", name: "Ollie", attempts: 5, landed: 4, kind: "trick" },
+      {
+        id: "e2", skill_id: "line1", name: "Curb-Line", attempts: 6, landed: 2, kind: "line",
+        line_tricks: ["Ollie", "Kickturn 180", "Pop Shove-it"],
+        breaks: [{ broke_at: 1, attempts: 1 }, { broke_at: 2, attempts: 2 }, { broke_at: null, attempts: 1 }],
+      },
+    ],
+  };
+  const skills = skillSummaries([recap]);
+  const ollie = skills.find((s) => s.skillId === "ollie");
+  const line = skills.find((s) => s.skillId === "line1");
+  // Einzeltrick-Quote nur aus Einzelversuchen.
+  assert.deepEqual([ollie.attempts, ollie.landed, ollie.quote], [5, 4, 80]);
+  // In Lines: Ollie erreicht 2 + 1 + 2 = 5, gestanden 5 → 100 %.
+  assert.equal(ollie.inLines, 100);
+  // Line: 1 Versuch = 1 Versuch, Landung = komplette Line.
+  assert.deepEqual([line.kind, line.attempts, line.landed, line.quote], ["line", 6, 2, 33]);
+  assert.deepEqual(line.breaks, { 1: 1, 2: 2, [-1]: 1 });
+  assert.equal(lineBreakText(line), "bricht meist bei Pop Shove-it");
+  assert.equal(line.inLines, undefined);
+});
+
+test("Matrix: Lines stehen hinter den Einzeltricks", () => {
+  const order = tricksThenLines([{ id: "a" }, { id: "l", type: "line" }, { id: "b" }]).map((t) => t.id);
+  assert.deepEqual(order, ["a", "b", "l"]);
+});
