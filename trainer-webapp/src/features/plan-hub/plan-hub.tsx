@@ -2,13 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, History, Play, Plus } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, History, Play, Plus } from "lucide-react";
 import {
+  assignTrainingPlan,
+  confirmTrickFromRecap,
   reviewTrainingVideoEvidence,
-  shareTrainingPlanSnapshot,
+  saveSalutation,
+  setAthletePlanPermission,
+  setClubTemplate,
+  shareOwnPlanWithTrainer,
   submitTrainingReport,
   updateSharedTrickProgress,
 } from "@/app/trainingsplaene/actions";
+import { setPlanCreateMode } from "@/components/layout/mobile-bottom-navigation";
 import type { TrainingPlan, TrainingVideoEvidence, TrickProgressStatus } from "@/domain/models";
 import type { TrainingWorkspace } from "@/domain/training";
 import type { SessionRecap } from "@/domain/training-recap";
@@ -19,11 +25,16 @@ import {
   buildHubPlans,
   cellKey,
   daysUntil,
+  emptyHubContext,
   hubRoleOf,
   inDays,
+  myAssignment,
+  nextReportable,
   nextStepFor,
   openReports,
   pendingEvidenceMap,
+  personaOf,
+  planBadges,
   planPercent,
   shortName,
   sortHubPlans,
@@ -32,16 +43,21 @@ import {
   waitingReports,
   words,
   type HubAssignment,
+  type HubContext,
+  type HubGroup,
   type HubPlan,
   type HubRole,
   type HubTrick,
+  type HubWords,
+  type Salutation,
   type Step,
   type WaitingReport,
 } from "./plan-hub-model";
+import { HubWordsContext, useWords } from "./hub-words";
 import { PlanDetail } from "./plan-detail";
 import { AthleteProgress, StaffProgress } from "./plan-progress";
 import { RecapView } from "./plan-recap";
-import { ReportSheet, ReviewSheet, type ReportInput } from "./plan-sheets";
+import { PermissionsSheet, ReportSheet, ReviewSheet, SalutationSheet, type ReportInput } from "./plan-sheets";
 import { PlanWizard, type WizardResult } from "./plan-wizard";
 import styles from "./plan-hub.module.css";
 import trainingStyles from "@/features/training/training.module.css";
@@ -60,6 +76,10 @@ export interface HubActions {
   showProgress: (planKey: string) => void;
   edit: (plan: HubPlan) => void;
   startTraining: (plan: HubPlan) => void;
+  /** Trainer*innen: offenen/geübten Trick direkt aus dem Rückblick bestätigen (Quote ≥ 80 %). */
+  confirmFromRecap: (plan: HubPlan, assignment: HubAssignment, trick: HubTrick, since: number) => void;
+  /** Vereinsvorlage als Grundlage für einen neuen Plan übernehmen. */
+  useTemplate: (plan: HubPlan) => void;
 }
 
 type SheetState =
@@ -68,6 +88,7 @@ type SheetState =
   | null;
 
 const dotTone = ["dotOpen", "dotPracticed", "dotReported", "dotConfirmed"] as const;
+const badgeTone = { warn: "badgeWarn", draft: "badgeDraft", template: "badgeTemplate", athlete: "badgeAthlete" } as const;
 
 function setUrlParam(name: string, value: string | null) {
   const url = new URL(window.location.href);
@@ -94,6 +115,8 @@ export function PlanHub({
   initialSessionId,
   initialExercise,
   createRequest,
+  context,
+  initialRights = false,
 }: {
   workspace: TrainingWorkspace | null;
   evidence: TrainingVideoEvidence[];
@@ -107,6 +130,10 @@ export function PlanHub({
   initialSessionId: string | null;
   initialExercise: number;
   createRequest: string | null;
+  /** Rollen, Rechte, Anrede, Gruppen und Vorlagen; null, wenn der Abruf fehlschlug. */
+  context: HubContext | null;
+  /** `?rechte=1` (Profil → Berechtigungen) öffnet „Wer darf erstellen?“. */
+  initialRights?: boolean;
 }) {
   const router = useRouter();
   const [toast, setToast] = useState("");
@@ -127,10 +154,35 @@ export function PlanHub({
     }
   });
   const data = training.data;
-  const role: HubRole = hubRoleOf(data?.user.accountType);
+  const ctx = context ?? emptyHubContext;
+  const role: HubRole = hubRoleOf(data?.user.accountType, ctx.isBoard);
+  const persona = personaOf(data?.user.accountType, ctx.isBoard);
   const staff = role === "staff";
-  // Athlet*innen dürfen bis zur Rechteverwaltung weiterhin eigene Pläne anlegen.
-  const canCreate = role === "staff" || role === "athlete";
+  // Trainer*innen und Vorstand dürfen immer, Athlet*innen nur mit übertragenem Recht.
+  const canCreate = staff || (role === "athlete" && ctx.canCreatePlans);
+
+  // Anrede: eigene Angabe für Rollentexte, Anrede der Trainer*in für Texte über sie.
+  const [salutation, setSalutation] = useState<Salutation | null>(ctx.salutation);
+  const [salutationAsked, setSalutationAsked] = useState(false);
+  const w = useMemo(
+    () => words(salutation, role === "athlete" ? ctx.trainerSalutation : salutation),
+    [salutation, role, ctx.trainerSalutation],
+  );
+  const askSalutation = Boolean(context) && salutation === null && role !== "viewer" && !salutationAsked;
+
+  // Lokale Erstellrechte bis zum nächsten Serverabruf (Toggle reagiert sofort).
+  const [permissionOverrides, setPermissionOverrides] = useState<Record<string, boolean>>({});
+  const [rightsOpen, setRightsOpen] = useState(initialRights);
+  const permissionContext = useMemo<HubContext>(
+    () => ({
+      ...ctx,
+      athletes: ctx.athletes.map((athlete) => ({
+        ...athlete,
+        canCreatePlans: permissionOverrides[athlete.id] ?? athlete.canCreatePlans,
+      })),
+    }),
+    [ctx, permissionOverrides],
+  );
 
   const [evidence, setEvidence] = useState(initialEvidence);
   const [overrides, setOverrides] = useState<Record<string, Step>>({});
@@ -151,7 +203,7 @@ export function PlanHub({
 
   const plans = useMemo(() => {
     if (!data) return [];
-    const built = buildHubPlans({ savedPlans: data.plans, shares: data.shares, userId: data.user.id, names }).map((plan) => ({
+    const built = buildHubPlans({ savedPlans: data.plans, shares: data.shares, userId: data.user.id, names, context: ctx }).map((plan) => ({
       ...plan,
       assignments: plan.assignments.map((assignment) => ({
         ...assignment,
@@ -164,7 +216,7 @@ export function PlanHub({
       })),
     }));
     return sortHubPlans(built, role);
-  }, [data, names, overrides, role]);
+  }, [data, names, overrides, role, ctx]);
 
   const evidenceMap = useMemo(() => pendingEvidenceMap(evidence), [evidence]);
   const reports = useMemo(() => (staff ? waitingReports(plans, evidenceMap) : []), [staff, plans, evidenceMap]);
@@ -187,7 +239,7 @@ export function PlanHub({
   const [selectedKey, setSelectedKey] = useState<string | null>(() => initialPlanKey);
   const [mobileDetail, setMobileDetail] = useState(Boolean(initialPlanKey));
   const [progressKey, setProgressKey] = useState<string | null>(initialPlanKey);
-  const [wizard, setWizard] = useState<{ edit: HubPlan | null; step?: number } | null>(() => {
+  const [wizard, setWizard] = useState<{ edit: HubPlan | null; step?: number; template?: HubPlan } | null>(() => {
     const plan = initialAction === "share" ? findPlan(initialPlanKey) : undefined;
     return plan?.editable && hubRoleOf(workspace?.user.accountType) === "staff" ? { edit: plan, step: 2 } : null;
   });
@@ -197,7 +249,7 @@ export function PlanHub({
   const selected = findPlan(selectedKey) ?? plans[0] ?? null;
   const progressPlans = staff
     ? plans.filter((plan) => plan.assignments.length)
-    : plans.filter((plan) => plan.kind === "received");
+    : plans.filter((plan) => myAssignment(plan));
   const progressPlan =
     findPlan(progressKey) && progressPlans.includes(findPlan(progressKey)!)
       ? findPlan(progressKey)!
@@ -205,14 +257,26 @@ export function PlanHub({
 
   // Der zentrale „+“-Button der mobilen Tab-Bar hängt `?neu=<Zeit>` an;
   // jeder neue Zeitstempel öffnet den Erstellen-Flow genau einmal.
+  // Ohne Erstellrecht öffnet derselbe Button („↑ Melden“) das Melden-Sheet.
   const [handledCreate, setHandledCreate] = useState<string | null>(null);
-  if (createRequest && canCreate && createRequest !== handledCreate) {
+  if (createRequest && data && createRequest !== handledCreate) {
     setHandledCreate(createRequest);
-    setWizard({ edit: null });
+    if (canCreate) setWizard({ edit: null });
+    else if (role === "athlete") reportShortcut(false);
   }
   useEffect(() => {
     if (createRequest) setUrlParam("neu", null);
   }, [createRequest]);
+  useEffect(() => {
+    if (initialRights) setUrlParam("rechte", null);
+  }, [initialRights]);
+
+  // Mittlerer Tab-Bar-Button: „+“ mit Recht, sonst „↑ Melden“.
+  const createMode = canCreate || role !== "athlete" ? "create" : "report";
+  useEffect(() => {
+    setPlanCreateMode(createMode);
+    return () => setPlanCreateMode("create");
+  }, [createMode]);
 
   useEffect(() => {
     if (!toast) return;
@@ -238,6 +302,44 @@ export function PlanHub({
     setSelectedKey(key);
     setMobileDetail(true);
     window.scrollTo({ top: 0 });
+  }
+
+  /** „↑ Trick melden“: nächster geübter Trick, sonst Hinweis und Pfad öffnen. */
+  // `scroll = false`, wenn der Aufruf während des Renderns erfolgt (Tab-Bar-Anfrage).
+  function reportShortcut(scroll = true) {
+    const next = nextReportable(plans);
+    if (next) {
+      setSheet({ type: "report", ...next });
+      return;
+    }
+    const step = nextStepFor(plans);
+    setToast(step ? `Markiere ${step.trick.name} zuerst als geübt – dann kannst du ihn melden.` : "Noch kein Trick zum Melden.");
+    if (step) {
+      setTab("plaene");
+      setSelectedKey(step.plan.key);
+      setMobileDetail(true);
+      if (scroll) window.scrollTo({ top: 0 });
+    }
+  }
+
+  async function togglePermission(athleteId: string, name: string, allowed: boolean) {
+    setPermissionOverrides((current) => ({ ...current, [athleteId]: allowed }));
+    const result = await setAthletePlanPermission({ athleteId, allowed });
+    if (result.status === "error") {
+      setPermissionOverrides((current) => ({ ...current, [athleteId]: !allowed }));
+      setToast(result.message);
+      return;
+    }
+    setToast(allowed ? `${shortName(name)} darf jetzt Pläne erstellen` : `${shortName(name)} darf keine Pläne mehr erstellen`);
+    router.refresh();
+  }
+
+  async function chooseSalutation(value: Salutation, label: string | null) {
+    setSalutation(value);
+    setSalutationAsked(true);
+    const result = await saveSalutation(value);
+    if (result.status === "error") setToast(result.message);
+    else if (label) setToast(`Gespeichert – wir sprechen dich als ${label} an`);
   }
 
   /* ----------------------------- Aktionen ----------------------------- */
@@ -314,7 +416,7 @@ export function PlanHub({
       if (result.evidence) setEvidence((current) => [result.evidence!, ...current]);
       setOverrides((current) => ({ ...current, [key]: 2 }));
       setSheet(null);
-      setToast(`Gemeldet – ${words().nom} wurde benachrichtigt`);
+      setToast(`Gemeldet – ${w.nom} wurde benachrichtigt`);
       router.refresh();
       return true;
     } catch {
@@ -351,6 +453,30 @@ export function PlanHub({
       switchTab("fortschritt");
     },
     edit: (plan) => setWizard({ edit: plan }),
+    confirmFromRecap: (plan, assignment, trick, since) =>
+      void (async () => {
+        const key = cellKey(assignment.shareId, trick.id);
+        setBusyKey(key);
+        try {
+          const result = await confirmTrickFromRecap({
+            planId: assignment.shareId,
+            trickId: trick.id,
+            since: new Date(since).toISOString(),
+          });
+          if (result.status === "error") {
+            setToast(result.message);
+            return;
+          }
+          setOverrides((current) => ({ ...current, [key]: 3 }));
+          setToast(`${trick.name} für ${shortName(assignment.athleteName)} bestätigt`);
+          router.refresh();
+        } catch {
+          setToast("Nicht gespeichert. Bitte erneut versuchen.");
+        } finally {
+          setBusyKey("");
+        }
+      })(),
+    useTemplate: (plan) => setWizard({ edit: null, template: plan }),
     startTraining: (plan) => {
       if (!data) return;
       const content = plan.savedPlanId
@@ -362,29 +488,46 @@ export function PlanHub({
 
   async function submitWizard(result: WizardResult) {
     const editing = wizard?.edit ?? null;
-    const saved = await training.run("plan_save", {
-      id: editing?.savedPlanId ?? result.content.id,
-      revision: result.revision,
-      content: editing?.savedPlanId ? { ...result.content, id: editing.savedPlanId } : result.content,
-    });
+    const planId = editing?.savedPlanId ?? result.content.id;
+    const content = { ...result.content, id: planId };
+    const saved = await training.run("plan_save", { id: planId, revision: result.revision, content });
     if (!saved) {
       setToast("Plan nicht gespeichert. Bitte erneut versuchen.");
       return;
     }
+    // Zuweisungen nutzen denselben Stand wie die soeben gespeicherte Version.
+    const snapshot = { ...content, version: String(result.revision + 1) };
     let text = editing
       ? `Version ${result.revision + 1} von „${result.content.title}“ gespeichert`
       : result.draft
         ? `„${result.content.title}“ als Entwurf gespeichert`
         : `„${result.content.title}“ erstellt`;
-    if (result.recipients.length) {
-      const shared = await shareTrainingPlanSnapshot({
-        plan: editing?.savedPlanId ? { ...result.content, id: editing.savedPlanId } : result.content,
-        recipientUserIds: result.recipients,
+    if (staff && (result.recipients.length || result.groups.length || result.club)) {
+      const assigned = await assignTrainingPlan({
+        plan: snapshot,
+        athleteIds: result.recipients,
+        groupIds: result.groups,
+        club: result.club,
       });
-      text = shared.status === "success" ? `${text} und zugewiesen` : `${text}. ${shared.message}`;
+      text = assigned.status === "success" ? `${text} und zugewiesen` : `${text}. ${assigned.message}`;
+    }
+    if (persona === "board" && result.clubTemplate !== (editing?.isTemplate ?? false)) {
+      const template = await setClubTemplate({ planId, enabled: result.clubTemplate });
+      text =
+        template.status === "error"
+          ? `${text}. ${template.message}`
+          : result.clubTemplate
+            ? editing
+              ? `${text} · als Vereinsvorlage freigegeben`
+              : "Als Vereinsvorlage freigegeben"
+            : `${text} · keine Vereinsvorlage mehr`;
+    }
+    if (role === "athlete" && result.shareWithTrainer && !editing?.sharedWithTrainer) {
+      const shared = await shareOwnPlanWithTrainer(snapshot);
+      text = shared.status === "success" ? `${text} und mit ${w.dat} geteilt` : `${text}. ${shared.message}`;
     }
     setWizard(null);
-    setSelectedKey(editing?.key ?? result.content.id);
+    setSelectedKey(editing?.key ?? planId);
     setToast(text);
     router.refresh();
   }
@@ -394,7 +537,6 @@ export function PlanHub({
   const running = data?.sessions.filter((session) => session.status === "running") ?? [];
   const session = data?.sessions.find((entry) => entry.id === sessionId);
   const screen = tab !== "plaene" ? tab : mobileDetail && selected ? "detail" : "list";
-  const w = words();
 
   const statusBar = training.message ? (
     <div className={training.pending || !data ? styles.errorBox : styles.infoNote} role="status">
@@ -468,17 +610,29 @@ export function PlanHub({
   ];
 
   return (
+    <HubWordsContext.Provider value={w}>
     <div className={styles.hub} data-screen={screen}>
       <header className={styles.head}>
         <div>
           <span className={styles.kicker}>Training</span>
           <h1 className={styles.title}>Trainingspläne</h1>
         </div>
-        {canCreate ? (
-          <Button size="lg" className={styles.desktopOnly} onClick={() => setWizard({ edit: null })}>
-            <Plus size={18} aria-hidden="true" /> Plan erstellen
-          </Button>
-        ) : null}
+        <div className={styles.headActions}>
+          {staff && context ? (
+            <Button variant="secondary" size="lg" className={styles.desktopOnly} onClick={() => setRightsOpen(true)}>
+              Wer darf erstellen?
+            </Button>
+          ) : null}
+          {canCreate ? (
+            <Button size="lg" className={styles.desktopOnly} onClick={() => setWizard({ edit: null })}>
+              <Plus size={18} aria-hidden="true" /> Plan erstellen
+            </Button>
+          ) : role === "athlete" && data ? (
+            <Button size="lg" className={styles.desktopOnly} onClick={() => reportShortcut()}>
+              <ArrowUp size={18} aria-hidden="true" /> Trick melden
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       <nav className={styles.tabs} role="tablist" aria-label="Bereiche">
@@ -538,6 +692,7 @@ export function PlanHub({
                 key={plan.key}
                 plan={plan}
                 role={role}
+                groups={ctx.groups}
                 selected={selected?.key === plan.key}
                 onSelect={() => selectPlan(plan.key)}
               />
@@ -601,12 +756,35 @@ export function PlanHub({
       {wizard ? (
         <PlanWizard
           role={role}
+          persona={persona}
           editPlan={wizard.edit}
+          startTemplate={wizard.template ?? null}
           startStep={wizard.step}
-          athletes={data?.people ?? []}
+          athletes={wizardAthletes(data?.people ?? [], ctx)}
+          groups={ctx.groups}
+          clubs={ctx.clubs}
+          templates={ctx.templates.filter((entry) => !entry.own)}
+          hasTrainer={ctx.hasTrainer}
           busy={training.busy}
           onClose={() => setWizard(null)}
           onSubmit={(result) => void submitWizard(result)}
+        />
+      ) : null}
+
+      {rightsOpen && staff ? (
+        <PermissionsSheet
+          context={permissionContext}
+          board={persona === "board"}
+          onToggle={(athlete, allowed) => void togglePermission(athlete.id, athlete.name, allowed)}
+          onClose={() => setRightsOpen(false)}
+        />
+      ) : null}
+
+      {askSalutation && !wizard && !sheet ? (
+        <SalutationSheet
+          role={role}
+          onChoose={(value, label) => void chooseSalutation(value, label)}
+          onLater={() => void chooseSalutation("d", null)}
         />
       ) : null}
 
@@ -634,7 +812,15 @@ export function PlanHub({
         </div>
       ) : null}
     </div>
+    </HubWordsContext.Provider>
   );
+}
+
+/** Verbundene Athlet*innen plus (Vorstand) Vereinsathlet*innen, ohne Doppelungen. */
+function wizardAthletes(people: { id: string; name: string }[], context: HubContext) {
+  const map = new Map(people.map((person) => [person.id, person.name]));
+  for (const athlete of context.athletes) if (!map.has(athlete.id)) map.set(athlete.id, athlete.name);
+  return [...map].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, "de"));
 }
 
 /* ----------------------------- Listenkarten ----------------------------- */
@@ -642,29 +828,19 @@ export function PlanHub({
 function PlanCard({
   plan,
   role,
+  groups,
   selected,
   onSelect,
 }: {
   plan: HubPlan;
   role: HubRole;
+  groups: HubGroup[];
   selected: boolean;
   onSelect: () => void;
 }) {
-  const open = role === "staff" ? openReports(plan).length : 0;
+  const w = useWords();
   const days = daysUntil(plan.deadline);
-  const mine = plan.kind === "received" ? plan.assignments[0] : null;
-  const sub =
-    role === "staff"
-      ? plan.assignments.length === 1
-        ? `Individuell · ${shortName(plan.assignments[0].athleteName)}`
-        : plan.assignments.length
-          ? `${plan.assignments.length} Athleten`
-          : plan.isDraft
-            ? "Noch nicht zugewiesen"
-            : "Eigener Plan"
-      : mine
-        ? `Von ${plan.sourceLabel || words().dat}${days !== null && days >= 0 ? ` · Frist ${inDays(days)}` : ""}`
-        : "Eigener Plan · nur für dich";
+  const sub = planCardSub(plan, role, groups, w, days);
 
   return (
     <button
@@ -676,8 +852,11 @@ function PlanCard({
       <span className={styles.planCardMain}>
         <span className={styles.planCardTitle}>
           <strong>{plan.title}</strong>
-          {open ? <span className={`${styles.badge} ${styles.badgeWarn}`}>{open} offen</span> : null}
-          {plan.isDraft ? <span className={styles.badge}>Entwurf</span> : null}
+          {planBadges(plan, role).map((badge) => (
+            <span key={badge.tone} className={`${styles.badge} ${styles[badgeTone[badge.tone]]}`}>
+              {badge.label}
+            </span>
+          ))}
         </span>
         <small>{sub}</small>
         <span className={styles.dots} aria-hidden="true">
@@ -693,6 +872,27 @@ function PlanCard({
       </span>
     </button>
   );
+}
+
+/** Untertitel der Plan-Karte je nach Rolle und Herkunft des Plans. */
+function planCardSub(plan: HubPlan, role: HubRole, groups: HubGroup[], w: HubWords, days: number | null) {
+  const count = plan.assignments.length;
+  const athletes = `${count} ${count === 1 ? "Athlet" : "Athleten"}`;
+  if (plan.kind === "template") return `Vereinsvorlage · ${plan.sourceLabel || "vom Vorstand"}`;
+  if (role === "staff") {
+    if (plan.kind === "athlete") return `Von ${shortName(plan.createdByAthlete)} erstellt · mit dir geteilt`;
+    if (plan.clubAssigned) return `Alle Gruppen im Verein · ${athletes}`;
+    const groupNames = plan.groupIds.flatMap((id) => groups.filter((group) => group.id === id).map((group) => group.name));
+    if (groupNames.length) return `${groupNames.join(", ")} · ${athletes}`;
+    if (count === 1) return `Individuell · ${shortName(plan.assignments[0].athleteName)}`;
+    if (count) return athletes;
+    if (plan.isTemplate) return "Vereinsvorlage";
+    return plan.isDraft ? "Noch nicht zugewiesen" : "Eigener Plan";
+  }
+  if (plan.kind === "received") {
+    return `Von ${plan.sourceLabel || w.dat}${days !== null && days >= 0 ? ` · Frist ${inDays(days)}` : ""}`;
+  }
+  return plan.sharedWithTrainer ? `Von dir erstellt · geteilt mit ${w.dat}` : "Von dir erstellt · nur für dich";
 }
 
 function ProgressEntry({
@@ -720,14 +920,17 @@ function ProgressEntry({
     );
   }
   if (role !== "athlete") return null;
-  const received = plans.filter((plan) => plan.kind === "received");
-  if (!received.length) return null;
+  const mine = plans.flatMap((plan) => {
+    const assignment = myAssignment(plan);
+    return assignment ? [{ plan, assignment }] : [];
+  });
+  if (!mine.length) return null;
   let confirmed = 0;
   let waiting = 0;
   let total = 0;
-  for (const plan of received) {
+  for (const { plan, assignment } of mine) {
     for (const trick of plan.tricks) {
-      const step = plan.assignments[0].steps[trick.id] ?? 0;
+      const step = assignment.steps[trick.id] ?? 0;
       total += 1;
       if (step === 3) confirmed += 1;
       if (step === 2) waiting += 1;
@@ -758,17 +961,18 @@ function NextStepCard({
   actions: HubActions;
   onOpen: (key: string) => void;
 }) {
+  const w = useWords();
   const next = nextStepFor(plans);
   if (!next) return null;
   const { plan, trick, step } = next;
-  const assignment = plan.assignments[0];
+  const assignment = myAssignment(plan)!;
   return (
     <section className={styles.nextCard}>
       <span className={styles.nowKicker}>Dein nächster Schritt</span>
       <h2>
         {trick.name} {step === 1 ? "melden" : "üben"}
       </h2>
-      <p>{step === 1 ? `Geübt ✓ – zeig ${words().dat} ein Video` : trick.goal ? `Ziel: ${trick.goal}` : plan.title}</p>
+      <p>{step === 1 ? `Geübt ✓ – zeig ${w.dat} ein Video` : trick.goal ? `Ziel: ${trick.goal}` : plan.title}</p>
       {step === 1 ? (
         <Button onClick={() => actions.openReport(plan, assignment, trick)}>Jetzt melden →</Button>
       ) : (

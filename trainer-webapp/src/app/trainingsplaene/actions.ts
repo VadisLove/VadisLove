@@ -571,3 +571,173 @@ export async function shareTrainingPlanSnapshot({
     message: `Der Plan wurde ${uniqueRecipients.length} Kontakt${uniqueRecipients.length === 1 ? "" : "en"} zugestellt.`,
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Rechte, Zuweisung, Vorlagen und Anrede (Planbereich, Handoff v3)      */
+/* ------------------------------------------------------------------ */
+
+export interface PlanHubActionResult {
+  status: "success" | "error";
+  message: string;
+  count?: number;
+}
+
+const forbiddenMessage = "Dafür fehlen dir die Berechtigungen.";
+
+/**
+ * Setzt das Erstellrecht einer Athletin/eines Athleten. Nur Trainer*innen mit
+ * aktiver Verbindung und der Vorstand des Vereins dürfen das (Prüfung in der DB).
+ */
+export async function setAthletePlanPermission({
+  athleteId,
+  allowed,
+}: {
+  athleteId: string;
+  allowed: boolean;
+}): Promise<PlanHubActionResult> {
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { error } = await supabase.rpc("training_set_plan_permission", {
+    p_athlete: athleteId,
+    p_allowed: allowed,
+  });
+  if (error) {
+    console.error("Erstellrecht konnte nicht gespeichert werden.", { code: error.code, message: error.message });
+    return { status: "error", message: error.code === "42501" ? forbiddenMessage : "Nicht gespeichert. Bitte erneut versuchen." };
+  }
+  revalidatePath("/trainingsplaene");
+  return { status: "success", message: "Gespeichert." };
+}
+
+/**
+ * Weist einen eigenen Plan einzelnen Athlet*innen, Gruppen oder (Vorstand)
+ * allen Gruppen im Verein zu. Gruppen- und Vereinszuweisungen werden
+ * gespeichert, damit neue Mitglieder den Plan automatisch erhalten.
+ */
+export async function assignTrainingPlan({
+  plan,
+  athleteIds,
+  groupIds,
+  club,
+}: {
+  plan: TrainingPlan;
+  athleteIds: string[];
+  groupIds: string[];
+  club: boolean;
+}): Promise<PlanHubActionResult> {
+  const normalizedPlan = normalizeTrainingPlan(plan);
+  if (JSON.stringify(normalizedPlan).length > 240_000) {
+    return { status: "error", message: "Der Trainingsplan ist zu groß zum Zuweisen." };
+  }
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { data, error } = await supabase.rpc("training_assign_plan", {
+    p_plan: normalizedPlan,
+    p_athletes: Array.from(new Set(athleteIds)).slice(0, 200),
+    p_groups: Array.from(new Set(groupIds)).slice(0, 50),
+    p_club: club,
+  });
+  if (error) {
+    console.error("Plan konnte nicht zugewiesen werden.", { code: error.code, message: error.message });
+    return {
+      status: "error",
+      message: error.code === "42501"
+        ? "Der Plan kann nur verbundenen Athleten, eigenen Gruppen oder dem eigenen Verein zugewiesen werden."
+        : "Der Plan konnte nicht zugewiesen werden. Bitte erneut versuchen.",
+    };
+  }
+  revalidatePath("/trainingsplaene");
+  revalidatePath("/", "layout");
+  return { status: "success", message: "Zugewiesen.", count: Number((data as { shared?: number } | null)?.shared ?? 0) };
+}
+
+/** Skater*innen: eigenen Plan mit den eigenen Trainer*innen teilen. */
+export async function shareOwnPlanWithTrainer(plan: TrainingPlan): Promise<PlanHubActionResult> {
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { error } = await supabase.rpc("training_share_own_plan", { p_plan: normalizeTrainingPlan(plan) });
+  if (error) {
+    console.error("Plan konnte nicht geteilt werden.", { code: error.code, message: error.message });
+    return { status: "error", message: error.code === "42501" ? forbiddenMessage : "Der Plan konnte nicht geteilt werden." };
+  }
+  revalidatePath("/trainingsplaene");
+  return { status: "success", message: "Geteilt." };
+}
+
+/** Vorstand: eigenen Plan als Vereinsvorlage freigeben oder zurücknehmen. */
+export async function setClubTemplate({
+  planId,
+  enabled,
+}: {
+  planId: string;
+  enabled: boolean;
+}): Promise<PlanHubActionResult> {
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { error } = await supabase.rpc("training_set_club_template", { p_plan: planId, p_enabled: enabled });
+  if (error) {
+    console.error("Vereinsvorlage konnte nicht gespeichert werden.", { code: error.code, message: error.message });
+    return { status: "error", message: error.code === "42501" ? forbiddenMessage : "Die Vereinsvorlage konnte nicht gespeichert werden." };
+  }
+  revalidatePath("/trainingsplaene");
+  return { status: "success", message: "Gespeichert." };
+}
+
+/** Anrede (m/w/d) des eigenen Profils; steuert nur Texte in der App. */
+export async function saveSalutation(salutation: "m" | "w" | "d"): Promise<PlanHubActionResult> {
+  if (salutation !== "m" && salutation !== "w" && salutation !== "d") {
+    return { status: "error", message: "Bitte eine gültige Anrede wählen." };
+  }
+  const supabase = await createClient();
+  const userId = await getAuthenticatedUserId(supabase);
+  if (!userId) return { status: "error", message: "Bitte erneut anmelden." };
+  const { error } = await supabase.from("profiles").update({ salutation }).eq("id", userId);
+  if (error) {
+    console.error("Anrede konnte nicht gespeichert werden.", { code: error.code, message: error.message });
+    return { status: "error", message: "Die Anrede konnte nicht gespeichert werden." };
+  }
+  revalidatePath("/trainingsplaene");
+  revalidatePath("/profil");
+  return { status: "success", message: "Gespeichert." };
+}
+
+/**
+ * Trainer*innen bestätigen einen offenen oder geübten Trick direkt aus dem
+ * Session-Rückblick. Die DB prüft Beziehung, Status und Quote ≥ 80 % erneut.
+ */
+export async function confirmTrickFromRecap({
+  planId,
+  trickId,
+  since,
+}: {
+  planId: string;
+  trickId: string;
+  since: string;
+}): Promise<PlanHubActionResult> {
+  if (!planId.startsWith(sharedPlanPrefix) || !trickId.trim() || Number.isNaN(Date.parse(since))) {
+    return { status: "error", message: "Der Trick wurde nicht gefunden." };
+  }
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { error } = await supabase.rpc("training_confirm_from_recap", {
+    p_snapshot_share_id: planId.slice(sharedPlanPrefix.length),
+    p_trick_id: trickId,
+    p_since: since,
+  });
+  if (error) {
+    console.error("Direkte Bestätigung fehlgeschlagen.", { code: error.code, message: error.message });
+    return {
+      status: "error",
+      message: error.code === "42501"
+        ? "Nur zugeordnete Trainer dürfen direkt bestätigen."
+        : error.message.includes("TRAINING_QUOTE_TOO_LOW")
+          ? "Die Landequote liegt unter 80 %."
+          : error.message.includes("TRAINING_STATUS")
+            ? "Der Trick ist bereits gemeldet oder bestätigt."
+            : "Nicht bestätigt. Bitte erneut versuchen.",
+    };
+  }
+  revalidatePath("/trainingsplaene");
+  revalidatePath("/", "layout");
+  return { status: "success", message: "Bestätigt." };
+}

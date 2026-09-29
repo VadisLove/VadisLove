@@ -131,6 +131,17 @@ end; $$;
 create trigger profiles_salutation_from_signup before insert on public.profiles
 for each row execute function private.profile_salutation_from_signup();
 
+-- profiles nutzt spaltenweise Grants: Die eigene Anrede darf geändert werden
+-- (RLS begrenzt auf die eigene Zeile). Lesen nur für sich selbst per Funktion,
+-- damit die Angabe nicht über das Mitgliederverzeichnis sichtbar wird.
+grant update (salutation) on public.profiles to authenticated;
+create function public.own_salutation() returns text
+language sql stable security definer set search_path='' as $$
+ select salutation from public.profiles where id=auth.uid() and private.current_account_is_active();
+$$;
+revoke all on function public.own_salutation() from public,anon;
+grant execute on function public.own_salutation() to authenticated;
+
 /* ------------------------------------------------------------------ */
 /* 3. Mit dem Trainer teilen (Skater)                                   */
 /* ------------------------------------------------------------------ */

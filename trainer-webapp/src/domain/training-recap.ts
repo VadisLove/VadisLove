@@ -3,8 +3,12 @@ export interface SessionRecap {
   participant_id: string;
   athlete_id: string;
   athlete_name: string;
+  /** Profil-ID der Athletin/des Athleten (für den Abgleich mit Plänen). */
+  athlete_user_id?: string | null;
   session_id: string;
   title: string;
+  /** Park der Session, falls beim Start erfasst; sonst null. */
+  park?: string | null;
   mode: "self" | "individual" | "group";
   present: boolean;
   started_at: string;
@@ -14,7 +18,7 @@ export interface SessionRecap {
   can_confirm: boolean;
   note: string | null;
   exercises: { id: string; skill_id: string; name: string; elapsed_ms: number; note: string | null; trainer_note: string | null; attempts: number; landed: number }[];
-  reviews: { id: string; exercise_id: string | null; kind: "hint" | "goal" | "request" | "confirmation"; body: string; author_name: string; author_role: "trainer" | "self"; created_at: string; supersedes: string | null }[];
+  reviews: { id: string; exercise_id: string | null; kind: "hint" | "goal" | "request" | "confirmation"; body: string; author_name: string; author_role: "trainer" | "self"; created_at: string; supersedes: string | null; visibility?: "athlete" | "coaches" }[];
 }
 
 /** Null unterscheidet fehlende Versuche von einer tatsächlich gemessenen Nullquote. */

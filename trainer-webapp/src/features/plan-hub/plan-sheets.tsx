@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Check, Play, Upload, X } from "lucide-react";
+import { Check, ChevronRight, Play, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isYoutubeVideoId } from "@/lib/youtube-video";
 import { checkVideo, formatClip, removeVideo, uploadVideo, videoLimits, type UploadedVideo } from "./video-upload";
-import { formatRelative, shortName, words, type WaitingReport } from "./plan-hub-model";
+import {
+  formatRelative,
+  initialsOf,
+  permissionSections,
+  salutationOptions,
+  shortName,
+  type HubContext,
+  type HubRole,
+  type Salutation,
+  type WaitingReport,
+} from "./plan-hub-model";
+import { useWords } from "./hub-words";
 import styles from "./plan-hub.module.css";
 
 /**
@@ -16,10 +27,13 @@ export function Sheet({
   label,
   onClose,
   children,
+  closable = true,
 }: {
   label: string;
   onClose: () => void;
   children: ReactNode;
+  /** Einmal-Abfragen (Anrede) schließen nur über ihre eigenen Buttons. */
+  closable?: boolean;
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -30,7 +44,7 @@ export function Sheet({
   }, [onClose]);
 
   return (
-    <div className={styles.sheetBackdrop} onClick={onClose}>
+    <div className={styles.sheetBackdrop} onClick={closable ? onClose : undefined}>
       <section
         className={styles.sheet}
         role="dialog"
@@ -39,9 +53,11 @@ export function Sheet({
         onClick={(event) => event.stopPropagation()}
       >
         <span className={styles.sheetHandle} aria-hidden="true" />
-        <button type="button" className={styles.sheetClose} aria-label="Schließen" onClick={onClose}>
-          <X size={18} />
-        </button>
+        {closable ? (
+          <button type="button" className={styles.sheetClose} aria-label="Schließen" onClick={onClose}>
+            <X size={18} />
+          </button>
+        ) : null}
         {children}
       </section>
     </div>
@@ -80,7 +96,7 @@ export function ReportSheet({
   const cameraInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController | null>(null);
-  const w = words();
+  const w = useWords();
 
   async function pick(file: File | undefined) {
     if (!file) return;
@@ -323,6 +339,114 @@ export function ReviewSheet({
           <Check size={18} aria-hidden="true" /> Bestätigen
         </Button>
       </div>
+    </Sheet>
+  );
+}
+
+/**
+ * „Wer darf Pläne erstellen?“ (Trainer*innen & Vorstand): Staff darf immer,
+ * Athlet*innen erhalten das Recht einzeln per Schalter, gruppiert nach Gruppe.
+ */
+export function PermissionsSheet({
+  context,
+  board,
+  onToggle,
+  onClose,
+}: {
+  context: HubContext;
+  board: boolean;
+  onToggle: (athlete: { id: string; name: string }, allowed: boolean) => void;
+  onClose: () => void;
+}) {
+  const sections = permissionSections(context);
+  return (
+    <Sheet label="Wer darf Pläne erstellen?" onClose={onClose}>
+      <h2 className={styles.sheetTitle}>Wer darf Pläne erstellen?</h2>
+      <p className={styles.sheetLead}>
+        {board
+          ? "Trainer und Vorstand dürfen immer. Du kannst das Recht zusätzlich an Athleten geben."
+          : "Trainer und Vorstand dürfen immer. Gib einzelnen Athleten das Recht, eigene Pläne zu erstellen."}
+      </p>
+      <ul className={styles.rightsList}>
+        {[
+          { name: "Trainer*innen", sub: "Für ihre Gruppen" },
+          { name: "Vorstand & Verband", sub: "Für alle Gruppen, inkl. Vereinsvorlagen" },
+        ].map((row) => (
+          <li key={row.name}>
+            <span className={styles.rightsText}>
+              <strong>{row.name}</strong>
+              <small>{row.sub}</small>
+            </span>
+            <span className={styles.alwaysPill}>Immer</span>
+          </li>
+        ))}
+      </ul>
+      {sections.length ? (
+        sections.map((section) => (
+          <section key={section.label}>
+            <h3 className={styles.rightsGroup}>Athleten · {section.label}</h3>
+            <ul className={styles.rightsList}>
+              {section.athletes.map((athlete) => (
+                <li key={athlete.id}>
+                  <span className={styles.avatar}>{initialsOf(athlete.name)}</span>
+                  <span className={styles.rightsText}>
+                    <strong>{shortName(athlete.name)}</strong>
+                    <small>{athlete.canCreatePlans ? "Darf eigene Pläne erstellen" : "Übt & meldet nur"}</small>
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={athlete.canCreatePlans}
+                    aria-label={`${athlete.name} darf Pläne erstellen`}
+                    className={`${styles.toggle} ${athlete.canCreatePlans ? styles.toggleOn : ""}`}
+                    onClick={() => onToggle(athlete, !athlete.canCreatePlans)}
+                  >
+                    <span />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      ) : (
+        <p className={styles.emptyCard}>
+          Noch keine zugeordneten Athleten. Verbinde dich unter „Personen“ mit Athleten, um ihnen das Recht zu geben.
+        </p>
+      )}
+      <p className={styles.fieldHint}>Von Athleten erstellte Pläne tragen das Label „Von … erstellt“.</p>
+    </Sheet>
+  );
+}
+
+/** Einmalige Abfrage der Anrede (m/w/d); „Später“ speichert die neutrale Form. */
+export function SalutationSheet({
+  role,
+  onChoose,
+  onLater,
+}: {
+  role: HubRole;
+  onChoose: (value: Salutation, label: string) => void;
+  onLater: () => void;
+}) {
+  return (
+    <Sheet label="Wie sollen wir dich ansprechen?" onClose={onLater} closable={false}>
+      <span className={styles.sheetKicker}>Einmalig</span>
+      <h2 className={styles.sheetTitle}>Wie sollen wir dich ansprechen?</h2>
+      <p className={styles.sheetLead}>Nur für Texte in der App. Jederzeit im Profil änderbar.</p>
+      <div className={styles.salutationList}>
+        {salutationOptions(role).map((option) => (
+          <button key={option.value} type="button" className={styles.salutationOption} onClick={() => onChoose(option.value, option.label)}>
+            <span>
+              <strong>{option.label}</strong>
+              <small>{option.sub}</small>
+            </span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+      <button type="button" className={styles.laterButton} onClick={onLater}>
+        Später
+      </button>
     </Sheet>
   );
 }

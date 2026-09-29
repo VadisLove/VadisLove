@@ -11,7 +11,7 @@ export const de = {
   },
   navigation: {
     family: "Familie",
-    dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne", plansShort: "Pläne", createPlan: "Plan erstellen", parks: "Runbuilder", evaluations: "Auswertung",
+    dashboard: "Dashboard", calendar: "Kalender", plans: "Trainingspläne", plansShort: "Pläne", createPlan: "Plan erstellen", reportTrick: "Trick melden", parks: "Runbuilder", evaluations: "Auswertung",
     people: "Personen", inbox: "Postfach", organization: "Organisation", profile: "Profil", createEvent: "Event erstellen",
     settings: "Einstellungen", logout: "Abmelden", main: "Hauptnavigation",
     open: "Navigation öffnen", close: "Navigation schließen",
@@ -120,6 +120,8 @@ export const de = {
     tabsAria: "Anmeldung oder Registrierung",
     missingConfig: "Supabase-Zugangsdaten fehlen noch in .env.local.",
     fullName: "Vollständiger Name", fullNamePlaceholder: "Vorname Nachname",
+    salutation: "Anrede", salutationNone: "Keine Angabe", salutationFemale: "weiblich", salutationMale: "männlich", salutationDiverse: "divers",
+    salutationHint: "Nur für Texte in der App, z. B. „Skaterin“. Jederzeit im Profil änderbar.",
     email: "E-Mail-Adresse", iAm: "Ich bin ...", password: "Passwort",
     repeatPassword: "Passwort wiederholen",
     club: "Verein", stateAssociation: "Zugehöriger Landesverband",

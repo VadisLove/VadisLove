@@ -8,14 +8,15 @@ import {
   cellKey,
   formatDay,
   formatRelative,
+  myAssignment,
   shortName,
   stepLabels,
-  words,
   type HubPlan,
   type Step,
   type WaitingReport,
 } from "./plan-hub-model";
 import type { HubActions } from "./plan-hub";
+import { useWords } from "./hub-words";
 import styles from "./plan-hub.module.css";
 import { formatClip } from "./video-upload";
 
@@ -118,7 +119,13 @@ export function StaffProgress({
                         <th scope="row">{shortName(assignment.athleteName)}</th>
                         {plan.tricks.map((trick) => {
                           const step = assignment.steps[trick.id];
-                          const label = `${assignment.athleteName} · ${trick.name}: ${step === undefined ? "nicht im Plan" : stepLabels[step]}`;
+                          const label = `${assignment.athleteName} · ${trick.name}: ${
+                            step === undefined
+                              ? "nicht im Plan"
+                              : step === 3 && trick.id in assignment.recapConfirmed
+                                ? "Bestätigt aus Session-Rückblick"
+                                : stepLabels[step]
+                          }`;
                           if (step === undefined) {
                             return (
                               <td key={trick.id}>
@@ -244,22 +251,35 @@ export function AthleteProgress({
   evidence: TrainingVideoEvidence[];
   onBack: () => void;
 }) {
-  const w = words();
-  const mine = plan?.assignments[0];
+  const w = useWords();
+  const mine = plan ? myAssignment(plan) : null;
   const steps = plan && mine ? plan.tricks.map((trick) => mine.steps[trick.id] ?? 0) : [];
   const confirmed = steps.filter((step) => step === 3).length;
   const waiting = steps.filter((step) => step === 2).length;
   const open = steps.length - confirmed - waiting;
 
   // Meldungen aus allen erhaltenen Plänen; Meldungen ohne Video tauchen nur als Status auf.
+  // Nachweise tragen die Freigabe-ID; eigene, geteilte Pläne haben einen anderen Schlüssel.
+  const planOf = (planId: string) =>
+    plans.find((entry) => entry.key === planId || entry.assignments.some((assignment) => assignment.shareId === planId));
   const trickName = (planId: string, trickId: string) =>
-    plans.find((entry) => entry.key === planId)?.tricks.find((trick) => trick.id === trickId)?.name ?? "Trick";
-  const withoutVideo = plans.flatMap((entry) =>
-    entry.tricks
-      .filter((trick) => entry.assignments[0]?.steps[trick.id] === 2)
-      .filter((trick) => !evidence.some((item) => item.planId === entry.key && item.trickId === trick.id && item.reviewStatus === "pending"))
-      .map((trick) => ({ plan: entry, trick })),
-  );
+    planOf(planId)?.tricks.find((trick) => trick.id === trickId)?.name ?? "Trick";
+  const withoutVideo = plans.flatMap((entry) => {
+    const own = myAssignment(entry);
+    return entry.tricks
+      .filter((trick) => own?.steps[trick.id] === 2)
+      .filter((trick) => !evidence.some((item) => item.planId === own?.shareId && item.trickId === trick.id && item.reviewStatus === "pending"))
+      .map((trick) => ({ plan: entry, trick }));
+  });
+  // Direkt aus dem Session-Rückblick bestätigte Tricks erscheinen im Verlauf (ohne Video).
+  const fromRecap = plans.flatMap((entry) => {
+    const own = myAssignment(entry);
+    return own
+      ? entry.tricks
+          .filter((trick) => trick.id in own.recapConfirmed)
+          .map((trick) => ({ plan: entry, trick, at: own.recapConfirmed[trick.id] }))
+      : [];
+  });
 
   return (
     <div className={styles.progressLayout}>
@@ -313,8 +333,20 @@ export function AthleteProgress({
 
       <aside className={styles.queue} aria-label="Meine Meldungen">
         <h3 className={styles.sectionLabel}>Meine Meldungen</h3>
-        {evidence.length || withoutVideo.length ? (
+        {evidence.length || withoutVideo.length || fromRecap.length ? (
           <ul className={styles.reportList}>
+            {fromRecap.map(({ plan: entry, trick, at }) => (
+              <li key={`recap:${entry.key}:${trick.id}`}>
+                <span className={`${styles.thumb} ${styles.thumbNote}`}>
+                  <Check size={14} aria-hidden="true" />
+                </span>
+                <div>
+                  <strong>{trick.name}</strong>
+                  <small>Bestätigt aus Session-Rückblick{at ? ` · ${formatDay(at)}` : ""}</small>
+                </div>
+                <span className={`${styles.pill} ${styles.pillGood}`}>Bestätigt</span>
+              </li>
+            ))}
             {withoutVideo.map(({ plan: entry, trick }) => (
               <li key={`${entry.key}:${trick.id}`}>
                 <span className={`${styles.thumb} ${styles.thumbNote}`}>Notiz</span>

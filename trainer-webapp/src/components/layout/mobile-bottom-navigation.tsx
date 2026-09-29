@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useSyncExternalStore } from "react";
 import {
+  ArrowUp,
   CalendarDays,
   ClipboardList,
   House,
@@ -20,6 +22,25 @@ const mobileDestinations = [
 ] as const;
 
 /**
+ * Modus des mittleren Buttons im Planbereich. Der Planbereich meldet, ob die
+ * Person Pläne erstellen darf („create“) oder stattdessen Tricks meldet („report“).
+ */
+type PlanCreateMode = "create" | "report";
+let planCreateMode: PlanCreateMode = "create";
+const planCreateListeners = new Set<() => void>();
+
+export function setPlanCreateMode(mode: PlanCreateMode) {
+  if (mode === planCreateMode) return;
+  planCreateMode = mode;
+  planCreateListeners.forEach((listener) => listener());
+}
+
+function subscribePlanCreateMode(listener: () => void) {
+  planCreateListeners.add(listener);
+  return () => planCreateListeners.delete(listener);
+}
+
+/**
  * Stellt die wichtigsten Bereiche auf Smartphones dauerhaft in Daumenreichweite.
  * Der ausführliche Drawer bleibt für alle seltener benötigten Ziele erhalten.
  */
@@ -27,6 +48,7 @@ export function MobileBottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
+  const mode = useSyncExternalStore(subscribePlanCreateMode, () => planCreateMode, () => "create" as const);
 
   /**
    * Eine eindeutige Anfrage öffnet den Dialog auch dann erneut, wenn er auf der
@@ -36,13 +58,15 @@ export function MobileBottomNavigation() {
     router.push(`/kalender?neu=${Date.now()}`);
   }
 
-  // Im Planbereich erstellt der zentrale Button einen Plan statt eines Events.
+  // Im Planbereich erstellt der zentrale Button einen Plan statt eines Events;
+  // ohne Erstellrecht öffnet er das Melden-Sheet („↑ Melden“).
   const onPlans = pathname.startsWith("/trainingsplaene");
+  const reporting = onPlans && mode === "report";
   function openCreate() {
     if (onPlans) router.push(`/trainingsplaene?neu=${Date.now()}`);
     else openCreateEvent();
   }
-  const createLabel = t(onPlans ? "navigation.createPlan" : "navigation.createEvent");
+  const createLabel = t(reporting ? "navigation.reportTrick" : onPlans ? "navigation.createPlan" : "navigation.createEvent");
 
   const renderDestination = (
     destination: (typeof mobileDestinations)[number],
@@ -76,7 +100,11 @@ export function MobileBottomNavigation() {
         title={createLabel}
         onClick={openCreate}
       >
-        <Plus size={27} strokeWidth={2.4} aria-hidden="true" />
+        {reporting ? (
+          <ArrowUp size={25} strokeWidth={2.4} aria-hidden="true" />
+        ) : (
+          <Plus size={27} strokeWidth={2.4} aria-hidden="true" />
+        )}
       </button>
 
       {mobileDestinations.slice(2).map(renderDestination)}

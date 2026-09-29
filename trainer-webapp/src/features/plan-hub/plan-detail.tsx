@@ -11,10 +11,10 @@ import {
   formatDay,
   formatDecimal,
   levelOf,
+  myAssignment,
   planPercent,
   shortName,
   trickAggregate,
-  words,
   type HubAssignment,
   type HubPlan,
   type HubRole,
@@ -22,6 +22,7 @@ import {
   type Step,
 } from "./plan-hub-model";
 import type { HubActions } from "./plan-hub";
+import { useWords } from "./hub-words";
 import styles from "./plan-hub.module.css";
 
 const toneClass = ["toneOpen", "tonePracticed", "toneReported", "toneConfirmed"] as const;
@@ -42,14 +43,19 @@ export function PlanDetail({
 }) {
   const staff = role === "staff";
   const assigned = plan.assignments.length > 0;
-  const mine = role !== "staff" && plan.kind === "received" ? plan.assignments[0] : null;
+  const mine = role !== "staff" ? myAssignment(plan) : null;
   const current = currentTrickIndex(plan, role);
   const days = daysUntil(plan.deadline);
-  const w = words();
+  const w = useWords();
 
-  const sub = staff
-    ? [assigned ? `${plan.assignments.length} ${plan.assignments.length === 1 ? "Athlet" : "Athleten"}` : "Noch nicht zugewiesen", `${plan.tricks.length} Tricks`].join(" · ")
-    : `${mine ? "Dein Pfad" : "Eigener Plan"} · ${plan.tricks.length} Tricks`;
+  const sub =
+    plan.kind === "template"
+      ? `Vereinsvorlage · ${plan.sourceLabel || "vom Vorstand"} · ${plan.tricks.length} Tricks`
+      : plan.kind === "athlete"
+        ? `Von ${shortName(plan.createdByAthlete)} erstellt · ${plan.tricks.length} Tricks`
+        : staff
+          ? [assigned ? `${plan.assignments.length} ${plan.assignments.length === 1 ? "Athlet" : "Athleten"}` : "Noch nicht zugewiesen", `${plan.tricks.length} Tricks`].join(" · ")
+          : `${mine ? "Dein Pfad" : "Eigener Plan"} · ${plan.tricks.length} Tricks`;
 
   const nowCard = (
     <NowCard plan={plan} role={role} current={current} mine={mine} actions={actions} hasEvidence={hasEvidence} />
@@ -73,9 +79,11 @@ export function PlanDetail({
           <div className={styles.pills}>
             {plan.isDraft ? (
               <span className={`${styles.pill} ${styles.pillMuted}`}>Entwurf</span>
-            ) : (
+            ) : plan.kind !== "template" ? (
               <span className={`${styles.pill} ${styles.pillGood}`}>Aktiv</span>
-            )}
+            ) : null}
+            {plan.isTemplate ? <span className={`${styles.pill} ${styles.pillTemplate}`}>Vorlage</span> : null}
+            {plan.kind === "athlete" ? <span className={`${styles.pill} ${styles.pillBlue}`}>Athlet</span> : null}
             {days !== null ? (
               <span className={`${styles.pill} ${days <= 7 ? styles.pillWarn : styles.pillMuted}`}>
                 {days < 0 ? "Frist abgelaufen" : days === 0 ? "Endet heute" : `Endet in ${days} ${days === 1 ? "Tag" : "Tagen"}`}
@@ -171,7 +179,10 @@ function nodeOf(
   }
   if (mine) {
     const step = mine.steps[trick.id] ?? 0;
-    if (step === 3) return { label: <Check size={18} strokeWidth={3} />, tone: 3, sub: "Bestätigt", warn: false, lineDone: true };
+    if (step === 3) {
+      const sub = trick.id in mine.recapConfirmed ? "Bestätigt aus Session-Rückblick" : "Bestätigt";
+      return { label: <Check size={18} strokeWidth={3} />, tone: 3, sub, warn: false, lineDone: true };
+    }
     if (step === 2) return { label: "…", tone: 2, sub: `Gemeldet · wartet auf ${trainerAcc}`, warn: true, lineDone: false };
     if (index === current) {
       return { label: number, tone: 1, sub: `Jetzt dran${trick.goal ? ` · ${trick.goal}` : ""}`, warn: false, lineDone: false };
@@ -183,6 +194,17 @@ function nodeOf(
 }
 
 function LevelBar({ plan, staff, mine }: { plan: HubPlan; staff: boolean; mine: HubAssignment | null }) {
+  const w = useWords();
+  if (plan.kind === "template") {
+    return (
+      <div className={styles.levelBar}>
+        <div className={styles.levelText}>
+          <span>Vereinsvorlage</span>
+          <small>Übernimm sie als Grundlage für einen eigenen Plan</small>
+        </div>
+      </div>
+    );
+  }
   if (staff && plan.assignments.length) {
     const confirmed = confirmedCount(plan);
     const total = plan.assignments.length * plan.tricks.length;
@@ -198,7 +220,7 @@ function LevelBar({ plan, staff, mine }: { plan: HubPlan; staff: boolean; mine: 
   }
   if (mine) {
     const confirmed = plan.tricks.filter((trick) => mine.steps[trick.id] === 3).length;
-    const rank = `${plan.category || "Street"}-${words().rank}`;
+    const rank = `${plan.category || "Street"}-${w.rank}`;
     return (
       <div className={styles.levelBar}>
         <div className={styles.levelText}>
@@ -245,7 +267,19 @@ function NowCard({
   hasEvidence: (key: string) => boolean;
 }) {
   const trick = current >= 0 ? plan.tricks[current] : null;
-  const w = words();
+  const w = useWords();
+
+  if (plan.kind === "template") {
+    return (
+      <section className={styles.nowCard}>
+        <span className={styles.nowKicker}>Vereinsvorlage</span>
+        <p className={styles.muted}>
+          Freigegeben von {plan.author || "dem Vorstand"}. Übernimm Tricks, Kategorie und Niveau in einen eigenen Plan.
+        </p>
+        <Button onClick={() => actions.useTemplate(plan)}>Als Vorlage verwenden</Button>
+      </section>
+    );
+  }
 
   if (role === "staff" && plan.assignments.length) {
     const waiting = trick ? plan.assignments.filter((entry) => entry.steps[trick.id] === 2) : [];
@@ -333,16 +367,25 @@ function NowCard({
 }
 
 function InfoCard({ plan, staff, mine }: { plan: HubPlan; staff: boolean; mine: HubAssignment | null }) {
+  const w = useWords();
   const names = plan.assignments.map((entry) => shortName(entry.athleteName));
-  const assignedText = staff
+  const assignedText = plan.kind === "template"
+    ? "Nur als Vorlage"
+    : plan.kind === "athlete"
+      ? `Von ${shortName(plan.createdByAthlete)} erstellt · mit dir geteilt`
+      : staff
     ? names.length
       ? names.length > 3
         ? `${names.slice(0, 3).join(", ")} +${names.length - 3}`
         : names.join(", ")
       : "Noch niemand"
-    : mine
-      ? `Von ${plan.author || words().dat}`
-      : "Nur für dich";
+    : plan.kind === "own"
+      ? plan.sharedWithTrainer
+        ? `Von dir erstellt · geteilt mit ${w.dat}`
+        : "Nur für dich"
+      : mine
+        ? `Von ${plan.author || w.dat}`
+        : "Nur für dich";
   const rows = [
     { label: "Kategorie", value: [plan.category, plan.level].filter(Boolean).join(" · ") || "—" },
     { label: "Frist", value: deadlineText(plan.deadline) ?? "Ohne Frist" },

@@ -115,6 +115,7 @@ test("Anrede kommt aus der Registrierung und bleibt änderbar", async () => {
   assert.equal(rows.find((row) => row.id === id).salutation, "w");
   assert.equal(rows.find((row) => row.id === invalid).salutation, null);
   assert.notEqual(await code(db.query("update public.profiles set salutation='q' where id=$1", [id])), "ok");
+  assert.deepEqual(await call(id, "select public.own_salutation() s"), [{ s: "w" }]);
 });
 
 test("Gruppenzuweisung: verbundene Mitglieder erhalten den Plan, neue Mitglieder erben ihn", async () => {

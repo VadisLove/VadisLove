@@ -21,7 +21,7 @@ export const en: DictionaryShape<typeof de> = {
   },
   navigation: {
     family: "Family",
-    dashboard: "Dashboard", calendar: "Calendar", plans: "Training plans", plansShort: "Plans", createPlan: "Create plan", parks: "Run Builder", evaluations: "Evaluation",
+    dashboard: "Dashboard", calendar: "Calendar", plans: "Training plans", plansShort: "Plans", createPlan: "Create plan", reportTrick: "Report trick", parks: "Run Builder", evaluations: "Evaluation",
     people: "People", inbox: "Inbox", organization: "Organisation", profile: "Profile", createEvent: "Create event",
     settings: "Settings", logout: "Log out", main: "Main navigation",
     open: "Open navigation", close: "Close navigation", notifications: "Notifications",
@@ -129,6 +129,8 @@ export const en: DictionaryShape<typeof de> = {
     tabsAria: "Login or registration",
     missingConfig: "Supabase credentials are still missing from .env.local.",
     fullName: "Full name", fullNamePlaceholder: "First name Last name",
+    salutation: "Form of address", salutationNone: "Not specified", salutationFemale: "female", salutationMale: "male", salutationDiverse: "diverse",
+    salutationHint: "Only used for texts in the app. You can change it in your profile at any time.",
     email: "Email address", iAm: "I am ...", password: "Password",
     repeatPassword: "Repeat password",
     club: "Club", stateAssociation: "Affiliated state association",

@@ -58,6 +58,12 @@ export async function updateProfile(
   }
   const stance = stanceValue === "" ? null : stanceValue;
 
+  // Anrede (m/w/d) steuert nur Texte; leer lässt die bisherige Angabe unverändert.
+  const salutationValue = String(formData.get("salutation") || "");
+  if (salutationValue && !["m", "w", "d"].includes(salutationValue)) {
+    return { status: "error", message: "Bitte wähle eine gültige Anrede aus." };
+  }
+
   const validationError = validateProfileDetails({
     firstName,
     lastName,
@@ -87,6 +93,7 @@ export async function updateProfile(
       disciplines,
       stance,
       visibility,
+      ...(salutationValue ? { salutation: salutationValue } : {}),
     })
     .eq("id", userId);
 
@@ -98,6 +105,7 @@ export async function updateProfile(
   }
 
   revalidatePath("/profil");
+  revalidatePath("/trainingsplaene");
   revalidatePath("/", "layout");
   return { status: "success", message: "Dein Profil wurde gespeichert." };
 }

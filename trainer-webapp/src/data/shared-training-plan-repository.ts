@@ -20,6 +20,8 @@ interface TrickProgressRow {
   trick_id: string;
   athlete_id: string;
   status: TrickProgressStatus;
+  confirmed_at: string | null;
+  confirmed_source: "review" | "recap" | null;
 }
 
 interface TrainingVideoEvidenceRow {
@@ -98,8 +100,9 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
 
   const { data, error } = await supabase
     .from("training_plan_snapshot_shares")
-    .select("id, shared_by, recipient_user_id, plan_snapshot, created_at")
-    .or(`recipient_user_id.eq.${currentUserId},shared_by.eq.${currentUserId}`)
+    .select("id, shared_by, recipient_user_id, plan_snapshot, created_at, shared_with_trainers")
+    // Eigene Freigaben plus mit Trainer*innen geteilte Pläne der eigenen Athlet*innen (RLS prüft die Beziehung).
+    .or(`recipient_user_id.eq.${currentUserId},shared_by.eq.${currentUserId},shared_with_trainers.eq.true`)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -117,13 +120,13 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
   const shareIds = shares.map((share) => share.id);
   const progressByShare = new Map<
     string,
-    Map<string, Pick<TrickProgressRow, "athlete_id" | "status">>
+    Map<string, Omit<TrickProgressRow, "snapshot_share_id" | "trick_id">>
   >();
 
   if (shareIds.length > 0) {
     const { data: progressData, error: progressError } = await supabase
       .from("training_trick_progress")
-      .select("snapshot_share_id, trick_id, athlete_id, status")
+      .select("snapshot_share_id, trick_id, athlete_id, status, confirmed_at, confirmed_source")
       .in("snapshot_share_id", shareIds);
 
     if (progressError && !isMissingProgressSchema(progressError)) {
@@ -135,6 +138,8 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
       shareProgress.set(progress.trick_id, {
         athlete_id: progress.athlete_id,
         status: progress.status,
+        confirmed_at: progress.confirmed_at,
+        confirmed_source: progress.confirmed_source,
       });
       progressByShare.set(progress.snapshot_share_id, shareProgress);
     }
@@ -144,9 +149,13 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
     if (!isTrainingPlan(row.plan_snapshot)) return [];
     const normalizedPlan = normalizeTrainingPlan(row.plan_snapshot);
     const progress = progressByShare.get(row.id);
+    // „coached“: Plan einer Athletin/eines Athleten, der mit mir als Trainer*in geteilt wurde.
+    const coached = row.recipient_user_id !== currentUserId && row.shared_by !== currentUserId;
     const direction = row.recipient_user_id === currentUserId
       ? "empfangen"
-      : "versendet";
+      : coached
+        ? "geteilt"
+        : "versendet";
     const progressAthleteIds = Array.from(
       new Set(Array.from(progress?.values() || []).map((entry) => entry.athlete_id)),
     );
@@ -155,7 +164,12 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
       ...normalizedPlan,
       id: `shared-${row.id}`,
       sourcePlanId: normalizedPlan.id,
-      shareDirection: direction === "empfangen" ? "received" as const : "sent" as const,
+      shareDirection: direction === "empfangen"
+        ? "received" as const
+        : coached
+          ? "coached" as const
+          : "sent" as const,
+      sharedWithTrainers: Boolean(row.shared_with_trainers),
       recipientUserId: row.recipient_user_id,
       sharedById: row.shared_by,
       sharedAt: row.created_at,
@@ -167,6 +181,8 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
         ...trick,
         athleteId: progress?.get(trick.id)?.athlete_id || trick.athleteId,
         status: progress?.get(trick.id)?.status || trick.status,
+        confirmedSource: progress?.get(trick.id)?.confirmed_source ?? undefined,
+        confirmedAt: progress?.get(trick.id)?.confirmed_at ?? undefined,
       })),
     }];
   });

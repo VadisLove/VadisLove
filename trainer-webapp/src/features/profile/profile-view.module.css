@@ -243,6 +243,7 @@
 }
 
 .fieldGrid input,
+.fieldGrid select,
 .fieldGrid textarea,
 .singleField input,
 .confirmationField input {
@@ -265,6 +266,7 @@
 }
 
 .fieldGrid input:focus,
+.fieldGrid select:focus,
 .fieldGrid textarea:focus,
 .singleField input:focus,
 .confirmationField input:focus {

@@ -70,6 +70,9 @@ export async function register(formData: FormData) {
   const birthDate = String(formData.get("birthDate") || "");
   const guardianEmail = String(formData.get("guardianEmail") || "").trim().toLowerCase();
   const legalAccepted = String(formData.get("legalAccepted") || "") === "true";
+  // Optional; ungültige Werte werden verworfen, die DB übernimmt nur m/w/d.
+  const salutationValue = String(formData.get("salutation") || "");
+  const salutation = ["m", "w", "d"].includes(salutationValue) ? salutationValue : "";
   const ageResult = evaluateRegistrationAge(birthDate, localIsoDate());
   const guardianEmailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail);
 
@@ -132,6 +135,7 @@ export async function register(formData: FormData) {
         display_name: displayName,
         account_type: accountType,
         registration_organization_id: organizationId,
+        ...(salutation ? { salutation } : {}),
         birth_date: birthDate,
         guardian_email: ageResult.requiresGuardianApproval ? guardianEmail : "",
         legal_terms_accepted: true,

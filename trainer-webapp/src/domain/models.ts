@@ -236,7 +236,9 @@ export interface TrainingPlan {
    * Nur bei geladenen Freigaben gesetzt, nie im Snapshot gespeichert:
    * Richtung, Empfänger und Zeitpunkt der persönlichen Freigabe.
    */
-  shareDirection?: "received" | "sent";
+  shareDirection?: "received" | "sent" | "coached";
+  /** Eigenfreigabe einer Athletin/eines Athleten, die Trainer*innen sehen dürfen. */
+  sharedWithTrainers?: boolean;
   recipientUserId?: string;
   sharedById?: string;
   sharedAt?: string;
@@ -278,6 +280,9 @@ export interface TrainingTrick {
   equipment?: string;
   athleteId: string;
   status: TrickProgressStatus;
+  /** Nur bei geladenen Freigaben: Herkunft einer Bestätigung („recap“ = aus dem Session-Rückblick). */
+  confirmedSource?: "review" | "recap";
+  confirmedAt?: string;
 }
 
 /**

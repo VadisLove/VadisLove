@@ -18,13 +18,13 @@ import {
   shortName,
   skillSummaries,
   stepLabels,
-  words,
   type HubPlan,
   type HubRole,
   type RecapPeriod,
   type SkillSummary,
 } from "./plan-hub-model";
 import type { HubActions } from "./plan-hub";
+import { useWords } from "./hub-words";
 import styles from "./plan-hub.module.css";
 
 const periods: { value: RecapPeriod; label: string }[] = [
@@ -70,7 +70,7 @@ export function RecapView({
   onBack: () => void;
 }) {
   const staff = role === "staff";
-  const w = words();
+  const w = useWords();
 
   // Athlet*innen mit Sessions; eigene Sessions (Selbsttraining) zuerst.
   const athletes = useMemo(() => {
@@ -90,6 +90,9 @@ export function RecapView({
   const totals = recapTotals(visible);
   const skills = skillSummaries(visible);
   const athleteName = athletes.find(([id]) => id === athleteId)?.[1] ?? "";
+  // Pläne kennen die Profil-ID; der Rückblick liefert zusätzlich die Trainings-ID.
+  const planAthleteId =
+    recaps.find((recap) => recap.athlete_id === athleteId)?.athlete_user_id ?? (athleteId === userId ? userId : athleteId);
   const expanded = openId ?? visible[0]?.participant_id ?? null;
 
   return (
@@ -176,13 +179,13 @@ export function RecapView({
         </section>
 
         <aside className={styles.recapSide}>
-          <Insight skills={skills} plans={plans} athleteId={athleteId} staff={staff} actions={actions} />
+          <Insight skills={skills} plans={plans} athleteId={planAthleteId} staff={staff} actions={actions} since={since} />
           {skills.length ? (
             <section className={styles.skillCard}>
               <h3>Skills im Zeitraum</h3>
               <ul className={styles.skillList}>
                 {skills.map((skill) => (
-                  <SkillRow key={skill.skillId} skill={skill} plans={plans} athleteId={athleteId} />
+                  <SkillRow key={skill.skillId} skill={skill} plans={plans} athleteId={planAthleteId} />
                 ))}
               </ul>
             </section>
@@ -209,14 +212,17 @@ function Insight({
   athleteId,
   staff,
   actions,
+  since,
 }: {
   skills: SkillSummary[];
   plans: HubPlan[];
   athleteId: string;
   staff: boolean;
   actions: HubActions;
+  /** Beginn des gewählten Zeitraums; die DB prüft die Quote für denselben Zeitraum. */
+  since: number;
 }) {
-  const w = words();
+  const w = useWords();
   const ready = skills
     .map((skill) => ({ skill, match: planStepForSkill(plans, athleteId, skill.name) }))
     .filter(({ skill, match }) => (skill.quote ?? 0) >= 80 && (!match || match.step < (staff ? 3 : 2)))
@@ -237,8 +243,21 @@ function Insight({
           </Button>
         );
         hint = "Stabil über 80 % und bereits gemeldet – jetzt bestätigen?";
+      } else if (match) {
+        // Offen oder geübt: Trainer*innen dürfen ohne Meldung direkt bestätigen.
+        const busy = actions.busyKey === `${match.assignment.shareId}:${match.trick.id}`;
+        action = (
+          <Button
+            variant="success"
+            disabled={busy}
+            onClick={() => actions.confirmFromRecap(match.plan, match.assignment, match.trick, since)}
+          >
+            <Check size={16} aria-hidden="true" /> Bestätigen
+          </Button>
+        );
+        hint = "Stabil über 80 % – ohne Meldung bestätigen?";
       } else {
-        hint = match ? `Stabil über 80 % – wartet auf die Meldung im Plan „${match.plan.title}“.` : "Stabil über 80 % – nicht in einem zugewiesenen Plan.";
+        hint = "Stabil über 80 % – nicht in einem zugewiesenen Plan.";
       }
     } else if (match?.step === 1) {
       action = <Button onClick={() => actions.openReport(match.plan, match.assignment, match.trick)}>Jetzt melden</Button>;
@@ -318,7 +337,7 @@ function SessionRow({ recap, open, onToggle }: { recap: SessionRecap; open: bool
         <span className={styles.sessionTitle}>
           <strong>{recap.title}</strong>
           <small>
-            {modeLabels[recap.mode]} · {formatDuration(total)} · {formatDuration(active)} aktiv
+            {recap.park || modeLabels[recap.mode]} · {formatDuration(total)} · {formatDuration(active)} aktiv
             {recap.present ? "" : " · abwesend"}
           </small>
         </span>
@@ -384,21 +403,28 @@ function Notes({ recap }: { recap: SessionRecap }) {
   );
   const [kind, setKind] = useState(allowed[0] ?? "hint");
   const [exercise, setExercise] = useState("");
+  // Sichtbarkeit wählen nur Trainer*innen, und nur für Hinweise und Ziele.
+  const [visibility, setVisibility] = useState<"athlete" | "coaches">("athlete");
+  const canChooseVisibility = recap.can_review && (kind === "hint" || kind === "goal");
   const firstName = recap.athlete_name.split(" ")[0];
   const needsExercise = kind === "request" || kind === "confirmation";
   const current = recap.reviews.filter((review) => !recap.reviews.some((next) => next.supersedes === review.id));
 
   return (
     <div className={styles.notes}>
-      {current.map((review) => (
-        <div key={review.id} className={styles.noteCard}>
-          <p>{review.body}</p>
-          <small>
-            {review.author_name} · {reviewLabels[review.kind]}
-            {review.exercise_id ? ` · ${recap.exercises.find((e) => e.id === review.exercise_id)?.name ?? "Übung"}` : ""}
-          </small>
-        </div>
-      ))}
+      {current.map((review) => {
+        const coachesOnly = review.visibility === "coaches";
+        return (
+          <div key={review.id} className={`${styles.noteCard} ${coachesOnly ? styles.noteTrainer : ""}`}>
+            <p>{review.body}</p>
+            <small>
+              {review.author_name} · {reviewLabels[review.kind]}
+              {review.exercise_id ? ` · ${recap.exercises.find((e) => e.id === review.exercise_id)?.name ?? "Übung"}` : ""}
+              {coachesOnly ? <b className={styles.noteTag}> · Nur Trainer</b> : null}
+            </small>
+          </div>
+        );
+      })}
       {recap.note ? (
         <div className={`${styles.noteCard} ${styles.noteTrainer}`}>
           <p>{recap.note}</p>
@@ -413,6 +439,7 @@ function Notes({ recap }: { recap: SessionRecap }) {
           <input type="hidden" name="participant" value={recap.participant_id} />
           <input type="hidden" name="kind" value={kind} />
           <input type="hidden" name="replaces" value="" />
+          <input type="hidden" name="visibility" value={canChooseVisibility ? visibility : "athlete"} />
           <div className={styles.inlineInput}>
             <input
               name="body"
@@ -443,6 +470,27 @@ function Notes({ recap }: { recap: SessionRecap }) {
                 ))}
               </div>
             ) : null}
+            {canChooseVisibility ? (
+              <div className={styles.segmented} role="radiogroup" aria-label="Sichtbarkeit">
+                {(
+                  [
+                    ["athlete", `Für ${firstName} sichtbar`],
+                    ["coaches", "Nur Trainer"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={visibility === value}
+                    className={visibility === value ? styles.segmentOn : undefined}
+                    onClick={() => setVisibility(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <select
               name="exercise"
               aria-label="Übung"
@@ -459,7 +507,11 @@ function Notes({ recap }: { recap: SessionRecap }) {
             </select>
           </div>
           <small className={styles.fieldHint}>
-            {recap.is_self ? "Sichtbar für dich, deine Trainer und verknüpfte Eltern." : `Sichtbar für ${firstName}, Trainer und verknüpfte Eltern.`}
+            {canChooseVisibility && visibility === "coaches"
+              ? `Nur für Trainer sichtbar – ${firstName} und Eltern sehen diesen Eintrag nicht.`
+              : recap.is_self
+                ? "Sichtbar für dich, deine Trainer und verknüpfte Eltern."
+                : `Sichtbar für ${firstName}, Trainer und verknüpfte Eltern.`}
             {state.message && state.message !== savedMessage ? ` ${state.message}` : ""}
           </small>
         </form>

@@ -34,6 +34,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import {
   accountTypeLabels,
   organizationRoleLabels,
+  profileSalutationLabels,
   profileVisibilityLabels,
   type ClubMembership,
   type EligibleFederation,
@@ -199,6 +200,12 @@ export function ProfileView({
     () => profile.organizationRoles.map((role) => organizationRoleLabels[role]),
     [profile.organizationRoles],
   );
+  const canManagePlanRights =
+    profile.accountType === "trainer" ||
+    profile.accountType === "organization_staff" ||
+    profile.organizationRoles.some((role) =>
+      ["club_board", "federal_chair", "specialist", "club_trainer", "state_trainer", "federal_trainer"].includes(role),
+    );
 
   return (
     <>
@@ -266,6 +273,17 @@ export function ProfileView({
                   defaultValue={profile.lastName}
                   autoComplete="family-name"
                 />
+              </label>
+              <label>
+                <span>Anrede <small>für Texte in der App</small></span>
+                <select name="salutation" defaultValue={profile.salutation ?? ""}>
+                  {profile.salutation === null ? <option value="">Bitte wählen</option> : null}
+                  {(["w", "m", "d"] as const).map((value) => (
+                    <option key={value} value={value}>
+                      {profileSalutationLabels[value]}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 <span>Telefon <small>optional</small></span>
@@ -417,6 +435,24 @@ export function ProfileView({
             </button>
           </div>
         </form>
+
+        {/* Trainer*innen und Vorstand: Erstellrechte der Athlet*innen (Handoff: Profil → Berechtigungen). */}
+        {canManagePlanRights ? (
+          <section className={styles.sectionCard} aria-labelledby="rights-heading">
+            <header className={styles.sectionHeader}>
+              <span><ShieldCheck size={21} /></span>
+              <div>
+                <h2 id="rights-heading">Berechtigungen</h2>
+                <p>Lege fest, welche Athleten eigene Trainingspläne erstellen dürfen.</p>
+              </div>
+            </header>
+            <footer className={styles.sectionFooter}>
+              <Link href="/trainingsplaene?rechte=1">
+                Wer darf Pläne erstellen? <ChevronRight size={18} />
+              </Link>
+            </footer>
+          </section>
+        ) : null}
 
         <PasswordSecurityCard {...passwordSecurity} />
 

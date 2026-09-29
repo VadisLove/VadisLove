@@ -32,13 +32,26 @@ export const stepLabels = ["Offen", "Geübt", "Gemeldet", "Bestätigt"] as const
 /**
  * Trainer und Vereins-/Verbandsmitarbeitende („Vorstand“) verwalten Pläne,
  * Athleten melden Fortschritt. Alle übrigen Konten sehen nur lesend zu.
+ * `HubRole` steuert Rechte, die für Trainer und Vorstand gleich sind.
  */
 export type HubRole = "staff" | "athlete" | "viewer";
 
-export function hubRoleOf(accountType: string | undefined): HubRole {
-  if (accountType === "trainer" || accountType === "organization_staff") return "staff";
+/**
+ * Feinere Unterscheidung für Texte und Zusatzrechte: Der Vorstand darf
+ * zusätzlich „Alle Gruppen im Verein“ zuweisen und Vereinsvorlagen freigeben.
+ */
+export type HubPersona = "trainer" | "board" | "athlete" | "viewer";
+
+export function personaOf(accountType: string | undefined, isBoard = false): HubPersona {
+  if (isBoard || accountType === "organization_staff") return "board";
+  if (accountType === "trainer") return "trainer";
   if (accountType === "athlete") return "athlete";
   return "viewer";
+}
+
+export function hubRoleOf(accountType: string | undefined, isBoard = false): HubRole {
+  const persona = personaOf(accountType, isBoard);
+  return persona === "trainer" || persona === "board" ? "staff" : persona;
 }
 
 /* ------------------------------------------------------------------ */
@@ -47,18 +60,160 @@ export function hubRoleOf(accountType: string | undefined): HubRole {
 
 export type Salutation = "m" | "w" | "d";
 
-/**
- * Wort-Tabelle aus dem Handoff. Solange die Anrede noch nicht im Profil
- * gespeichert wird, gilt überall die neutrale Form „d“.
- */
+export function isSalutation(value: unknown): value is Salutation {
+  return value === "m" || value === "w" || value === "d";
+}
+
+/** Wort-Tabelle aus dem Handoff (Genderstern für „d“). */
 const salutationWords = {
   m: { sk: "Skater", tr: "Trainer", acc: "deinen Trainer", nom: "dein Trainer", dat: "deinem Trainer", rank: "Starter" },
   w: { sk: "Skaterin", tr: "Trainerin", acc: "deine Trainerin", nom: "deine Trainerin", dat: "deiner Trainerin", rank: "Starterin" },
   d: { sk: "Skater*in", tr: "Trainer*in", acc: "dein*e Trainer*in", nom: "dein*e Trainer*in", dat: "deine*m Trainer*in", rank: "Starter*in" },
 } as const;
 
-export function words(salutation: Salutation | null | undefined = "d") {
-  return salutationWords[salutation ?? "d"];
+export type HubWords = {
+  sk: string;
+  tr: string;
+  acc: string;
+  nom: string;
+  dat: string;
+  rank: string;
+};
+
+/**
+ * Eigene Anrede steuert Rollenbezeichnung und Level-Titel (`sk`, `tr`, `rank`),
+ * die Anrede der Trainer*in die Texte über sie (`acc`, `nom`, `dat`).
+ * Fehlt eine Angabe, gilt die neutrale Form „d“.
+ */
+export function words(own: Salutation | null | undefined = "d", trainer: Salutation | null | undefined = own): HubWords {
+  const self = salutationWords[own ?? "d"];
+  const coach = salutationWords[trainer ?? "d"];
+  return { sk: self.sk, tr: self.tr, rank: self.rank, acc: coach.acc, nom: coach.nom, dat: coach.dat };
+}
+
+/** Optionen der Anrede-Abfrage; Skater*innen und Staff sehen jeweils ihre Form. */
+export function salutationOptions(role: HubRole) {
+  const athlete = role !== "staff";
+  return [
+    { value: "w" as const, label: athlete ? "Skaterin" : "Trainerin", sub: "weiblich" },
+    { value: "m" as const, label: athlete ? "Skater" : "Trainer", sub: "männlich" },
+    { value: "d" as const, label: athlete ? "Skater*in" : "Trainer*in", sub: "divers / keine Angabe" },
+  ];
+}
+
+/* ------------------------------------------------------------------ */
+/* Kontext aus `training_plan_hub_context`                              */
+/* ------------------------------------------------------------------ */
+
+export interface HubGroup {
+  id: string;
+  name: string;
+  /** Nur verbundene Athlet*innen bzw. Vereinsathlet*innen (Zähler im Wizard). */
+  athleteIds: string[];
+}
+
+export interface HubTemplate {
+  id: string;
+  title: string;
+  organizationName: string;
+  authorName: string;
+  own: boolean;
+  content: TrainingPlan;
+}
+
+export interface HubContext {
+  isBoard: boolean;
+  canCreatePlans: boolean;
+  salutation: Salutation | null;
+  trainerSalutation: Salutation;
+  hasTrainer: boolean;
+  athletes: { id: string; name: string; canCreatePlans: boolean }[];
+  groups: HubGroup[];
+  clubs: HubGroup[];
+  clubTemplateIds: string[];
+  groupAssignments: { planId: string; groupId: string | null; organizationId: string | null }[];
+  templates: HubTemplate[];
+}
+
+/** Standard ohne Datenbankkontext: keine Zusatzrechte, neutrale Anrede. */
+export const emptyHubContext: HubContext = {
+  isBoard: false,
+  canCreatePlans: false,
+  salutation: "d",
+  trainerSalutation: "d",
+  hasTrainer: false,
+  athletes: [],
+  groups: [],
+  clubs: [],
+  clubTemplateIds: [],
+  groupAssignments: [],
+  templates: [],
+};
+
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+const list = (value: unknown) => (Array.isArray(value) ? value : []);
+const ids = (value: unknown) => list(value).filter((entry): entry is string => typeof entry === "string");
+
+/** Liest die RPC-Antwort defensiv ein; unbekannte Felder werden ignoriert. */
+export function parseHubContext(raw: unknown): HubContext {
+  if (!raw || typeof raw !== "object") return emptyHubContext;
+  const data = raw as Record<string, unknown>;
+  const groupsOf = (value: unknown): HubGroup[] =>
+    list(value).map((entry) => ({ id: text(entry.id), name: text(entry.name), athleteIds: ids(entry.athlete_ids) }));
+  return {
+    isBoard: data.is_board === true,
+    canCreatePlans: data.can_create_plans === true,
+    salutation: isSalutation(data.salutation) ? data.salutation : null,
+    trainerSalutation: isSalutation(data.trainer_salutation) ? data.trainer_salutation : "d",
+    hasTrainer: data.has_trainer === true,
+    athletes: list(data.athletes).map((entry) => ({
+      id: text(entry.id),
+      name: text(entry.name),
+      canCreatePlans: entry.can_create_plans === true,
+    })),
+    groups: groupsOf(data.groups),
+    clubs: groupsOf(data.clubs),
+    clubTemplateIds: ids(data.club_template_ids),
+    groupAssignments: list(data.group_assignments).map((entry) => ({
+      planId: text(entry.plan_id),
+      groupId: typeof entry.group_id === "string" ? entry.group_id : null,
+      organizationId: typeof entry.organization_id === "string" ? entry.organization_id : null,
+    })),
+    templates: list(data.templates)
+      .filter((entry) => entry?.content && Array.isArray(entry.content.tricks))
+      .map((entry) => ({
+        id: text(entry.id),
+        title: text(entry.title),
+        organizationName: text(entry.organization_name),
+        authorName: text(entry.author_name),
+        own: entry.own === true,
+        content: entry.content as TrainingPlan,
+      })),
+  };
+}
+
+export interface PermissionSection {
+  label: string;
+  athletes: { id: string; name: string; canCreatePlans: boolean }[];
+}
+
+/**
+ * „Wer darf erstellen?“: Athlet*innen nach Gruppe, Personen ohne Gruppe am
+ * Ende. Wer in mehreren Gruppen ist, erscheint in jeder dieser Gruppen.
+ */
+export function permissionSections(context: HubContext): PermissionSection[] {
+  const byId = new Map(context.athletes.map((athlete) => [athlete.id, athlete]));
+  const grouped = new Set<string>();
+  const sections: PermissionSection[] = [];
+  for (const group of context.groups) {
+    const members = group.athleteIds.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    if (!members.length) continue;
+    members.forEach((member) => grouped.add(member.id));
+    sections.push({ label: group.name, athletes: members });
+  }
+  const rest = context.athletes.filter((athlete) => !grouped.has(athlete.id));
+  if (rest.length) sections.push({ label: sections.length ? "Ohne Gruppe" : "Alle", athletes: rest });
+  return sections;
 }
 
 /* ------------------------------------------------------------------ */
@@ -81,6 +236,8 @@ export interface HubAssignment {
   initials: string;
   /** Fehlt ein Trick in einer älteren Planversion, bleibt der Eintrag leer. */
   steps: Record<string, Step | undefined>;
+  /** Tricks, die direkt aus dem Session-Rückblick bestätigt wurden (Zeitpunkt). */
+  recapConfirmed: Record<string, string>;
 }
 
 export interface HubPlan {
@@ -92,8 +249,12 @@ export interface HubPlan {
   deadline?: string;
   version: number | null;
   createdAt?: string;
-  /** own = eigener Plan, sent = nur als Freigabe versendet, received = erhalten. */
-  kind: "own" | "sent" | "received";
+  /**
+   * own = eigener Plan, sent = nur als Freigabe versendet, received = erhalten,
+   * athlete = von einer Athletin/einem Athleten erstellt und mit mir geteilt,
+   * template = Vereinsvorlage einer anderen Person (nur als Vorlage nutzbar).
+   */
+  kind: "own" | "sent" | "received" | "athlete" | "template";
   isDraft: boolean;
   tricks: HubTrick[];
   assignments: HubAssignment[];
@@ -106,6 +267,18 @@ export interface HubPlan {
   sourceLabel: string;
   /** Autor laut Snapshot, z. B. für „Von <Name> erstellt“. */
   author: string;
+  /** Name der Athletin/des Athleten, wenn der Plan von ihr/ihm stammt (Trainer-Sicht). */
+  createdByAthlete: string;
+  /** Eigene Vereinsvorlage (Vorstand) oder Vereinsvorlage anderer (kind „template“). */
+  isTemplate: boolean;
+  /** Eigener Plan einer Athletin/eines Athleten, der mit den Trainer*innen geteilt ist. */
+  sharedWithTrainer: boolean;
+  /** Gespeicherte Gruppenzuweisungen (neue Mitglieder erben den Plan). */
+  groupIds: string[];
+  /** Zuweisung „Alle Gruppen im Verein“ (Vorstand). */
+  clubAssigned: boolean;
+  /** Inhalt einer Vereinsvorlage zum Übernehmen in den Wizard. */
+  templateContent?: TrainingPlan;
 }
 
 export function initialsOf(name: string) {
@@ -138,6 +311,34 @@ function stepsOf(plan: TrainingPlan): Record<string, Step> {
   return Object.fromEntries(plan.tricks.map((trick) => [trick.id, stepOf[trick.status] ?? 0]));
 }
 
+function recapConfirmedOf(plan: TrainingPlan): Record<string, string> {
+  return Object.fromEntries(
+    plan.tricks.flatMap((trick) =>
+      trick.status === "confirmed" && trick.confirmedSource === "recap" ? [[trick.id, trick.confirmedAt ?? ""]] : [],
+    ),
+  );
+}
+
+function assignmentOf(share: TrainingPlan, athleteId: string, athleteName: string): HubAssignment {
+  return {
+    shareId: share.id,
+    athleteId,
+    athleteName,
+    initials: initialsOf(athleteName),
+    steps: stepsOf(share),
+    recapConfirmed: recapConfirmedOf(share),
+  };
+}
+
+/** Zusatzfelder mit Standardwerten, damit alle Plan-Arten vollständig sind. */
+const planDefaults = {
+  createdByAthlete: "",
+  isTemplate: false,
+  sharedWithTrainer: false,
+  groupIds: [] as string[],
+  clubAssigned: false,
+};
+
 function authorName(plan: TrainingPlan) {
   // Das Repository ergänzt „ · empfangen“ bzw. „ · versendet“ am Autor.
   return plan.author.replace(/ · (empfangen|versendet)$/, "");
@@ -148,13 +349,25 @@ export function buildHubPlans({
   shares,
   userId,
   names,
+  context = emptyHubContext,
 }: {
   savedPlans: SavedPlan[];
   shares: TrainingPlan[];
   userId: string;
   names: Map<string, string>;
+  context?: HubContext;
 }): HubPlan[] {
   const nameOf = (id: string) => names.get(id) ?? "Athlet*in";
+  const templateIds = new Set(context.clubTemplateIds);
+
+  // Eigenfreigaben („Mit deinem Trainer teilen“) gehören zum eigenen Plan und
+  // liefern dessen Fortschritt; sie erscheinen nicht zusätzlich als „erhalten“.
+  const selfShares = new Map<string, TrainingPlan>();
+  for (const share of shares) {
+    if (share.shareDirection === "received" && share.sharedById === userId && share.sourcePlanId) {
+      if (!selfShares.has(share.sourcePlanId)) selfShares.set(share.sourcePlanId, share);
+    }
+  }
 
   // Versendete Freigaben werden je Ursprungsplan zu einer Gruppe gebündelt.
   // Neueste zuerst, damit Titel und Trickliste dem aktuellsten Stand folgen.
@@ -175,14 +388,7 @@ export function buildHubPlans({
       const athleteId = share.recipientUserId ?? "";
       if (!athleteId || seen.has(athleteId)) return [];
       seen.add(athleteId);
-      const athleteName = nameOf(athleteId);
-      return [{
-        shareId: share.id,
-        athleteId,
-        athleteName,
-        initials: initialsOf(athleteName),
-        steps: stepsOf(share),
-      }];
+      return [assignmentOf(share, athleteId, nameOf(athleteId))];
     });
   };
 
@@ -194,8 +400,15 @@ export function buildHubPlans({
     const content = latest.content;
     const group = sentGroups.get(saved.id);
     sentGroups.delete(saved.id);
-    const assignments = assignmentsOf(group);
+    const selfShare = selfShares.get(saved.id);
+    const assignments = selfShare ? [assignmentOf(selfShare, userId, nameOf(userId))] : assignmentsOf(group);
+    const assignedGroups = context.groupAssignments.filter((entry) => entry.planId === saved.id);
     result.push({
+      ...planDefaults,
+      isTemplate: templateIds.has(saved.id),
+      sharedWithTrainer: Boolean(selfShare),
+      groupIds: assignedGroups.flatMap((entry) => (entry.groupId ? [entry.groupId] : [])),
+      clubAssigned: assignedGroups.some((entry) => entry.organizationId),
       key: saved.id,
       title: saved.title || content.title,
       category: content.category ?? "",
@@ -205,7 +418,7 @@ export function buildHubPlans({
       version: latest.version_number,
       createdAt: saved.versions[saved.versions.length - 1]?.created_at ?? latest.created_at,
       kind: "own",
-      isDraft: content.status === "draft" && assignments.length === 0,
+      isDraft: content.status === "draft" && assignments.length === 0 && !templateIds.has(saved.id),
       tricks: tricksOf(content),
       assignments,
       editable: content,
@@ -219,6 +432,7 @@ export function buildHubPlans({
   for (const [key, group] of sentGroups) {
     const newest = group[0];
     result.push({
+      ...planDefaults,
       key: `sent:${key}`,
       title: newest.title,
       category: newest.category ?? "",
@@ -240,8 +454,10 @@ export function buildHubPlans({
 
   for (const share of shares) {
     if (share.shareDirection !== "received") continue;
+    if (share.sharedById === userId && share.sourcePlanId && selfShares.get(share.sourcePlanId) === share) continue;
     const sender = (share.sharedById && names.get(share.sharedById)) || authorName(share);
     result.push({
+      ...planDefaults,
       key: share.id,
       title: share.title,
       category: share.category ?? "",
@@ -253,13 +469,7 @@ export function buildHubPlans({
       kind: "received",
       isDraft: false,
       tricks: tricksOf(share),
-      assignments: [{
-        shareId: share.id,
-        athleteId: userId,
-        athleteName: nameOf(userId),
-        initials: initialsOf(nameOf(userId)),
-        steps: stepsOf(share),
-      }],
+      assignments: [assignmentOf(share, userId, nameOf(userId))],
       editable: null,
       startId: share.id,
       sourceLabel: sender,
@@ -267,14 +477,90 @@ export function buildHubPlans({
     });
   }
 
+  // Trainer-Sicht: von Athlet*innen erstellte und geteilte Pläne.
+  for (const share of shares) {
+    if (share.shareDirection !== "coached" || !share.recipientUserId) continue;
+    const athleteName = nameOf(share.recipientUserId);
+    result.push({
+      ...planDefaults,
+      key: `athlete:${share.id}`,
+      title: share.title,
+      category: share.category ?? "",
+      level: share.level ?? "",
+      goal: share.description ?? "",
+      deadline: share.deadline,
+      version: Number.parseInt(share.version, 10) || null,
+      createdAt: share.sharedAt,
+      kind: "athlete",
+      isDraft: false,
+      tricks: tricksOf(share),
+      assignments: [assignmentOf(share, share.recipientUserId, athleteName)],
+      editable: null,
+      // Trainings aus fremden Eigenplänen startet nur die Athletin/der Athlet selbst.
+      startId: null,
+      sourceLabel: "",
+      author: athleteName,
+      createdByAthlete: athleteName,
+      sharedWithTrainer: true,
+    });
+  }
+
+  // Vereinsvorlagen anderer Personen: nur ansehen und als Vorlage übernehmen.
+  for (const template of context.templates) {
+    if (template.own) continue;
+    const content = template.content;
+    result.push({
+      ...planDefaults,
+      key: `template:${template.id}`,
+      title: template.title || content.title,
+      category: content.category ?? "",
+      level: content.level ?? "",
+      goal: content.description ?? "",
+      version: Number.parseInt(content.version, 10) || null,
+      kind: "template",
+      isDraft: false,
+      tricks: tricksOf(content),
+      assignments: [],
+      editable: null,
+      startId: null,
+      sourceLabel: template.organizationName,
+      author: template.authorName,
+      isTemplate: true,
+      templateContent: content,
+    });
+  }
+
   return result;
+}
+
+/** Eigene Fortschrittszeile einer Athletin/eines Athleten (erhalten oder mit Trainer geteilt). */
+export function myAssignment(plan: HubPlan): HubAssignment | null {
+  return plan.kind === "received" || (plan.kind === "own" && plan.sharedWithTrainer)
+    ? plan.assignments[0] ?? null
+    : null;
+}
+
+export type BadgeTone = "warn" | "draft" | "template" | "athlete";
+
+/**
+ * Badges auf Plan-Karten in fester Reihenfolge: „N offen“, „Entwurf“,
+ * „Vorlage“, „Athlet“ (nur Trainer-Sicht auf Pläne von Athlet*innen).
+ */
+export function planBadges(plan: HubPlan, role: HubRole): { label: string; tone: BadgeTone }[] {
+  const badges: { label: string; tone: BadgeTone }[] = [];
+  const open = role === "staff" ? openReports(plan).length : 0;
+  if (open) badges.push({ label: `${open} offen`, tone: "warn" });
+  if (plan.isDraft) badges.push({ label: "Entwurf", tone: "draft" });
+  if (plan.isTemplate) badges.push({ label: "Vorlage", tone: "template" });
+  if (role === "staff" && plan.kind === "athlete") badges.push({ label: "Athlet", tone: "athlete" });
+  return badges;
 }
 
 /** Offene Meldungen zuerst, danach aktive vor Entwürfen, sonst neueste zuerst. */
 export function sortHubPlans(plans: HubPlan[], role: HubRole) {
   const score = (plan: HubPlan) =>
     role === "staff"
-      ? openReports(plan).length * 10 + (plan.assignments.length ? 5 : 0) - (plan.isDraft ? 5 : 0)
+      ? openReports(plan).length * 10 + (plan.assignments.length ? 5 : 0) - (plan.isDraft ? 5 : 0) - (plan.kind === "template" ? 8 : 0)
       : plan.kind === "received" ? 10 : 0;
   return [...plans].sort(
     (a, b) => score(b) - score(a) || (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
@@ -340,7 +626,8 @@ export function currentTrickIndex(plan: HubPlan, role: HubRole) {
   if (role === "staff") {
     return plan.tricks.findIndex((trick) => trickAggregate(plan, trick.id).waiting > 0);
   }
-  const mine = plan.assignments[0];
+  const mine = myAssignment(plan);
+  if (!mine) return -1;
   return plan.tricks.findIndex((trick) => (mine.steps[trick.id] ?? 0) < 2);
 }
 
@@ -353,12 +640,23 @@ export interface NextStep {
 /** „Dein nächster Schritt“: erster erhaltener Trick, der noch nicht gemeldet ist. */
 export function nextStepFor(plans: HubPlan[]): NextStep | null {
   for (const plan of plans) {
-    if (plan.kind !== "received") continue;
-    const mine = plan.assignments[0];
+    const mine = myAssignment(plan);
+    if (!mine) continue;
     for (const trick of plan.tricks) {
       const step = mine.steps[trick.id] ?? 0;
       if (step < 2) return { plan, trick, step };
     }
+  }
+  return null;
+}
+
+/** „↑ Trick melden“: erster geübter, noch nicht gemeldeter Trick. */
+export function nextReportable(plans: HubPlan[]) {
+  for (const plan of plans) {
+    const mine = myAssignment(plan);
+    if (!mine) continue;
+    const trick = plan.tricks.find((entry) => mine.steps[entry.id] === 1);
+    if (trick) return { plan, assignment: mine, trick };
   }
   return null;
 }

@@ -338,7 +338,8 @@ export interface PendingConfirmation {
  */
 export function pendingTrickConfirmations(plans: TrainingPlan[], names: Map<string, string>): PendingConfirmation[] {
   return plans
-    .filter((plan) => plan.shareDirection === "sent")
+    // Auch mit dem Trainer geteilte Eigenpläne der Athlet*innen warten auf Bestätigung.
+    .filter((plan) => plan.shareDirection === "sent" || plan.shareDirection === "coached")
     .flatMap((plan) => plan.tricks
       .filter((trick) => trick.status === "awaiting_confirmation")
       .map((trick) => {

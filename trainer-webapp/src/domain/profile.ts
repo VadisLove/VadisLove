@@ -4,6 +4,14 @@ import type { OrganizationRole } from "@/domain/models";
 export type ProfileVisibility = "all_members" | "contacts" | "private";
 /** Grundstellung auf dem Board; null bedeutet „Keine Angabe“. */
 export type ProfileStance = "regular" | "goofy" | null;
+/** Anrede für Texte in der App (m/w/d); null = noch nicht gewählt. */
+export type ProfileSalutation = "m" | "w" | "d" | null;
+
+export const profileSalutationLabels: Record<"m" | "w" | "d", string> = {
+  w: "weiblich",
+  m: "männlich",
+  d: "divers / keine Angabe",
+};
 
 export interface ClubMembership {
   organizationId: string;
@@ -42,6 +50,7 @@ export interface ProfileOverview {
   bio: string;
   disciplines: string[];
   stance: ProfileStance;
+  salutation: ProfileSalutation;
   visibility: ProfileVisibility;
   avatarPath: string | null;
   avatarUrl: string | null;

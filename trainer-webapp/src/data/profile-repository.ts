@@ -3,6 +3,7 @@ import type { OrganizationRole } from "@/domain/models";
 import type {
   FederationAffiliation,
   ProfileOverview,
+  ProfileSalutation,
   ProfileStance,
   ProfileVisibility,
 } from "@/domain/profile";
@@ -61,7 +62,7 @@ export async function getOwnProfileOverview(): Promise<ProfileOverview> {
   const userId = await getAuthenticatedUserId(supabase);
   if (!userId) throw new Error("Bitte erneut anmelden.");
 
-  const [profileResult, membershipsResult, affiliationsResult] = await Promise.all([
+  const [profileResult, membershipsResult, affiliationsResult, salutationResult] = await Promise.all([
     // Kontakt- und Detailfelder sind absichtlich nicht mehr direkt ueber die
     // profiles-Tabelle lesbar. Die RPC bindet die Ausgabe fest an auth.uid().
     supabase
@@ -78,6 +79,8 @@ export async function getOwnProfileOverview(): Promise<ProfileOverview> {
       )
       .eq("athlete_id", userId)
       .order("selected_at", { ascending: false }),
+    // Anrede ist nur für die Person selbst lesbar (eigene Funktion statt Spaltenfreigabe).
+    supabase.rpc("own_salutation"),
   ]);
 
   if (profileResult.error) {
@@ -174,6 +177,9 @@ export async function getOwnProfileOverview(): Promise<ProfileOverview> {
     bio: profile.bio || "",
     disciplines: profile.disciplines || [],
     stance: profile.stance,
+    salutation: ["m", "w", "d"].includes(salutationResult.data as string)
+      ? (salutationResult.data as ProfileSalutation)
+      : null,
     visibility: profile.visibility as ProfileVisibility,
     avatarPath: profile.avatar_path,
     avatarUrl,

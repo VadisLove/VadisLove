@@ -13,6 +13,8 @@ export async function addReview(_previous: { message: string }, form: FormData) 
       request_id: form.get("request_id"), participant: form.get("participant"),
       exercise: form.get("exercise") || null, review_kind: form.get("kind"),
       review_body: form.get("body"), replaces: form.get("replaces") || null,
+      // „Nur Trainer“ (coaches) erlaubt die DB nur Trainer*innen für Hinweise und Ziele.
+      review_visibility: form.get("visibility") === "coaches" ? "coaches" : "athlete",
     });
     if (error) return { message: error.message.includes("REVIEW_REQUEST_REQUIRED")
       ? "Bitte zuerst eine Bestätigung für diese Übung anfragen."

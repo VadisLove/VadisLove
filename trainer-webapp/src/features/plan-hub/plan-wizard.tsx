@@ -4,7 +4,16 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { ArrowUp, Check, ChevronDown, ChevronUp, Plus, Search, X } from "lucide-react";
 import type { TrainingPlan } from "@/domain/models";
 import { Button } from "@/components/ui/button";
-import { formatDay, shortName, type HubPlan, type HubRole } from "./plan-hub-model";
+import {
+  formatDay,
+  shortName,
+  type HubGroup,
+  type HubPersona,
+  type HubPlan,
+  type HubRole,
+  type HubTemplate,
+} from "./plan-hub-model";
+import { useWords } from "./hub-words";
 import styles from "./plan-hub.module.css";
 
 const categories = ["Street", "Park", "Bowl", "Ramp", "Freestyle"];
@@ -68,7 +77,30 @@ export interface WizardResult {
   revision: number;
   /** Nur neu hinzugekommene Athlet*innen erhalten eine Freigabe. */
   recipients: string[];
+  /** Neu gewählte Gruppen; ihre Mitglieder (auch künftige) erhalten den Plan. */
+  groups: string[];
+  /** Vorstand: „Alle Gruppen im Verein“. */
+  club: boolean;
+  /** Vorstand: als Vereinsvorlage für alle Trainer freigeben. */
+  clubTemplate: boolean;
+  /** Skater*innen: „Mit deinem Trainer teilen“. */
+  shareWithTrainer: boolean;
   draft: boolean;
+}
+
+type StartTemplate = { id: string; name: string; description: string; category: string; level: string; tricks: [string, string][] };
+
+/** Vereinsvorlage (Plan-Inhalt) in das Format der Startvorlagen übertragen. */
+function fromClubTemplate(id: string, title: string, content: TrainingPlan): StartTemplate {
+  const tricks = [...content.tricks].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  return {
+    id: `club:${id}`,
+    name: title || content.title,
+    description: `Vereinsvorlage · ${tricks.length} ${tricks.length === 1 ? "Trick" : "Tricks"}`,
+    category: content.category ?? "",
+    level: content.level ?? "",
+    tricks: tricks.map((trick) => [trick.name, trick.targetValue ?? ""]),
+  };
 }
 
 function blankPlan(): TrainingPlan {
@@ -105,31 +137,56 @@ function isoInWeeks(weeks: number) {
  */
 export function PlanWizard({
   role,
+  persona,
   editPlan,
+  startTemplate,
   startStep,
   athletes,
+  groups,
+  clubs,
+  templates: clubTemplates,
+  hasTrainer,
   busy,
   onClose,
   onSubmit,
 }: {
   role: HubRole;
+  persona: HubPersona;
   editPlan: HubPlan | null;
+  /** „Als Vorlage verwenden“ aus einer Vereinsvorlage. */
+  startTemplate: HubPlan | null;
   startStep?: number;
   athletes: { id: string; name: string }[];
+  groups: HubGroup[];
+  clubs: HubGroup[];
+  templates: HubTemplate[];
+  hasTrainer: boolean;
   busy: boolean;
   onClose: () => void;
   onSubmit: (result: WizardResult) => void;
 }) {
   const staff = role === "staff";
+  const board = persona === "board";
+  const w = useWords();
   const base = editPlan?.editable ?? null;
   const [step, setStep] = useState(startStep ?? (editPlan ? 3 : 0));
-  const [template, setTemplate] = useState("blank");
-  const [name, setName] = useState(base?.title ?? "");
-  const [category, setCategory] = useState(base?.category || "Street");
-  const [level, setLevel] = useState(base?.level || "Einsteiger");
+  // Vereinsvorlagen erscheinen für alle Trainer*innen des Vereins unter den Startvorlagen.
+  const allTemplates = useMemo<StartTemplate[]>(
+    () => [...templates, ...clubTemplates.map((entry) => fromClubTemplate(entry.id, entry.title, entry.content))],
+    [clubTemplates],
+  );
+  const initialTemplate =
+    startTemplate?.templateContent ? fromClubTemplate(startTemplate.key.replace(/^template:/, ""), startTemplate.title, startTemplate.templateContent) : null;
+  const [template, setTemplate] = useState(initialTemplate?.id ?? "blank");
+  const [name, setName] = useState(base?.title ?? initialTemplate?.name ?? "");
+  const [category, setCategory] = useState(base?.category || initialTemplate?.category || "Street");
+  const [level, setLevel] = useState(base?.level || initialTemplate?.level || "Einsteiger");
   const [goal, setGoal] = useState(base?.description ?? "");
   const [tricks, setTricks] = useState<DraftTrick[]>(
-    () => editPlan?.tricks.map((trick) => ({ ...trick })) ?? [],
+    () =>
+      editPlan?.tricks.map((trick) => ({ ...trick })) ??
+      initialTemplate?.tricks.map(([trickName, trickGoal]) => ({ id: crypto.randomUUID(), name: trickName, goal: trickGoal, hint: "" })) ??
+      [],
   );
   const [openTrick, setOpenTrick] = useState(-1);
   const [query, setQuery] = useState("");
@@ -138,7 +195,15 @@ export function PlanWizard({
     [editPlan],
   );
   const [selected, setSelected] = useState<string[]>([]);
+  const lockedGroups = useMemo(() => new Set(editPlan?.groupIds ?? []), [editPlan]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const clubLocked = Boolean(editPlan?.clubAssigned);
+  const [club, setClub] = useState(false);
+  const [clubTemplate, setClubTemplate] = useState(Boolean(editPlan?.isTemplate));
+  const [shareWithTrainer, setShareWithTrainer] = useState(Boolean(editPlan?.sharedWithTrainer));
   const [due, setDue] = useState<Due>(base?.deadline ? "keep" : editPlan ? "none" : "4");
+  // „Alle Gruppen im Verein“ als eine Zeile mit allen Vereinsathlet*innen.
+  const clubMembers = useMemo(() => [...new Set(clubs.flatMap((entry) => entry.athleteIds))], [clubs]);
   const nameId = useId();
   const goalId = useId();
 
@@ -151,7 +216,39 @@ export function PlanWizard({
   }, [onClose]);
 
   const hasName = name.trim().length > 0;
-  const title = editPlan ? "Plan bearbeiten" : "Neuer Plan";
+  const title = editPlan ? "Plan bearbeiten" : board ? "Neuer Plan · Verein" : "Neuer Plan";
+  const isOn = (id: string) => alreadyAssigned.has(id) || selected.includes(id);
+  const groupOn = (group: HubGroup) => lockedGroups.has(group.id) || selectedGroups.includes(group.id);
+
+  /** Gruppe wählen = alle Mitglieder wählen; abwählen entfernt sie wieder. */
+  function toggleGroup(group: HubGroup) {
+    if (lockedGroups.has(group.id)) return;
+    const on = selectedGroups.includes(group.id);
+    setSelectedGroups((current) => (on ? current.filter((id) => id !== group.id) : [...current, group.id]));
+    setSelected((current) =>
+      on
+        ? current.filter((id) => !group.athleteIds.includes(id))
+        : [...new Set([...current, ...group.athleteIds.filter((id) => !alreadyAssigned.has(id))])],
+    );
+  }
+
+  function toggleClub() {
+    if (clubLocked) return;
+    setClub(!club);
+    setSelected((current) =>
+      club ? current.filter((id) => !clubMembers.includes(id)) : [...new Set([...current, ...clubMembers.filter((id) => !alreadyAssigned.has(id))])],
+    );
+  }
+
+  /** Einzelne Athlet*innen bleiben ab-/zuwählbar; eine unvollständige Gruppe gilt nicht mehr als gewählt. */
+  function toggleAthlete(id: string) {
+    const on = selected.includes(id);
+    setSelected((current) => (on ? current.filter((entry) => entry !== id) : [...current, id]));
+    if (on) {
+      setSelectedGroups((current) => current.filter((groupId) => !groups.find((group) => group.id === groupId)?.athleteIds.includes(id)));
+      if (clubMembers.includes(id)) setClub(false);
+    }
+  }
   const dueLabel =
     due === "keep" && base?.deadline
       ? `Bis ${formatDay(`${base.deadline.slice(0, 10)}T12:00:00`).replace(/^\S+ /, "")}`
@@ -160,7 +257,7 @@ export function PlanWizard({
         : `${due} Wochen`;
 
   function applyTemplate(id: string) {
-    const chosen = templates.find((entry) => entry.id === id)!;
+    const chosen = allTemplates.find((entry) => entry.id === id)!;
     setTemplate(id);
     if (chosen.category) setCategory(chosen.category);
     if (chosen.level) setLevel(chosen.level);
@@ -181,9 +278,10 @@ export function PlanWizard({
   }
 
   function submit(asDraft: boolean) {
-    // Staff-Pläne ohne jede Zuweisung bleiben laut Konzept ein Entwurf.
+    // Staff-Pläne ohne jede Zuweisung (und ohne Vereinsvorlage) bleiben laut Konzept ein Entwurf.
     const draft =
-      asDraft || (staff && selected.length === 0 && !(editPlan?.assignments.length ?? 0));
+      asDraft ||
+      (staff && selected.length === 0 && !selectedGroups.length && !club && !clubTemplate && !(editPlan?.assignments.length ?? 0));
     const plan = base ? { ...base } : blankPlan();
     const deadline =
       due === "keep" ? base?.deadline : due === "none" ? undefined : isoInWeeks(Number(due));
@@ -212,6 +310,10 @@ export function PlanWizard({
       content,
       revision: editPlan?.version ?? 0,
       recipients: draft ? [] : selected.filter((id) => !alreadyAssigned.has(id)),
+      groups: draft ? [] : selectedGroups.filter((id) => !lockedGroups.has(id)),
+      club: !draft && club && !clubLocked,
+      clubTemplate: board && clubTemplate,
+      shareWithTrainer: !staff && shareWithTrainer,
       draft,
     });
   }
@@ -225,17 +327,28 @@ export function PlanWizard({
     (entry) => entry.toLowerCase() === query.trim().toLowerCase(),
   );
 
+  // Zusammenfassung: gewählte Gruppen zuerst, danach Einzelpersonen außerhalb dieser Gruppen.
+  const chosenGroups = groups.filter((group) => lockedGroups.has(group.id) || selectedGroups.includes(group.id));
+  const inGroups = new Set([...chosenGroups.flatMap((group) => group.athleteIds), ...(club || clubLocked ? clubMembers : [])]);
   const assignmentSummary = staff
     ? [
-        ...editPlan?.assignments.map((entry) => shortName(entry.athleteName)) ?? [],
-        ...athletes.filter((athlete) => selected.includes(athlete.id)).map((athlete) => shortName(athlete.name)),
-      ].join(", ") || "Noch niemand – wird als Entwurf gespeichert"
-    : "Nur für mich";
+        ...(club || clubLocked ? ["Alle Gruppen im Verein"] : []),
+        ...chosenGroups.map((group) => group.name),
+        ...(editPlan?.assignments.filter((entry) => !inGroups.has(entry.athleteId)).map((entry) => shortName(entry.athleteName)) ?? []),
+        ...athletes
+          .filter((athlete) => selected.includes(athlete.id) && !inGroups.has(athlete.id))
+          .map((athlete) => shortName(athlete.name)),
+      ].join(", ") || (clubTemplate ? "Noch niemand – nur als Vereinsvorlage" : "Noch niemand – wird als Entwurf gespeichert")
+    : shareWithTrainer
+      ? `Mit ${w.dat} geteilt`
+      : "Nur für mich";
 
   const primaryLabel = editPlan
     ? `Version ${(editPlan.version ?? 0) + 1} speichern`
     : staff
-      ? "Plan erstellen"
+      ? board && clubTemplate
+        ? "Erstellen & freigeben"
+        : "Plan erstellen"
       : "Plan starten";
 
   return (
@@ -274,7 +387,7 @@ export function PlanWizard({
               {!editPlan ? (
                 <fieldset className={styles.templateGrid}>
                   <legend className="sr-only">Womit starten?</legend>
-                  {templates.map((entry) => (
+                  {allTemplates.map((entry) => (
                     <button
                       key={entry.id}
                       type="button"
@@ -474,47 +587,137 @@ export function PlanWizard({
           {step === 2 ? (
             <>
               {staff ? (
-                <div className={styles.field}>
-                  <span className={styles.fieldLabel}>Einzelne Athleten</span>
-                  {athletes.length ? (
-                    <div className={styles.chips}>
-                      {athletes.map((athlete) => {
-                        const locked = alreadyAssigned.has(athlete.id);
-                        const on = locked || selected.includes(athlete.id);
-                        return (
+                <>
+                  {groups.length || (board && clubs.length) ? (
+                    <div className={styles.field}>
+                      <span className={styles.fieldLabel}>Gruppen</span>
+                      <div className={styles.groupRows}>
+                        {groups.map((group) => {
+                          const on = groupOn(group);
+                          const locked = lockedGroups.has(group.id);
+                          return (
+                            <button
+                              key={group.id}
+                              type="button"
+                              role="checkbox"
+                              aria-checked={on}
+                              disabled={locked}
+                              title={locked ? "Bereits zugewiesen" : undefined}
+                              className={`${styles.checkRow} ${on ? styles.checkRowOn : ""}`}
+                              onClick={() => toggleGroup(group)}
+                            >
+                              <span className={styles.checkBox} aria-hidden="true">
+                                {on ? <Check size={14} strokeWidth={3} /> : null}
+                              </span>
+                              <span>{group.name}</span>
+                              <small>
+                                {group.athleteIds.length} {group.athleteIds.length === 1 ? "Athlet" : "Athleten"}
+                              </small>
+                            </button>
+                          );
+                        })}
+                        {board && clubs.length ? (
                           <button
-                            key={athlete.id}
                             type="button"
-                            aria-pressed={on}
-                            disabled={locked}
-                            title={locked ? "Bereits zugewiesen" : undefined}
-                            className={`${styles.chip} ${on ? styles.chipBlue : ""}`}
-                            onClick={() =>
-                              setSelected((current) =>
-                                current.includes(athlete.id)
-                                  ? current.filter((id) => id !== athlete.id)
-                                  : [...current, athlete.id],
-                              )
-                            }
+                            role="checkbox"
+                            aria-checked={club || clubLocked}
+                            disabled={clubLocked}
+                            title={clubLocked ? "Bereits zugewiesen" : undefined}
+                            className={`${styles.checkRow} ${club || clubLocked ? styles.checkRowOn : ""}`}
+                            onClick={toggleClub}
                           >
-                            {on ? <Check size={14} aria-hidden="true" /> : null}
-                            {shortName(athlete.name)}
+                            <span className={styles.checkBox} aria-hidden="true">
+                              {club || clubLocked ? <Check size={14} strokeWidth={3} /> : null}
+                            </span>
+                            <span>Alle Gruppen im Verein</span>
+                            <small>
+                              {clubMembers.length} {clubMembers.length === 1 ? "Athlet" : "Athleten"}
+                            </small>
                           </button>
-                        );
-                      })}
+                        ) : null}
+                      </div>
                     </div>
-                  ) : (
-                    <p className={styles.muted}>
-                      Keine zugeordneten Athleten. Stelle zuerst unter „Personen“ eine bestätigte Trainer-Athlet-Verbindung her.
-                    </p>
-                  )}
-                </div>
+                  ) : null}
+                  <div className={styles.field}>
+                    <span className={styles.fieldLabel}>Einzelne Athleten</span>
+                    {athletes.length ? (
+                      <div className={styles.chips}>
+                        {athletes.map((athlete) => {
+                          const locked = alreadyAssigned.has(athlete.id);
+                          const on = isOn(athlete.id);
+                          return (
+                            <button
+                              key={athlete.id}
+                              type="button"
+                              aria-pressed={on}
+                              disabled={locked}
+                              title={locked ? "Bereits zugewiesen" : undefined}
+                              className={`${styles.chip} ${on ? styles.chipBlue : ""}`}
+                              onClick={() => toggleAthlete(athlete.id)}
+                            >
+                              {on ? <Check size={14} aria-hidden="true" /> : null}
+                              {shortName(athlete.name)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className={styles.muted}>
+                        Keine zugeordneten Athleten. Stelle zuerst unter „Personen“ eine bestätigte Trainer-Athlet-Verbindung her.
+                      </p>
+                    )}
+                  </div>
+                  {board ? (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={clubTemplate}
+                      className={`${styles.templateToggle} ${clubTemplate ? styles.templateToggleOn : ""}`}
+                      onClick={() => setClubTemplate(!clubTemplate)}
+                    >
+                      <span>
+                        <strong>Als Vereinsvorlage freigeben</strong>
+                        <small>Alle Trainer im Verein können den Plan übernehmen</small>
+                      </span>
+                      <span className={`${styles.toggle} ${styles.togglePurple} ${clubTemplate ? styles.toggleOn : ""}`} aria-hidden="true">
+                        <span />
+                      </span>
+                    </button>
+                  ) : null}
+                </>
               ) : (
                 <div className={styles.field}>
-                  <span className={styles.fieldLabel}>Für wen?</span>
-                  <div className={`${styles.checkRow} ${styles.checkRowOn}`}>
-                    <span className={styles.radioDot} aria-hidden="true" />
-                    <span>Nur für mich</span>
+                  <span className={styles.fieldLabel}>Für wen ist der Plan?</span>
+                  <div className={styles.groupRows} role="radiogroup" aria-label="Für wen ist der Plan?">
+                    {[
+                      { value: false, label: "Nur für mich", sub: "Niemand sonst sieht den Plan" },
+                      {
+                        value: true,
+                        label: "Mit deinem Trainer teilen",
+                        sub: hasTrainer ? `${w.nom[0].toUpperCase()}${w.nom.slice(1)} sieht den Plan und kann bestätigen` : "Verbinde dich zuerst mit einem Trainer",
+                      },
+                    ].map((option) => {
+                      // Einmal geteilte Pläne bleiben geteilt; der Fortschritt hängt daran.
+                      const locked = Boolean(editPlan?.sharedWithTrainer) || (option.value && !hasTrainer);
+                      const on = shareWithTrainer === option.value;
+                      return (
+                        <button
+                          key={option.label}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          disabled={locked && !on}
+                          className={`${styles.checkRow} ${on ? styles.checkRowOn : ""}`}
+                          onClick={() => setShareWithTrainer(option.value)}
+                        >
+                          <span className={styles.radioDot} aria-hidden="true" />
+                          <span className={styles.checkText}>
+                            <strong>{option.label}</strong>
+                            <small>{option.sub}</small>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -539,7 +742,11 @@ export function PlanWizard({
                 </div>
               </div>
               <p className={styles.muted}>
-                {staff ? "Optional. Ohne Zuweisung wird der Plan als Entwurf gespeichert." : "Der Plan ist nur für dich sichtbar."}
+                {staff
+                  ? "Optional. Ohne Zuweisung wird der Plan als Entwurf gespeichert."
+                  : shareWithTrainer
+                    ? `${w.nom[0].toUpperCase()}${w.nom.slice(1)} sieht deinen Fortschritt und kann Tricks bestätigen.`
+                    : "Der Plan ist nur für dich sichtbar."}
               </p>
             </>
           ) : null}
@@ -554,7 +761,12 @@ export function PlanWizard({
               {[
                 { label: "Grundlagen", value: name.trim() || "—", sub: [category, level, goal.trim()].filter(Boolean).join(" · "), step: 0 },
                 { label: `Tricks · ${tricks.length}`, value: tricks.length ? tricks.map((trick) => trick.name).join(", ") : "Noch keine Tricks", step: 1 },
-                { label: "Zuweisung", value: assignmentSummary, step: 2 },
+                {
+                  label: "Zuweisung",
+                  value: assignmentSummary,
+                  sub: board && clubTemplate ? "+ Vereinsvorlage für alle Trainer" : "",
+                  step: 2,
+                },
                 { label: "Frist", value: dueLabel, step: 2 },
               ].map((row) => (
                 <div key={row.label} className={styles.reviewCard}>
