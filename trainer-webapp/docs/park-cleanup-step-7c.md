@@ -60,6 +60,15 @@ Luftbilder 3,6 MB), davon 14,2 MB in keiner Parkversion referenziert (alle jüng
 
 ## Veröffentlichung
 
+Stand 29.09.2026: Beide Migrationen vom Nutzer im SQL-Editor angewendet und in
+`supabase_migrations.schema_migrations` eingetragen (Spalten, Funktionen, Trigger und
+Cron-Job `park-storage-cleanup-daily` per Abfrage bestätigt). Deploy durch den Nutzer
+(`trainer-webapp-9hc74dz46`, Commit `80853e3`), live unter trainer-webapp-ruby.vercel.app;
+`/api/parks/storage-cleanup` antwortet ohne Schlüssel mit 401. Rollback-Tag
+`production/stable-before-step-7c-20260929` → `25a8b6d`. Praxisprüfung offen.
+
+Ablauf:
+
 1. Beide Migrationen in dieser Reihenfolge in Produktion anwenden (vor dem Deploy,
    weil die App die neuen Felder liest).
 2. Deploy durch den Nutzer.

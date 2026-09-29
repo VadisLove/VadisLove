@@ -49,7 +49,8 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
 - **Schritt 7c (29.09.2026):** Parks löschen (Papierkorb, 30 Tage), tägliche
   Speicherbereinigung der Park-Buckets und Caching der Parkdateien. Vom Nutzer am
   28.09.2026 vorgemerkt, am 29.09.2026 beauftragt und entschieden. Implementiert und
-  lokal geprüft; Migration und Veröffentlichung durch den Nutzer offen.
+  lokal geprüft, Migrationen angewendet und vom Nutzer produktiv veröffentlicht.
+  Praxisabnahme offen.
   [Umfang, Entscheidungen und Nachweis](park-cleanup-step-7c.md).
 - **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
