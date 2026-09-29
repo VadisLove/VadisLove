@@ -17,7 +17,22 @@ export interface SessionRecap {
   can_review: boolean;
   can_confirm: boolean;
   note: string | null;
-  exercises: { id: string; skill_id: string; name: string; elapsed_ms: number; note: string | null; trainer_note: string | null; attempts: number; landed: number }[];
+  /** Dauer ohne Pausen; fehlt bei älteren Datenständen. */
+  active_ms?: number;
+  exercises: {
+    id: string;
+    skill_id: string;
+    name: string;
+    elapsed_ms: number;
+    note: string | null;
+    trainer_note: string | null;
+    attempts: number;
+    landed: number;
+    /** Line = Serie; `landed` zählt dann nur komplette Lines. */
+    kind?: "trick" | "line";
+    line_tricks?: string[] | null;
+    breaks?: { broke_at: number | null; attempts: number }[] | null;
+  }[];
   reviews: { id: string; exercise_id: string | null; kind: "hint" | "goal" | "request" | "confirmation"; body: string; author_name: string; author_role: "trainer" | "self"; created_at: string; supersedes: string | null; visibility?: "athlete" | "coaches" }[];
 }
 

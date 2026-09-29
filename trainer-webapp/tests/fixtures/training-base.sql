@@ -27,3 +27,8 @@ alter table public.training_plan_shares enable row level security;
 grant select on public.training_plan_shares to authenticated;
 create policy plan_shares_read_related on public.training_plan_shares for select to authenticated using(private.is_organization_member(target_organization_id) or exists(select 1 from public.training_plans p where p.id=training_plan_id and private.is_organization_member(p.organization_id)));
 create policy plans_read_owner_or_shared on public.training_plans for select to authenticated using(private.is_organization_member(organization_id) or exists(select 1 from public.training_plan_shares s where s.training_plan_id=s.id and private.is_organization_member(s.target_organization_id)));
+
+-- Planstatus je Freigabe und Trick (Abbild von training_trick_progress) für die
+-- Brücke „Bereit für den Plan“ aus dem Live-Training.
+create type public.trick_progress_status as enum ('not_started','in_progress','awaiting_confirmation','confirmed');
+create table public.training_trick_progress(id uuid primary key default gen_random_uuid(),snapshot_share_id uuid not null references public.training_plan_snapshot_shares(id),trick_id text not null,athlete_id uuid not null references public.profiles(id),status public.trick_progress_status not null default 'not_started',confirmed_by uuid,confirmed_at timestamptz,updated_at timestamptz not null default now(),unique(snapshot_share_id,trick_id));

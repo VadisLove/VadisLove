@@ -8,9 +8,11 @@ import {
   cellKey,
   formatDay,
   formatRelative,
+  isLineTrick,
   myAssignment,
   shortName,
   stepLabels,
+  tricksThenLines,
   type HubPlan,
   type Step,
   type WaitingReport,
@@ -69,6 +71,8 @@ export function StaffProgress({
   actions: HubActions;
   onBack: () => void;
 }) {
+  // Lines als eigene Spalten hinter den Einzeltricks.
+  const columns = plan ? tricksThenLines(plan.tricks) : [];
   return (
     <div className={styles.progressLayout}>
       <div className={styles.progressMain}>
@@ -101,9 +105,12 @@ export function StaffProgress({
                     <th scope="col">
                       <span className="sr-only">Athlet</span>
                     </th>
-                    {plan.tricks.map((trick) => (
+                    {columns.map((trick) => (
                       <th scope="col" key={trick.id} title={trick.name}>
-                        <span>{trick.name}</span>
+                        <span>
+                          {isLineTrick(trick) ? <span className={styles.lineBadge}>LINE</span> : null}
+                          {trick.name}
+                        </span>
                       </th>
                     ))}
                     <th scope="col" className={styles.matrixSum}>
@@ -117,14 +124,16 @@ export function StaffProgress({
                     return (
                       <tr key={assignment.shareId}>
                         <th scope="row">{shortName(assignment.athleteName)}</th>
-                        {plan.tricks.map((trick) => {
+                        {columns.map((trick) => {
                           const step = assignment.steps[trick.id];
                           const label = `${assignment.athleteName} · ${trick.name}: ${
                             step === undefined
                               ? "nicht im Plan"
                               : step === 3 && trick.id in assignment.recapConfirmed
                                 ? "Bestätigt aus Session-Rückblick"
-                                : stepLabels[step]
+                                : step === 3 && trick.id in (assignment.liveConfirmed ?? {})
+                                  ? "Bestätigt aus Live-Training"
+                                  : stepLabels[step]
                           }`;
                           if (step === undefined) {
                             return (

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ChevronLeft, ChevronRight, History, Play, Plus } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, History, Plus } from "lucide-react";
 import {
   assignTrainingPlan,
   confirmTrickFromRecap,
@@ -16,10 +16,11 @@ import {
 } from "@/app/trainingsplaene/actions";
 import { setPlanCreateMode } from "@/components/layout/mobile-bottom-navigation";
 import type { TrainingPlan, TrainingVideoEvidence, TrickProgressStatus } from "@/domain/models";
-import type { TrainingWorkspace } from "@/domain/training";
+import type { TrainingSession, TrainingWorkspace } from "@/domain/training";
 import type { SessionRecap } from "@/domain/training-recap";
 import { Button } from "@/components/ui/button";
-import { SessionView, StartTraining } from "@/features/training/training-workspace";
+import { SessionView, StartTraining, type PlanStepLookup } from "@/features/training/training-workspace";
+import { RunningCard } from "@/features/training/live-entry";
 import { useTrainingWorkspace } from "@/features/training/use-training-workspace";
 import {
   buildHubPlans,
@@ -60,7 +61,6 @@ import { RecapView } from "./plan-recap";
 import { PermissionsSheet, ReportSheet, ReviewSheet, SalutationSheet, type ReportInput } from "./plan-sheets";
 import { PlanWizard, type WizardResult } from "./plan-wizard";
 import styles from "./plan-hub.module.css";
-import trainingStyles from "@/features/training/training.module.css";
 
 export type HubTab = "plaene" | "fortschritt" | "rueckblick";
 
@@ -80,6 +80,11 @@ export interface HubActions {
   confirmFromRecap: (plan: HubPlan, assignment: HubAssignment, trick: HubTrick, since: number) => void;
   /** Vereinsvorlage als Grundlage für einen neuen Plan übernehmen. */
   useTemplate: (plan: HubPlan) => void;
+  /** Offenes (laufendes oder pausiertes) Training an einer Übung fortsetzen. */
+  resumeTraining: (sessionId: string, exerciseIndex: number) => void;
+  showRecap: () => void;
+  /** „+ Line erstellen“: Plan bearbeiten, Schritt „Tricks“, neue Line offen. */
+  createLine: (plan: HubPlan) => void;
 }
 
 type SheetState =
@@ -89,6 +94,14 @@ type SheetState =
 
 const dotTone = ["dotOpen", "dotPracticed", "dotReported", "dotConfirmed"] as const;
 const badgeTone = { warn: "badgeWarn", draft: "badgeDraft", template: "badgeTemplate", athlete: "badgeAthlete" } as const;
+
+/** Offenes Training eines Plans: eigener Plan (`plan:`) oder Freigabe (`share:`). */
+function sessionBelongsTo(session: TrainingSession, plan: HubPlan) {
+  return (
+    (plan.savedPlanId && session.source_key === `plan:${plan.savedPlanId}`) ||
+    (plan.startId?.startsWith("shared-") && session.source_key === `share:${plan.startId.slice(7)}`)
+  );
+}
 
 function setUrlParam(name: string, value: string | null) {
   const url = new URL(window.location.href);
@@ -138,13 +151,14 @@ export function PlanHub({
   const router = useRouter();
   const [toast, setToast] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
-  const [dirty, setDirty] = useState(false);
-  const [startPlan, setStartPlan] = useState<TrainingPlan | null>(null);
+  const [startPlan, setStartPlan] = useState<{ content: TrainingPlan; assigned: string[] } | null>(null);
 
-  const openSession = useCallback((id: string | null) => {
+  const [exerciseStart, setExerciseStart] = useState(initialExercise);
+  const openSession = useCallback((id: string | null, exercise = 0) => {
     setSessionId(id);
+    setExerciseStart(exercise);
     setUrlParam("session", id);
-    setUrlParam("exercise", null);
+    setUrlParam("exercise", id && exercise ? String(exercise) : null);
   }, []);
 
   const training = useTrainingWorkspace(workspace, (command, reply) => {
@@ -239,7 +253,7 @@ export function PlanHub({
   const [selectedKey, setSelectedKey] = useState<string | null>(() => initialPlanKey);
   const [mobileDetail, setMobileDetail] = useState(Boolean(initialPlanKey));
   const [progressKey, setProgressKey] = useState<string | null>(initialPlanKey);
-  const [wizard, setWizard] = useState<{ edit: HubPlan | null; step?: number; template?: HubPlan } | null>(() => {
+  const [wizard, setWizard] = useState<{ edit: HubPlan | null; step?: number; template?: HubPlan; line?: boolean } | null>(() => {
     const plan = initialAction === "share" ? findPlan(initialPlanKey) : undefined;
     return plan?.editable && hubRoleOf(workspace?.user.accountType) === "staff" ? { edit: plan, step: 2 } : null;
   });
@@ -286,11 +300,11 @@ export function PlanHub({
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
-      if (dirty || training.pending || training.busy) event.preventDefault();
+      if (training.pending || training.busy) event.preventDefault();
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty, training.pending, training.busy]);
+  }, [training.pending, training.busy]);
 
   function switchTab(next: HubTab) {
     setTab(next);
@@ -479,11 +493,31 @@ export function PlanHub({
     useTemplate: (plan) => setWizard({ edit: null, template: plan }),
     startTraining: (plan) => {
       if (!data) return;
-      const content = plan.savedPlanId
-        ? data.plans.find((entry) => entry.id === plan.savedPlanId)?.versions[0]?.content
-        : data.shares.find((entry) => entry.id === plan.startId);
-      if (content) setStartPlan(plan.savedPlanId ? { ...content, id: plan.savedPlanId } : content);
+      const saved = plan.savedPlanId ? data.plans.find((entry) => entry.id === plan.savedPlanId)?.versions[0] : undefined;
+      const content = saved ? { ...saved.content, id: plan.savedPlanId! } : data.shares.find((entry) => entry.id === plan.startId);
+      if (!content) return;
+      // Skater starten ihr Selbsttraining direkt – ohne Zwischenschritt.
+      if (role === "athlete") {
+        const share = content.id.startsWith("shared-");
+        void training.run(
+          "session_start",
+          {
+            source: share ? "share" : "plan",
+            plan_id: share ? undefined : content.id,
+            share_id: share ? content.id.slice(7) : undefined,
+            version_id: saved?.id,
+            mode: "self",
+            users: [],
+          },
+          "Training starten",
+        );
+        return;
+      }
+      setStartPlan({ content, assigned: plan.assignments.map((entry) => entry.athleteId) });
     },
+    resumeTraining: (id, exercise) => openSession(id, exercise),
+    showRecap: () => switchTab("rueckblick"),
+    createLine: (plan) => setWizard({ edit: plan, step: 1, line: true }),
   };
 
   async function submitWizard(result: WizardResult) {
@@ -554,47 +588,79 @@ export function PlanHub({
     </div>
   ) : null;
 
+  // Planstatus je Athlet und Trick für „Bereit für den Plan“: gespeicherter Plan
+  // (Trainer) bzw. erhaltene Freigabe (Skater) der laufenden Session.
+  const planStep: PlanStepLookup = (athleteUserId, trickId) => {
+    if (!session || !athleteUserId) return null;
+    const [kind, id] = [session.source_key.split(":")[0], session.source_key.slice(session.source_key.indexOf(":") + 1)];
+    const plan =
+      kind === "plan"
+        ? plans.find((entry) => entry.savedPlanId === id)
+        : plans.find((entry) => entry.startId === `shared-${id}` || entry.assignments.some((a) => a.shareId === `shared-${id}`));
+    const assignment = plan?.assignments.find((entry) => entry.athleteId === athleteUserId);
+    const step = assignment?.steps[trickId];
+    return assignment && step !== undefined ? { step, shareId: assignment.shareId.replace(/^shared-/, "") } : null;
+  };
+
+  // Athlet*innen je Trainingsgruppe (erste passende Gruppe), sonst Verein.
+  const livePeople = (data?.people ?? []).map((person) => ({
+    ...person,
+    group: ctx.groups.find((group) => group.athleteIds.includes(person.id))?.name ?? person.group,
+  }));
+
+  const toastView = toast ? (
+    <div className={styles.toast} role="status" aria-live="polite">
+      {toast}
+    </div>
+  ) : null;
+
   // Live-Training und Trainingsstart ersetzen die Übersicht vollständig.
   if (data && (session || sessionId || startPlan)) {
     return (
       <div className={`${styles.hub} ${styles.trainingScreen}`}>
-        <button
-          type="button"
-          className={styles.back}
-          disabled={training.blocked || dirty}
-          onClick={() => {
-            setStartPlan(null);
-            openSession(null);
-          }}
-        >
-          <ChevronLeft size={18} aria-hidden="true" /> Pläne
-        </button>
-        {statusBar}
         {session ? (
-          <div className={trainingStyles.workspace}>
-            <h1 className={styles.planTitle}>{session.plan_snapshot.title}</h1>
-            <SessionView
-              key={session.id}
-              initialExercise={session.id === initialSessionId ? initialExercise : 0}
-              session={session}
+          <SessionView
+            key={session.id}
+            title={session.plan_snapshot.title}
+            initialExercise={exerciseStart}
+            session={session}
+            ctx={{
+              channel: training,
+              planStep,
+              notify: setToast,
+              trainerNom: w.nom,
+              people: livePeople,
+              onExit: () => {
+                setStartPlan(null);
+                openSession(null);
+              },
+              onReview: () => {
+                openSession(null);
+                switchTab("rueckblick");
+              },
+            }}
+          />
+        ) : startPlan ? (
+          <>
+            {statusBar}
+            <StartTraining
+              plan={startPlan.content}
+              assigned={startPlan.assigned}
+              data={{ ...data, people: livePeople }}
               blocked={training.blocked}
               run={training.run}
-              onDirty={setDirty}
+              cancel={() => setStartPlan(null)}
             />
-          </div>
-        ) : startPlan ? (
-          <div className={trainingStyles.workspace}>
-          <StartTraining
-            plan={startPlan}
-            data={data}
-            blocked={training.blocked}
-            run={training.run}
-            cancel={() => setStartPlan(null)}
-          />
-          </div>
+          </>
         ) : (
-          <p className={styles.errorBox}>Dieses Training ist nicht verfügbar oder du hast keinen Zugriff mehr.</p>
+          <>
+            <button type="button" className={styles.back} onClick={() => openSession(null)}>
+              <ChevronLeft size={18} aria-hidden="true" /> Pläne
+            </button>
+            <p className={styles.errorBox}>Dieses Training ist nicht verfügbar oder du hast keinen Zugriff mehr.</p>
+          </>
         )}
+        {toastView}
       </div>
     );
   }
@@ -659,16 +725,7 @@ export function PlanHub({
         <div className={styles.plansLayout}>
           <div className={styles.planList}>
             {running.map((entry) => (
-              <button key={entry.id} type="button" className={styles.entryCard} onClick={() => openSession(entry.id)}>
-                <span className={`${styles.entryIcon} ${styles.entryBlue}`}>
-                  <Play size={18} fill="currentColor" aria-hidden="true" />
-                </span>
-                <span>
-                  <strong>Laufendes Training</strong>
-                  <small>{entry.plan_snapshot.title} · fortsetzen</small>
-                </span>
-                <ChevronRight size={18} aria-hidden="true" />
-              </button>
+              <RunningCard key={entry.id} session={entry} compact onResume={(index) => openSession(entry.id, index)} />
             ))}
 
             {role === "athlete" ? <NextStepCard plans={plans} actions={actions} onOpen={selectPlan} /> : null}
@@ -715,6 +772,10 @@ export function PlanHub({
               key={selected.key}
               plan={selected}
               role={role}
+              accountType={data.user.accountType}
+              canCreate={canCreate}
+              openSession={running.find((entry) => sessionBelongsTo(entry, selected))}
+              busy={training.blocked}
               actions={actions}
               hasEvidence={hasEvidence}
               onBack={() => setMobileDetail(false)}
@@ -760,6 +821,7 @@ export function PlanHub({
           editPlan={wizard.edit}
           startTemplate={wizard.template ?? null}
           startStep={wizard.step}
+          startWithLine={wizard.line}
           athletes={wizardAthletes(data?.people ?? [], ctx)}
           groups={ctx.groups}
           clubs={ctx.clubs}
@@ -806,11 +868,7 @@ export function PlanHub({
         />
       ) : null}
 
-      {toast ? (
-        <div className={styles.toast} role="status" aria-live="polite">
-          {toast}
-        </div>
-      ) : null}
+      {toastView}
     </div>
     </HubWordsContext.Provider>
   );

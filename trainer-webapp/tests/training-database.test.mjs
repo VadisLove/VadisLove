@@ -52,6 +52,15 @@ before(async () => {
       "utf8",
     ),
   );
+  await db.exec(
+    await readFile(
+      new URL(
+        "../supabase/migrations/20260929130000_live_training_redesign.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
   await db.query(
     "insert into public.profiles values($1,'Alex','athlete'),($2,'Kim','athlete'),($3,'Trainer','trainer'),($4,'Fremd','athlete')",
     [A, B, T, X],
@@ -194,21 +203,22 @@ test("Idempotenz: Plan, Start und Versuch werden bei Wiederholung nur einmal ges
 test("Revision schützt konkurrierende Änderungen; Korrektur und Abschluss sperren spätere Eingaben", async () => {
   const { id } = await session();
   const st = await state(id);
-  const payload = { session_id: id, revision: 1, note: "eins" };
+  const payload = {
+    session_id: id,
+    revision: 1,
+    participant_id: st.p[0].id,
+    exercise_id: st.e.id,
+    landed: true,
+  };
   const results = await Promise.allSettled([
-    cmd(A, "session_note", payload),
-    cmd(A, "session_note", { ...payload, note: "zwei" }),
+    cmd(A, "attempt", payload),
+    cmd(A, "attempt", { ...payload, landed: false }),
   ]);
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
   assert.match(
     results.find((r) => r.status === "rejected").reason.message,
     /TRAINING_CONFLICT/,
   );
-  await mutate(A, id, "attempt", {
-    participant_id: st.p[0].id,
-    exercise_id: st.e.id,
-    landed: false,
-  });
   await mutate(A, id, "undo", {
     participant_id: st.p[0].id,
     exercise_id: st.e.id,

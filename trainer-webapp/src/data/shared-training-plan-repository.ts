@@ -21,7 +21,7 @@ interface TrickProgressRow {
   athlete_id: string;
   status: TrickProgressStatus;
   confirmed_at: string | null;
-  confirmed_source: "review" | "recap" | null;
+  confirmed_source: "review" | "recap" | "live" | null;
 }
 
 interface TrainingVideoEvidenceRow {

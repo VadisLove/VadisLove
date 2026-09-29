@@ -1,0 +1,179 @@
+/* Einstiege ins Live-Training im Plan-Hub (Referenz 1a, Plan-Detail). */
+
+.running {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--navy);
+  box-shadow: var(--shadow-dark);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.running .dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 5px;
+  background: var(--st-confirmed);
+  box-shadow: 0 0 0 4px rgba(31, 157, 107, 0.25);
+}
+
+.running[data-paused="true"] .dot {
+  background: var(--st-reported);
+  box-shadow: 0 0 0 4px rgba(240, 163, 58, 0.25);
+}
+
+.running .text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.running .kicker {
+  color: var(--navy-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.running strong {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.running small {
+  color: var(--on-navy);
+  font-size: 13px;
+}
+
+.running .resume {
+  display: flex;
+  height: 40px;
+  flex: none;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.card strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.card small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card .start {
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card .start:disabled {
+  background: var(--canvas);
+  color: var(--disabled);
+  cursor: default;
+}
+
+.info {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.info .infoIcon {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--primary-soft-2);
+  color: var(--primary-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.info > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.info .link {
+  min-height: 40px;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (min-width: 921px) {
+  .card {
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .card strong {
+    font-size: 16px;
+  }
+
+  .card .start {
+    min-height: 48px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+
+  .running {
+    padding: 18px;
+  }
+}

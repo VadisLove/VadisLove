@@ -44,6 +44,6 @@ export async function getTrainingWorkspace(): Promise<TrainingWorkspace> {
           p.accountType === "athlete" &&
           p.activeRelationships?.includes("trainer_athlete"),
       )
-      .map((p) => ({ id: p.id, name: p.name })),
+      .map((p) => ({ id: p.id, name: p.name, group: p.clubs?.[0] })),
   };
 }

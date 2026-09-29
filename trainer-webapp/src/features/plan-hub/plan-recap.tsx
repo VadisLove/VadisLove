@@ -10,6 +10,8 @@ import {
   formatDay,
   formatDuration,
   formatTime,
+  lineBreakText,
+  lineTrickStats,
   periodStart,
   planStepForSkill,
   quoteOf,
@@ -180,16 +182,23 @@ export function RecapView({
 
         <aside className={styles.recapSide}>
           <Insight skills={skills} plans={plans} athleteId={planAthleteId} staff={staff} actions={actions} since={since} />
-          {skills.length ? (
+          {skills.some((skill) => skill.kind !== "line") ? (
             <section className={styles.skillCard}>
               <h3>Skills im Zeitraum</h3>
               <ul className={styles.skillList}>
-                {skills.map((skill) => (
-                  <SkillRow key={skill.skillId} skill={skill} plans={plans} athleteId={planAthleteId} />
-                ))}
+                {skills
+                  .filter((skill) => skill.kind !== "line")
+                  .map((skill) => (
+                    <SkillRow key={skill.skillId} skill={skill} plans={plans} athleteId={planAthleteId} />
+                  ))}
               </ul>
             </section>
           ) : null}
+          {skills
+            .filter((skill) => skill.kind === "line")
+            .map((skill) => (
+              <LineSkillCard key={skill.skillId} skill={skill} plans={plans} athleteId={planAthleteId} />
+            ))}
         </aside>
       </div>
     </div>
@@ -309,6 +318,9 @@ function SkillRow({ skill, plans, athleteId }: { skill: SkillSummary; plans: Hub
             </span>
           ) : null}
         </small>
+        {skill.inLines !== undefined && skill.inLines !== null ? (
+          <small className={styles.inLines}>in Lines: {skill.inLines} %</small>
+        ) : null}
       </div>
       <span className={styles.spark} aria-hidden="true">
         {series.map((value, index) => (
@@ -320,11 +332,56 @@ function SkillRow({ skill, plans, athleteId }: { skill: SkillSummary; plans: Hub
   );
 }
 
+/** Line als eigene Skill-Karte: Quote = komplette Lines, Bruch-Balken, „bricht meist bei …“. */
+function LineSkillCard({ skill, plans, athleteId }: { skill: SkillSummary; plans: HubPlan[]; athleteId: string }) {
+  const match = planStepForSkill(plans, athleteId, skill.name);
+  const names = skill.lineTricks ?? [];
+  const breakText = lineBreakText(skill);
+  const segments = [
+    { key: "complete", n: skill.landed, tone: styles.breakComplete, label: "komplett" },
+    ...names.map((name, index) => ({
+      key: `b${index}`,
+      n: skill.breaks?.[index] ?? 0,
+      tone: index === names.length - 1 ? styles.breakLast : styles.breakEarly,
+      label: `raus bei ${name}`,
+    })),
+    { key: "unknown", n: skill.breaks?.[-1] ?? 0, tone: styles.breakUnknown, label: "ohne Angabe" },
+  ].filter((segment) => segment.n > 0);
+  return (
+    <section className={`${styles.skillCard} ${styles.lineSkill}`}>
+      <div className={styles.lineSkillBody}>
+        <strong>
+          {skill.name}
+          <span className={styles.lineBadge}>LINE</span>
+        </strong>
+        <span className={styles.lineSkillQuote}>
+          <QuotePill quote={skill.quote} />
+          <small>
+            komplett {skill.landed}/{skill.attempts}
+            {match ? ` · ${stepLabels[match.step]}` : ""}
+          </small>
+        </span>
+        <span
+          className={styles.breakBar}
+          role="img"
+          aria-label={segments.map((segment) => `${segment.label}: ${segment.n}`).join(", ")}
+        >
+          {segments.map((segment) => (
+            <span key={segment.key} className={segment.tone} style={{ flex: segment.n }} />
+          ))}
+        </span>
+        {breakText ? <small className={styles.textWarn}>{breakText}</small> : null}
+      </div>
+    </section>
+  );
+}
+
 function SessionRow({ recap, open, onToggle }: { recap: SessionRecap; open: boolean; onToggle: () => void }) {
   const attempts = recap.exercises.reduce((sum, exercise) => sum + exercise.attempts, 0);
   const landed = recap.exercises.reduce((sum, exercise) => sum + exercise.landed, 0);
   const active = recap.exercises.reduce((sum, exercise) => sum + Number(exercise.elapsed_ms), 0);
-  const total = Math.max(0, Date.parse(recap.completed_at) - Date.parse(recap.started_at));
+  // Dauer = aktive Zeit (ohne Pausen); ältere Sessions ohne Pausenfelder wie bisher.
+  const total = recap.active_ms ?? Math.max(0, Date.parse(recap.completed_at) - Date.parse(recap.started_at));
   const quote = quoteOf(attempts, landed);
 
   return (
@@ -354,9 +411,13 @@ function SessionRow({ recap, open, onToggle }: { recap: SessionRecap; open: bool
             <ul className={styles.exerciseList}>
               {recap.exercises.map((exercise) => {
                 const exerciseQuote = quoteOf(exercise.attempts, exercise.landed);
+                const line = exercise.kind === "line";
                 return (
-                  <li key={exercise.id}>
-                    <span>{exercise.name}</span>
+                  <li key={exercise.id} className={line ? styles.lineExercise : undefined}>
+                    <span className={line ? styles.lineExerciseName : undefined}>
+                      {exercise.name}
+                      {line ? <span className={styles.lineBadge}>LINE</span> : null}
+                    </span>
                     <span className={styles.exerciseBar} aria-hidden="true">
                       <span
                         className={styles[toneClass[quoteTone(exerciseQuote)]]}
@@ -365,6 +426,28 @@ function SessionRow({ recap, open, onToggle }: { recap: SessionRecap; open: bool
                     </span>
                     <small>{exercise.attempts ? `${exercise.landed} / ${exercise.attempts}` : "–"}</small>
                     <b>{exerciseQuote === null ? "–" : `${exerciseQuote} %`}</b>
+                    {line && exercise.attempts ? (
+                      <ul className={styles.lineSubRows}>
+                        {lineTrickStats(exercise).map((stat, index) => {
+                          const statQuote = quoteOf(stat.reached, stat.landed);
+                          return (
+                            <li key={`${stat.name}-${index}`}>
+                              <span className={statQuote !== null && statQuote < 80 ? styles.textWarn : undefined}>
+                                {index + 1}. {stat.name}
+                              </span>
+                              <span className={`${styles.exerciseBar} ${styles.exerciseBarThin}`} aria-hidden="true">
+                                <span
+                                  className={styles[toneClass[quoteTone(statQuote)]]}
+                                  style={{ width: `${statQuote ?? 0}%` }}
+                                />
+                              </span>
+                              <small>{stat.reached ? `${stat.landed} / ${stat.reached}` : "–"}</small>
+                              <b>{statQuote === null ? "–" : `${statQuote} %`}</b>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
                   </li>
                 );
               })}

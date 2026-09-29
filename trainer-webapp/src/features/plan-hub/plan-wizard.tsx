@@ -69,6 +69,32 @@ interface DraftTrick {
   name: string;
   goal: string;
   hint: string;
+  /** Line = Serie aus 2–5 Tricks am Stück. */
+  type?: "line";
+  parts?: { id: string; name: string }[];
+}
+
+type Kind = "trick" | "line";
+const kindOf = (trick: DraftTrick): Kind => (trick.type === "line" ? "line" : "trick");
+const MAX_LINE_PARTS = 5;
+
+/** Stabile ID für Bibliothekstricks, die nur als Glied einer Line vorkommen. */
+const libraryId = (name: string) =>
+  `bibliothek-${name.toLowerCase().replace(/[^a-z0-9äöüß]+/g, "-").replace(/^-|-$/g, "")}`;
+
+function newLine(first?: { id: string; name: string }): DraftTrick {
+  return {
+    id: crypto.randomUUID(),
+    name: first ? `${first.name}-Line` : "Neue Line",
+    goal: "",
+    hint: "",
+    type: "line",
+    parts: first ? [first] : [],
+  };
+}
+
+export function lineChain(parts: { name: string }[] | undefined) {
+  return parts && parts.length >= 2 ? parts.map((part) => part.name).join(" → ") : "mind. 2 Tricks";
 }
 
 export interface WizardResult {
@@ -141,6 +167,7 @@ export function PlanWizard({
   editPlan,
   startTemplate,
   startStep,
+  startWithLine = false,
   athletes,
   groups,
   clubs,
@@ -156,6 +183,8 @@ export function PlanWizard({
   /** „Als Vorlage verwenden“ aus einer Vereinsvorlage. */
   startTemplate: HubPlan | null;
   startStep?: number;
+  /** „+ Line erstellen“ aus dem Plan-Detail: neue, aufgeklappte Line-Karte. */
+  startWithLine?: boolean;
   athletes: { id: string; name: string }[];
   groups: HubGroup[];
   clubs: HubGroup[];
@@ -182,13 +211,16 @@ export function PlanWizard({
   const [category, setCategory] = useState(base?.category || initialTemplate?.category || "Street");
   const [level, setLevel] = useState(base?.level || initialTemplate?.level || "Einsteiger");
   const [goal, setGoal] = useState(base?.description ?? "");
-  const [tricks, setTricks] = useState<DraftTrick[]>(
-    () =>
-      editPlan?.tricks.map((trick) => ({ ...trick })) ??
+  const [tricks, setTricks] = useState<DraftTrick[]>(() => {
+    const existing: DraftTrick[] =
+      editPlan?.tricks.map((trick) => ({ ...trick, parts: trick.parts?.map((part) => ({ ...part })) })) ??
       initialTemplate?.tricks.map(([trickName, trickGoal]) => ({ id: crypto.randomUUID(), name: trickName, goal: trickGoal, hint: "" })) ??
-      [],
-  );
-  const [openTrick, setOpenTrick] = useState(-1);
+      [];
+    return startWithLine ? [...existing, newLine()] : existing;
+  });
+  const [openTrick, setOpenTrick] = useState(() => (startWithLine ? tricks.length - 1 : -1));
+  const [kind, setKind] = useState<Kind>(startWithLine ? "line" : "trick");
+  const [lineError, setLineError] = useState(false);
   const [query, setQuery] = useState("");
   const alreadyAssigned = useMemo(
     () => new Set(editPlan?.assignments.map((entry) => entry.athleteId) ?? []),
@@ -277,7 +309,45 @@ export function PlanWizard({
     setTricks((current) => current.map((trick, i) => (i === index ? { ...trick, ...patch } : trick)));
   }
 
+  /** „↑ Nach oben“ tauscht nur mit dem vorherigen Eintrag derselben Art. */
+  function moveUp(index: number) {
+    const own = kindOf(tricks[index]);
+    let previous = index - 1;
+    while (previous >= 0 && kindOf(tricks[previous]) !== own) previous -= 1;
+    if (previous < 0) return;
+    setTricks((current) => {
+      const next = [...current];
+      [next[previous], next[index]] = [next[index], next[previous]];
+      return next;
+    });
+    setOpenTrick(previous);
+  }
+
+  function addLine(first?: { id: string; name: string }, after = tricks.length - 1) {
+    if (tricks.length >= 100) return;
+    const line = newLine(first);
+    setTricks((current) => [...current.slice(0, after + 1), line, ...current.slice(after + 1)]);
+    setOpenTrick(after + 1);
+    setKind("line");
+  }
+
+  function patchParts(index: number, update: (parts: { id: string; name: string }[]) => { id: string; name: string }[]) {
+    setTricks((current) =>
+      current.map((trick, i) => (i === index ? { ...trick, parts: update(trick.parts ?? []) } : trick)),
+    );
+  }
+
+  const invalidLines = tricks.filter((trick) => trick.type === "line" && ((trick.parts?.length ?? 0) < 2 || (trick.parts?.length ?? 0) > MAX_LINE_PARTS));
+
   function submit(asDraft: boolean) {
+    // Jede Line braucht 2–5 Tricks; der Hinweis erscheint an der Karte.
+    if (invalidLines.length) {
+      setLineError(true);
+      setKind("line");
+      setStep(1);
+      setOpenTrick(tricks.indexOf(invalidLines[0]));
+      return;
+    }
     // Staff-Pläne ohne jede Zuweisung (und ohne Vereinsvorlage) bleiben laut Konzept ein Entwurf.
     const draft =
       asDraft ||
@@ -295,7 +365,7 @@ export function PlanWizard({
       status: draft ? "draft" : "active",
       tricks: tricks.map((trick, index) => ({
         id: trick.id,
-        name: trick.name.trim().slice(0, 160),
+        name: trick.name.trim().slice(0, 160) || (trick.type === "line" ? "Line" : trick.name),
         group: category || "Allgemein",
         level: 1,
         targetType: "free",
@@ -304,6 +374,13 @@ export function PlanWizard({
         sortOrder: index,
         athleteId: "",
         status: "not_started",
+        ...(trick.type === "line"
+          ? {
+              type: "line" as const,
+              trickIds: (trick.parts ?? []).map((part) => part.id),
+              trickNames: (trick.parts ?? []).map((part) => part.name),
+            }
+          : {}),
       })),
     };
     onSubmit({
@@ -318,9 +395,11 @@ export function PlanWizard({
     });
   }
 
+  const trickCount = tricks.filter((trick) => trick.type !== "line").length;
+  const lineCount = tricks.length - trickCount;
   const suggestions = trickLibrary.filter(
     (entry) =>
-      !tricks.some((trick) => trick.name.toLowerCase() === entry.toLowerCase()) &&
+      !tricks.some((trick) => trick.type !== "line" && trick.name.toLowerCase() === entry.toLowerCase()) &&
       entry.toLowerCase().includes(query.trim().toLowerCase()),
   );
   const exactMatch = [...trickLibrary, ...tricks.map((trick) => trick.name)].some(
@@ -468,18 +547,69 @@ export function PlanWizard({
 
           {step === 1 ? (
             <>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Was wird geübt?</span>
+                <div className={styles.kindSwitch} role="tablist" aria-label="Was wird geübt?">
+                  {(
+                    [
+                      ["trick", "Einzeltricks", trickCount],
+                      ["line", "Lines", lineCount],
+                    ] as const
+                  ).map(([key, label, count]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={kind === key}
+                      data-kind={key}
+                      onClick={() => {
+                        setKind(key);
+                        setOpenTrick(-1);
+                      }}
+                    >
+                      {label}
+                      <span className={styles.kindCount}>{count}</span>
+                    </button>
+                  ))}
+                </div>
+                <small className={styles.muted}>
+                  {kind === "trick"
+                    ? "Jeder Trick wird einzeln geübt, gemeldet und bestätigt."
+                    : "Serien am Stück – die Quote zählt nur komplette Lines."}
+                </small>
+              </div>
               <div className={styles.rowBetween}>
-                <h3 className={styles.blockTitle}>Tricks im Plan</h3>
+                <h3 className={styles.blockTitle}>{kind === "trick" ? "Einzeltricks im Plan" : "Lines im Plan"}</h3>
                 <span className={styles.muted}>
-                  {tricks.length} {tricks.length === 1 ? "Trick" : "Tricks"}
+                  {trickCount} {trickCount === 1 ? "Trick" : "Tricks"}
+                  {lineCount ? ` · ${lineCount} ${lineCount === 1 ? "Line" : "Lines"}` : ""}
                 </span>
               </div>
-              {tricks.length ? (
+              {tricks.some((trick) => kindOf(trick) === kind) ? (
                 <ol className={styles.trickEditor}>
                   {tricks.map((trick, index) => {
+                    if (kindOf(trick) !== kind) return null;
                     const open = openTrick === index;
+                    const line = trick.type === "line";
+                    const parts = trick.parts ?? [];
+                    const invalid = line && lineError && (parts.length < 2 || parts.length > MAX_LINE_PARTS);
+                    const firstOfKind = tricks.findIndex((entry) => kindOf(entry) === kind) === index;
+                    const planOptions = line
+                      ? tricks.filter((entry) => entry.type !== "line" && !parts.some((part) => part.id === entry.id))
+                      : [];
+                    const libraryOptions = line
+                      ? trickLibrary.filter(
+                          (name) =>
+                            !parts.some((part) => part.name.toLowerCase() === name.toLowerCase()) &&
+                            !planOptions.some((entry) => entry.name.toLowerCase() === name.toLowerCase()),
+                        )
+                      : [];
                     return (
-                      <li key={trick.id} className={open ? styles.trickOpen : undefined}>
+                      <li
+                        key={trick.id}
+                        className={`${open ? styles.trickOpen : ""} ${line ? styles.lineItem : ""}`}
+                        data-invalid={invalid || undefined}
+                      >
                         <button
                           type="button"
                           className={styles.trickRow}
@@ -488,13 +618,121 @@ export function PlanWizard({
                         >
                           <span className={styles.trickNumber}>{index + 1}</span>
                           <span>
-                            <strong>{trick.name}</strong>
-                            <small>{trick.goal ? `Ziel: ${trick.goal}` : "Kein Ziel festgelegt"}</small>
+                            <strong>
+                              {trick.name || (line ? "Neue Line" : "")}
+                              {line ? <span className={styles.lineBadge}>LINE</span> : null}
+                            </strong>
+                            <small className={invalid ? styles.textDanger : undefined}>
+                              {line
+                                ? lineChain(parts)
+                                : trick.goal
+                                  ? `Ziel: ${trick.goal}`
+                                  : "Kein Ziel festgelegt"}
+                            </small>
                           </span>
                           {open ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
                         </button>
                         {open ? (
                           <div className={styles.trickFields}>
+                            {line ? (
+                              <>
+                                <div className={styles.field}>
+                                  <label htmlFor={`${trick.id}-name`}>Name der Line</label>
+                                  <input
+                                    id={`${trick.id}-name`}
+                                    maxLength={160}
+                                    placeholder="z. B. Curb-Line"
+                                    value={trick.name}
+                                    onChange={(event) => patchTrick(index, { name: event.target.value })}
+                                  />
+                                </div>
+                                <div className={styles.field}>
+                                  <span className={styles.fieldLabel}>
+                                    Reihenfolge <span>· 2–5 Tricks</span>
+                                  </span>
+                                  {parts.length ? (
+                                    <>
+                                      <ol className={styles.lineParts}>
+                                        {parts.map((part, k) => (
+                                          <li key={`${part.id}-${k}`}>
+                                            <span className={styles.linePartNumber}>{k + 1}</span>
+                                            <span className={styles.linePartName}>{part.name}</span>
+                                            <button
+                                              type="button"
+                                              aria-label={`${part.name} nach oben`}
+                                              disabled={k === 0}
+                                              onClick={() =>
+                                                patchParts(index, (current) => {
+                                                  const next = [...current];
+                                                  [next[k - 1], next[k]] = [next[k], next[k - 1]];
+                                                  return next;
+                                                })
+                                              }
+                                            >
+                                              ↑
+                                            </button>
+                                            <button
+                                              type="button"
+                                              aria-label={`${part.name} entfernen`}
+                                              data-remove
+                                              onClick={() => patchParts(index, (current) => current.filter((_, i) => i !== k))}
+                                            >
+                                              ✕
+                                            </button>
+                                          </li>
+                                        ))}
+                                      </ol>
+                                      <div className={styles.lineChips}>
+                                        {parts.map((part, k) => (
+                                          <span key={`${part.id}-${k}`} className={styles.lineChip}>
+                                            <b>{k + 1}</b>
+                                            {part.name}
+                                            <button
+                                              type="button"
+                                              aria-label={`${part.name} entfernen`}
+                                              onClick={() => patchParts(index, (current) => current.filter((_, i) => i !== k))}
+                                            >
+                                              ✕
+                                            </button>
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <p className={styles.lineEmpty}>Tippe unten die Tricks in der Reihenfolge der Line an.</p>
+                                  )}
+                                  {invalid ? (
+                                    <p className={styles.textDanger}>Eine Line braucht 2–5 Tricks.</p>
+                                  ) : null}
+                                  {parts.length < MAX_LINE_PARTS ? (
+                                    <div className={styles.chips}>
+                                      {planOptions.map((entry) => (
+                                        <button
+                                          key={entry.id}
+                                          type="button"
+                                          className={`${styles.chip} ${styles.chipLine}`}
+                                          onClick={() => patchParts(index, (current) => [...current, { id: entry.id, name: entry.name }])}
+                                        >
+                                          + {entry.name}
+                                        </button>
+                                      ))}
+                                      {libraryOptions.slice(0, 8).map((name) => (
+                                        <button
+                                          key={name}
+                                          type="button"
+                                          className={`${styles.chip} ${styles.chipLibrary}`}
+                                          onClick={() => patchParts(index, (current) => [...current, { id: libraryId(name), name }])}
+                                        >
+                                          + {name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <small className={styles.muted}>Maximal 5 Tricks pro Line.</small>
+                                  )}
+                                </div>
+                              </>
+                            ) : null}
                             <div className={styles.field}>
                               <label htmlFor={`${trick.id}-goal`}>Ziel</label>
                               <input
@@ -516,20 +754,20 @@ export function PlanWizard({
                               />
                             </div>
                             <div className={styles.rowBetween}>
-                              <Button
-                                variant="secondary"
-                                disabled={index === 0}
-                                onClick={() => {
-                                  setTricks((current) => {
-                                    const next = [...current];
-                                    [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                                    return next;
-                                  });
-                                  setOpenTrick(index - 1);
-                                }}
-                              >
-                                <ArrowUp size={16} aria-hidden="true" /> Nach oben
-                              </Button>
+                              <span className={styles.trickActions}>
+                                <Button variant="secondary" disabled={firstOfKind} onClick={() => moveUp(index)}>
+                                  <ArrowUp size={16} aria-hidden="true" /> Nach oben
+                                </Button>
+                                {!line ? (
+                                  <button
+                                    type="button"
+                                    className={styles.toLineButton}
+                                    onClick={() => addLine({ id: trick.id, name: trick.name }, index)}
+                                  >
+                                    ⛓ Zu Line verbinden
+                                  </button>
+                                ) : null}
+                              </span>
                               <button
                                 type="button"
                                 className={styles.removeButton}
@@ -548,8 +786,22 @@ export function PlanWizard({
                   })}
                 </ol>
               ) : (
-                <p className={styles.emptyCard}>Noch keine Tricks. Füge unten Tricks aus der Bibliothek oder eigene hinzu.</p>
+                <p className={styles.emptyCard}>
+                  {kind === "trick"
+                    ? "Noch keine Einzeltricks. Füge unten Tricks aus der Bibliothek oder eigene hinzu."
+                    : "Noch keine Lines. Verbinde mehrere Tricks zu einer Serie am Stück."}
+                </p>
               )}
+              {kind === "line" ? (
+                <button type="button" className={styles.addLineButton} onClick={() => addLine()}>
+                  <span aria-hidden="true">+</span>
+                  <span>
+                    <strong>Line hinzufügen</strong>
+                    <small>Tricks als Serie · mehrere Tricks am Stück</small>
+                  </span>
+                </button>
+              ) : null}
+              {kind === "trick" ? (
               <div className={styles.field}>
                 <label htmlFor={`${nameId}-search`}>Trick hinzufügen</label>
                 <div className={styles.searchInput}>
@@ -581,6 +833,7 @@ export function PlanWizard({
                   ))}
                 </div>
               </div>
+              ) : null}
             </>
           ) : null}
 
@@ -760,7 +1013,13 @@ export function PlanWizard({
               ) : null}
               {[
                 { label: "Grundlagen", value: name.trim() || "—", sub: [category, level, goal.trim()].filter(Boolean).join(" · "), step: 0 },
-                { label: `Tricks · ${tricks.length}`, value: tricks.length ? tricks.map((trick) => trick.name).join(", ") : "Noch keine Tricks", step: 1 },
+                {
+                  label: lineCount ? `Tricks · ${trickCount} · Lines · ${lineCount}` : `Tricks · ${trickCount}`,
+                  value: tricks.length
+                    ? tricks.map((trick) => (trick.type === "line" ? `${trick.name} (Line)` : trick.name)).join(", ")
+                    : "Noch keine Tricks",
+                  step: 1,
+                },
                 {
                   label: "Zuweisung",
                   value: assignmentSummary,
@@ -811,6 +1070,8 @@ export function PlanWizard({
         </footer>
         {step === 3 && !tricks.length ? (
           <p className={styles.footHint}>Füge mindestens einen Trick hinzu, um den Plan zu speichern.</p>
+        ) : step === 3 && invalidLines.length ? (
+          <p className={styles.footHint}>Jede Line braucht 2–5 Tricks. Speichern zeigt die betroffene Line.</p>
         ) : null}
       </section>
     </div>
