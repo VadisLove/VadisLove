@@ -192,6 +192,88 @@ export function parseHubContext(raw: unknown): HubContext {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Archiv & Papierkorb aus `training_plan_library`                      */
+/* ------------------------------------------------------------------ */
+
+export type PlanLifecycle = "active" | "draft" | "archived";
+
+/** Bisherige Athletin/bisheriger Athlet eines Plans (neueste Kopie). */
+export interface LibraryAthlete {
+  id: string;
+  name: string;
+  shareId: string;
+  archived: boolean;
+  /** Verlauf vorhanden: Kopie bleibt beim Löschen unter „Erledigt“ erhalten. */
+  history: boolean;
+}
+
+/** Verwaltbarer Plan (eigener oder – Vorstand – eines Vereinstrainers). */
+export interface LibraryEntry {
+  /** Plan-ID (bzw. Snapshot-ID bei Altfreigaben) für die Lebenszyklus-RPCs. */
+  key: string;
+  ownerId: string;
+  ownerName: string;
+  own: boolean;
+  title: string;
+  /** Altfreigabe ohne gespeicherten Plan: keine neuen Athlet*innen möglich. */
+  legacy: boolean;
+  archivedAt: string | null;
+  archivedReason: "completed" | "manual" | null;
+  deletedAt: string | null;
+  purgeAt: string | null;
+  athletes: LibraryAthlete[];
+}
+
+const date = (value: unknown) => (typeof value === "string" && value ? value : null);
+const reason = (value: unknown) => (value === "completed" || value === "manual" ? value : null);
+
+/** Liest die RPC-Antwort defensiv ein; null = Migration fehlt oder Abruf fehlgeschlagen. */
+export function parseLibrary(raw: unknown): LibraryEntry[] | null {
+  if (!raw || typeof raw !== "object") return null;
+  const data = raw as Record<string, unknown>;
+  return [...list(data.plans), ...list(data.legacy)]
+    .filter((entry) => entry && typeof entry.key === "string")
+    .map((entry) => ({
+      key: text(entry.key),
+      ownerId: text(entry.owner_id),
+      ownerName: text(entry.owner_name),
+      own: entry.own === true,
+      title: text(entry.title),
+      legacy: entry.legacy === true,
+      archivedAt: date(entry.archived_at),
+      archivedReason: reason(entry.archived_reason),
+      deletedAt: date(entry.deleted_at),
+      purgeAt: date(entry.purge_at),
+      athletes: list(entry.athletes).map((athlete) => ({
+        id: text(athlete.id),
+        name: text(athlete.name),
+        shareId: text(athlete.share_id),
+        archived: athlete.archived === true,
+        history: athlete.history === true,
+      })),
+    }));
+}
+
+/** Resttage bis zur endgültigen Bereinigung (mindestens 0). */
+export function daysLeft(purgeAt: string | null, now = Date.now()) {
+  if (!purgeAt) return 0;
+  return Math.max(0, Math.ceil((new Date(purgeAt).getTime() - now) / 86_400_000));
+}
+
+/** Untertitel im Archiv: Grund und Datum. */
+export function archiveLabel(plan: Pick<HubPlan, "archivedReason" | "archivedAt">, role: HubRole) {
+  const why = plan.archivedReason === "completed"
+    ? role === "staff" ? "Alle bestätigt" : "Alle Tricks bestätigt"
+    : role === "staff" ? "Manuell erledigt" : "Abgeschlossen";
+  return plan.archivedAt ? `${why} · ${formatShortDate(plan.archivedAt)}` : why;
+}
+
+function formatShortDate(value: string) {
+  // „12.09.“ – toLocaleDateString liefert den Schlusspunkt bereits mit.
+  return new Date(value).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+}
+
 export interface PermissionSection {
   label: string;
   athletes: { id: string; name: string; canCreatePlans: boolean }[];
@@ -246,6 +328,10 @@ export interface HubAssignment {
   recapConfirmed: Record<string, string>;
   /** Tricks/Lines, die im Live-Training bestätigt wurden (Zeitpunkt). */
   liveConfirmed?: Record<string, string>;
+  /** Kopie erledigt (alle Tricks bestätigt oder als erledigt markiert). */
+  archived?: boolean;
+  /** completed = alle Tricks bestätigt, manual = vom Trainer abgeschlossen/abgewählt. */
+  archivedReason?: "completed" | "manual";
 }
 
 export interface HubPlan {
@@ -287,6 +373,16 @@ export interface HubPlan {
   clubAssigned: boolean;
   /** Inhalt einer Vereinsvorlage zum Übernehmen in den Wizard. */
   templateContent?: TrainingPlan;
+  /**
+   * Bereich in der Planliste: aktiv, Entwurf (eigener Plan ohne aktive
+   * Zuweisung) oder archiviert/erledigt (nur lesbar, siehe Migration
+   * 20260930100000_plan_archive_trash).
+   */
+  lifecycle: PlanLifecycle;
+  archivedAt?: string;
+  archivedReason?: "completed" | "manual";
+  /** Eintrag aus `training_plan_library`, wenn ich den Plan verwalten darf. */
+  library?: LibraryEntry;
 }
 
 export function initialsOf(name: string) {
@@ -363,6 +459,8 @@ function assignmentOf(share: TrainingPlan, athleteId: string, athleteName: strin
     steps: stepsOf(share),
     recapConfirmed: recapConfirmedOf(share),
     liveConfirmed: liveConfirmedOf(share),
+    archived: Boolean(share.shareArchivedAt),
+    archivedReason: share.shareArchivedReason,
   };
 }
 
@@ -373,6 +471,7 @@ const planDefaults = {
   sharedWithTrainer: false,
   groupIds: [] as string[],
   clubAssigned: false,
+  lifecycle: "active" as PlanLifecycle,
 };
 
 function authorName(plan: TrainingPlan) {
@@ -386,15 +485,23 @@ export function buildHubPlans({
   userId,
   names,
   context = emptyHubContext,
+  library = null,
+  staff = false,
 }: {
   savedPlans: SavedPlan[];
   shares: TrainingPlan[];
   userId: string;
   names: Map<string, string>;
   context?: HubContext;
+  /** Archiv-/Papierkorbstatus; null, solange die Migration fehlt (dann alles aktiv). */
+  library?: LibraryEntry[] | null;
+  /** Trainer/Vorstand: eigene Pläne ohne aktive Zuweisung gelten als Entwurf. */
+  staff?: boolean;
 }): HubPlan[] {
   const nameOf = (id: string) => names.get(id) ?? "Athlet*in";
   const templateIds = new Set(context.clubTemplateIds);
+  // Nur eigene Einträge; Pläne anderer Trainer (Vorstand) zeigt die Vereinsansicht.
+  const ownLibrary = new Map((library ?? []).filter((entry) => entry.own).map((entry) => [entry.key, entry]));
 
   // Eigenfreigaben („Mit deinem Trainer teilen“) gehören zum eigenen Plan und
   // liefern dessen Fortschritt; sie erscheinen nicht zusätzlich als „erhalten“.
@@ -439,8 +546,10 @@ export function buildHubPlans({
     const selfShare = selfShares.get(saved.id);
     const assignments = selfShare ? [assignmentOf(selfShare, userId, nameOf(userId))] : assignmentsOf(group);
     const assignedGroups = context.groupAssignments.filter((entry) => entry.planId === saved.id);
+    const active = assignments.filter((assignment) => !assignment.archived);
     result.push({
       ...planDefaults,
+      library: ownLibrary.get(saved.id),
       isTemplate: templateIds.has(saved.id),
       sharedWithTrainer: Boolean(selfShare),
       groupIds: assignedGroups.flatMap((entry) => (entry.groupId ? [entry.groupId] : [])),
@@ -454,7 +563,7 @@ export function buildHubPlans({
       version: latest.version_number,
       createdAt: saved.versions[saved.versions.length - 1]?.created_at ?? latest.created_at,
       kind: "own",
-      isDraft: content.status === "draft" && assignments.length === 0 && !templateIds.has(saved.id),
+      isDraft: content.status === "draft" && active.length === 0 && !templateIds.has(saved.id),
       tricks: tricksOf(content),
       assignments,
       editable: content,
@@ -469,6 +578,7 @@ export function buildHubPlans({
     const newest = group[0];
     result.push({
       ...planDefaults,
+      library: ownLibrary.get(key),
       key: `sent:${key}`,
       title: newest.title,
       category: newest.category ?? "",
@@ -504,6 +614,9 @@ export function buildHubPlans({
       createdAt: share.sharedAt,
       kind: "received",
       isDraft: false,
+      lifecycle: share.shareArchivedAt ? "archived" : "active",
+      archivedAt: share.shareArchivedAt,
+      archivedReason: share.shareArchivedReason,
       tricks: tricksOf(share),
       assignments: [assignmentOf(share, userId, nameOf(userId))],
       editable: null,
@@ -529,6 +642,9 @@ export function buildHubPlans({
       createdAt: share.sharedAt,
       kind: "athlete",
       isDraft: false,
+      lifecycle: share.shareArchivedAt ? "archived" : "active",
+      archivedAt: share.shareArchivedAt,
+      archivedReason: share.shareArchivedReason,
       tricks: tricksOf(share),
       assignments: [assignmentOf(share, share.recipientUserId, athleteName)],
       editable: null,
@@ -566,7 +682,34 @@ export function buildHubPlans({
     });
   }
 
-  return result;
+  return result.flatMap((plan) => {
+    if (plan.kind !== "own" && plan.kind !== "sent") return [plan];
+    return plan.library?.deletedAt ? [] : [withLifecycle(plan, staff)];
+  });
+}
+
+/**
+ * Bereich eigener bzw. versendeter Pläne: archiviert laut Bibliothek (ohne
+ * Bibliothek: alle Kopien erledigt), sonst Entwurf ohne aktive Zuweisung.
+ */
+function withLifecycle(plan: HubPlan, staff: boolean): HubPlan {
+  const active = plan.assignments.filter((assignment) => !assignment.archived);
+  const archived = plan.library
+    ? Boolean(plan.library.archivedAt)
+    : plan.assignments.length > 0 && active.length === 0;
+  if (archived) {
+    return {
+      ...plan,
+      lifecycle: "archived",
+      archivedAt: plan.library?.archivedAt ?? undefined,
+      archivedReason: plan.library?.archivedReason ?? "completed",
+    };
+  }
+  const draft = plan.isDraft || (staff && plan.kind === "own" && !plan.isTemplate && active.length === 0);
+  // Aktive Pläne zeigen abgewählte Kopien nicht mehr; wer alles bestätigt hat, bleibt (100 %) sichtbar.
+  const shown = plan.assignments.filter((assignment) => !assignment.archived || assignment.archivedReason === "completed");
+  // Entwürfe haben keine aktive Zuweisung – dort zählt niemand mehr als zugewiesen.
+  return { ...plan, assignments: draft ? [] : shown, lifecycle: draft ? "draft" : "active" };
 }
 
 /** Eigene Fortschrittszeile einer Athletin/eines Athleten (erhalten oder mit Trainer geteilt). */

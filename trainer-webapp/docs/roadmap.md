@@ -52,6 +52,17 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
   lokal geprüft, Migrationen angewendet und vom Nutzer produktiv veröffentlicht.
   Praxisabnahme offen.
   [Umfang, Entscheidungen und Nachweis](park-cleanup-step-7c.md).
+- **Trainingspläne archivieren und löschen (30.09.2026, Review-Punkt 7):** Automatisches
+  Archivieren, sobald alle Athleten alle Tricks bestätigt haben, manuell „Als erledigt
+  markieren“, Bereiche Aktiv / Entwürfe / Archiv, Reaktivieren mit neuer Athletenauswahl
+  und Papierkorb (30 Tage) mit erhaltener Athletenhistorie. Vom Nutzer am 30.09.2026
+  entschieden und beauftragt.
+  - Technisch geprüft: ja (274 Tests, Typprüfung, Produktionsbuild, lokaler Prüfstand als
+    Trainer, Athlet und Vorstand).
+  - Veröffentlicht: nein – Migrationen `20260930100000` und `20260930100100` müssen vor
+    dem Deploy eingespielt werden; Branch `claude/plaene-archivieren-loeschen-9e79bb`.
+  - Praxisabnahme: offen.
+  [Umfang, Entscheidungen und Nachweis](plan-archive-trash.md).
 - **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
@@ -67,6 +78,7 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
 - [Schritt 7: Umfang und Entscheidungen](park-run-planner-step-7.md) ·
   [technischer Nachweis](park-run-planner-step-7-release.md).
 - [Schritt 7c: Parks löschen, Speicherbereinigung, Caching](park-cleanup-step-7c.md).
+- [Trainingspläne archivieren und löschen](plan-archive-trash.md).
 - [Qualitätsrahmen](ISO_IEC_25002_Zusammenfassung.md).
 
 Vor Umsetzung eines Pakets Ziel, Rollen, Umfang, Ausschlüsse und Abnahmekriterien

@@ -741,3 +741,98 @@ export async function confirmTrickFromRecap({
   revalidatePath("/", "layout");
   return { status: "success", message: "Bestätigt." };
 }
+
+/* ------------------------------------------------------------------ */
+/* Archiv & Papierkorb (Migration 20260930100000_plan_archive_trash)     */
+/* ------------------------------------------------------------------ */
+
+/** Verweis auf einen verwaltbaren Plan: Plan-ID und Ersteller (Vorstand ≠ Ersteller). */
+export interface PlanLifecycleTarget {
+  planKey: string;
+  ownerId: string;
+}
+
+/** Fehlertexte der Lebenszyklus-RPCs (Rechte, Konflikte, gesperrte Pläne). */
+function lifecycleError(error: { code?: string; message?: string }, fallback: string): PlanHubActionResult {
+  console.error(fallback, { code: error.code, message: error.message });
+  const message =
+    error.code === "42501"
+      ? forbiddenMessage
+      : error.code === "40001"
+        ? "Der Plan wurde inzwischen geändert. Bitte neu laden."
+        : error.code === "55000"
+          ? "Der Plan ist archiviert. Reaktiviere ihn zuerst."
+          : `${fallback} Bitte erneut versuchen.`;
+  return { status: "error", message };
+}
+
+async function runLifecycle(
+  rpc: "training_plan_archive" | "training_plan_delete" | "training_plan_restore" | "training_plan_reactivate",
+  args: Record<string, unknown>,
+  fallback: string,
+): Promise<{ result: PlanHubActionResult; data?: Record<string, number> }> {
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { result: { status: "error", message: "Bitte erneut anmelden." } };
+  const { data, error } = await supabase.rpc(rpc, args);
+  if (error) return { result: lifecycleError(error, fallback) };
+  revalidatePath("/trainingsplaene");
+  revalidatePath("/", "layout");
+  return { result: { status: "success", message: "Gespeichert." }, data: (data ?? {}) as Record<string, number> };
+}
+
+/** „Als erledigt markieren“: Plan und alle aktiven Kopien kommen ins Archiv. */
+export async function archiveTrainingPlan({ planKey, ownerId }: PlanLifecycleTarget): Promise<PlanHubActionResult> {
+  const { result } = await runLifecycle(
+    "training_plan_archive",
+    { p_plan: planKey, p_owner: ownerId },
+    "Der Plan konnte nicht archiviert werden.",
+  );
+  return result;
+}
+
+/**
+ * Reaktivieren mit neuer Auswahl. Gewählte bisherige Athlet*innen behalten
+ * ihren Fortschritt, neue erhalten den aktuellen Planstand; ohne Auswahl wird
+ * der Plan zum Entwurf.
+ */
+export async function reactivateTrainingPlan({
+  planKey,
+  ownerId,
+  athleteIds,
+  groupIds,
+  club,
+}: PlanLifecycleTarget & { athleteIds: string[]; groupIds: string[]; club: boolean }): Promise<PlanHubActionResult> {
+  const { result, data } = await runLifecycle(
+    "training_plan_reactivate",
+    {
+      p_plan: planKey,
+      p_owner: ownerId,
+      p_athletes: Array.from(new Set(athleteIds)).slice(0, 200),
+      p_groups: Array.from(new Set(groupIds)).slice(0, 50),
+      p_club: club,
+    },
+    "Der Plan konnte nicht reaktiviert werden.",
+  );
+  if (result.status === "success") result.count = Number(data?.restored ?? 0) + Number(data?.shared ?? 0);
+  return result;
+}
+
+/** In den Papierkorb (30 Tage wiederherstellbar). */
+export async function deleteTrainingPlan({ planKey, ownerId }: PlanLifecycleTarget): Promise<PlanHubActionResult> {
+  const { result } = await runLifecycle(
+    "training_plan_delete",
+    { p_plan: planKey, p_owner: ownerId },
+    "Der Plan konnte nicht gelöscht werden.",
+  );
+  return result;
+}
+
+/** Aus dem Papierkorb dorthin zurück, wo der Plan vorher war. */
+export async function restoreTrainingPlan({ planKey, ownerId }: PlanLifecycleTarget): Promise<PlanHubActionResult> {
+  const { result } = await runLifecycle(
+    "training_plan_restore",
+    { p_plan: planKey, p_owner: ownerId },
+    "Der Plan konnte nicht wiederhergestellt werden.",
+  );
+  return result;
+}

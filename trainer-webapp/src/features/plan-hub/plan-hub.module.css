@@ -3489,3 +3489,155 @@ button.cell {
     display: none !important;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Archiv & Papierkorb (Umschalter, Menü „…“, Zeilenlisten)              */
+/* ------------------------------------------------------------------ */
+
+/* Umschalter Aktiv · Entwürfe · Archiv – eine Zeile, auch auf dem Handy. */
+.segments {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--divider);
+}
+
+.segments button {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 38px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segments button span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.segments .segmentOn {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(16, 34, 56, 0.12);
+}
+
+/* Unauffälliger Einstieg zum Papierkorb unter der Liste. */
+.archiveLink {
+  justify-self: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.archiveLink:hover {
+  color: var(--link);
+}
+
+/* Menü „…“ in Plan-Detail und Vereinsliste. */
+.menuRoot {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  min-width: 250px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(16, 34, 56, 0.16);
+  list-style: none;
+}
+
+.menu button {
+  display: grid;
+  width: 100%;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--surface);
+}
+
+.menu strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.menu small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.menu .menuDanger strong {
+  color: var(--danger);
+}
+
+/* Papierkorb und Vereinspläne: schlichte Zeilen statt Karten. */
+.archivePanel {
+  display: grid;
+  gap: 12px;
+  max-width: 640px;
+}
+
+.rowList {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+
+.archiveRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* Erledigte Pläne in der Liste etwas zurücknehmen. */
+.planCardArchived .percent,
+.planCardArchived .planCardTitle strong {
+  color: var(--secondary);
+}
+
+.readOnlyNote {
+  display: grid;
+  gap: 10px;
+}
+
+.mobileBarActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

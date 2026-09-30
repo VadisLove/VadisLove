@@ -64,7 +64,7 @@ create function private.can_manage_organization(target_organization_id uuid) ret
 create function private.can_view_shared_training_plan(target uuid) returns boolean language sql stable as $$ select false $$;
 
 create table public.training_plans(id uuid primary key default gen_random_uuid(), organization_id uuid not null, created_by uuid references public.profiles(id), title text, category text, created_at timestamptz default now(), updated_at timestamptz default now());
-create table public.training_plan_versions(id uuid primary key default gen_random_uuid(), training_plan_id uuid references public.training_plans(id), version_number integer, content jsonb, created_by uuid, created_at timestamptz default now(), unique(training_plan_id,version_number));
+create table public.training_plan_versions(id uuid primary key default gen_random_uuid(), training_plan_id uuid references public.training_plans(id) on delete cascade, version_number integer, content jsonb, created_by uuid, created_at timestamptz default now(), unique(training_plan_id,version_number));
 create table public.training_plan_shares(id uuid primary key, training_plan_id uuid, target_organization_id uuid);
 alter table public.training_plans enable row level security;
 alter table public.training_plan_versions enable row level security;

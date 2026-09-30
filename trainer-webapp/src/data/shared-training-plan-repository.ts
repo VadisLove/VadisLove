@@ -24,6 +24,19 @@ interface TrickProgressRow {
   confirmed_source: "review" | "recap" | "live" | null;
 }
 
+interface SnapshotShareRow {
+  id: string;
+  shared_by: string;
+  // Wie bisher als string typisiert (Gruppenfreigaben tragen null).
+  recipient_user_id: string;
+  plan_snapshot: unknown;
+  created_at: string;
+  shared_with_trainers: boolean | null;
+  archived_at?: string | null;
+  archived_reason?: "completed" | "manual" | null;
+  deleted_at?: string | null;
+}
+
 interface TrainingVideoEvidenceRow {
   id: string;
   snapshot_share_id: string;
@@ -98,12 +111,18 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
   const currentUserId = await getAuthenticatedUserId(supabase);
   if (!currentUserId) return [];
 
-  const { data, error } = await supabase
-    .from("training_plan_snapshot_shares")
-    .select("id, shared_by, recipient_user_id, plan_snapshot, created_at, shared_with_trainers")
-    // Eigene Freigaben plus mit Trainer*innen geteilte Pläne der eigenen Athlet*innen (RLS prüft die Beziehung).
-    .or(`recipient_user_id.eq.${currentUserId},shared_by.eq.${currentUserId},shared_with_trainers.eq.true`)
-    .order("created_at", { ascending: false });
+  const baseColumns = "id, shared_by, recipient_user_id, plan_snapshot, created_at, shared_with_trainers";
+  const load = (columns: string) =>
+    supabase
+      .from("training_plan_snapshot_shares")
+      .select(columns)
+      // Eigene Freigaben plus mit Trainer*innen geteilte Pläne der eigenen Athlet*innen (RLS prüft die Beziehung).
+      .or(`recipient_user_id.eq.${currentUserId},shared_by.eq.${currentUserId},shared_with_trainers.eq.true`)
+      .order("created_at", { ascending: false })
+      .returns<SnapshotShareRow[]>();
+  let { data, error } = await load(`${baseColumns}, archived_at, archived_reason, deleted_at`);
+  // Übergang: Solange die Archiv-Migration fehlt, ohne Archivstatus laden (42703 = unbekannte Spalte).
+  if (error?.code === "42703") ({ data, error } = await load(baseColumns));
 
   if (error) {
     if (
@@ -116,7 +135,12 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
     throw new Error(`Geteilte Trainingspläne konnten nicht geladen werden: ${error.message}`);
   }
 
-  const shares = data || [];
+  // Gelöschte Pläne (Papierkorb) erscheinen nur noch beim Empfänger – als
+  // erledigte Kopie, sofern die Datenbank sie ihm wegen Verlauf noch zeigt.
+  // Absender und Trainer sehen sie nur im Papierkorb (training_plan_library).
+  const shares = (data || []).filter(
+    (share) => !share.deleted_at || (share.recipient_user_id === currentUserId && share.shared_by !== currentUserId),
+  );
   const shareIds = shares.map((share) => share.id);
   const progressByShare = new Map<
     string,
@@ -173,6 +197,8 @@ export async function getSharedTrainingPlanSnapshots(): Promise<TrainingPlan[]> 
       recipientUserId: row.recipient_user_id,
       sharedById: row.shared_by,
       sharedAt: row.created_at,
+      shareArchivedAt: row.archived_at ?? undefined,
+      shareArchivedReason: row.archived_reason ?? undefined,
       author: `${normalizedPlan.author} · ${direction}`,
       assignedAthletes: progressAthleteIds.length > 0
         ? progressAthleteIds

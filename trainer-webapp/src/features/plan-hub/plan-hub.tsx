@@ -4,8 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUp, ChevronLeft, ChevronRight, History, Plus } from "lucide-react";
 import {
+  archiveTrainingPlan,
   assignTrainingPlan,
   confirmTrickFromRecap,
+  deleteTrainingPlan,
+  reactivateTrainingPlan,
+  restoreTrainingPlan,
   reviewTrainingVideoEvidence,
   saveSalutation,
   setAthletePlanPermission,
@@ -13,6 +17,7 @@ import {
   shareOwnPlanWithTrainer,
   submitTrainingReport,
   updateSharedTrickProgress,
+  type PlanHubActionResult,
 } from "@/app/trainingsplaene/actions";
 import { setPlanCreateMode } from "@/components/layout/mobile-bottom-navigation";
 import type { TrainingPlan, TrainingVideoEvidence, TrickProgressStatus } from "@/domain/models";
@@ -23,6 +28,7 @@ import { SessionView, StartTraining, type PlanStepLookup } from "@/features/trai
 import { RunningCard } from "@/features/training/live-entry";
 import { useTrainingWorkspace } from "@/features/training/use-training-workspace";
 import {
+  archiveLabel,
   buildHubPlans,
   cellKey,
   daysUntil,
@@ -50,12 +56,22 @@ import {
   type HubRole,
   type HubTrick,
   type HubWords,
+  type LibraryEntry,
   type Salutation,
   type Step,
   type WaitingReport,
 } from "./plan-hub-model";
 import { HubWordsContext, useWords } from "./hub-words";
 import { PlanDetail } from "./plan-detail";
+import {
+  ClubPlansView,
+  DeleteSheet,
+  PlanSegments,
+  ReactivateSheet,
+  TrashView,
+  type PlanSegment,
+  type ReactivateInput,
+} from "./plan-archive";
 import { AthleteProgress, StaffProgress } from "./plan-progress";
 import { RecapView } from "./plan-recap";
 import { PermissionsSheet, ReportSheet, ReviewSheet, SalutationSheet, type ReportInput } from "./plan-sheets";
@@ -85,11 +101,17 @@ export interface HubActions {
   showRecap: () => void;
   /** „+ Line erstellen“: Plan bearbeiten, Schritt „Tricks“, neue Line offen. */
   createLine: (plan: HubPlan) => void;
+  /** Archiv & Papierkorb; nur für Pläne mit Bibliothekseintrag (verwaltbar). */
+  archive: (plan: HubPlan) => void;
+  reactivate: (plan: HubPlan) => void;
+  remove: (plan: HubPlan) => void;
 }
 
 type SheetState =
   | { type: "report"; plan: HubPlan; assignment: HubAssignment; trick: HubTrick }
   | { type: "review"; report: WaitingReport }
+  | { type: "reactivate"; entry: LibraryEntry }
+  | { type: "delete"; entry: LibraryEntry }
   | null;
 
 const dotTone = ["dotOpen", "dotPracticed", "dotReported", "dotConfirmed"] as const;
@@ -129,6 +151,7 @@ export function PlanHub({
   initialExercise,
   createRequest,
   context,
+  library = null,
   initialRights = false,
 }: {
   workspace: TrainingWorkspace | null;
@@ -145,6 +168,8 @@ export function PlanHub({
   createRequest: string | null;
   /** Rollen, Rechte, Anrede, Gruppen und Vorlagen; null, wenn der Abruf fehlschlug. */
   context: HubContext | null;
+  /** Archiv-/Papierkorbstatus verwaltbarer Pläne; null ohne Migration (alles aktiv). */
+  library?: LibraryEntry[] | null;
   /** `?rechte=1` (Profil → Berechtigungen) öffnet „Wer darf erstellen?“. */
   initialRights?: boolean;
 }) {
@@ -217,7 +242,15 @@ export function PlanHub({
 
   const plans = useMemo(() => {
     if (!data) return [];
-    const built = buildHubPlans({ savedPlans: data.plans, shares: data.shares, userId: data.user.id, names, context: ctx }).map((plan) => ({
+    const built = buildHubPlans({
+      savedPlans: data.plans,
+      shares: data.shares,
+      userId: data.user.id,
+      names,
+      context: ctx,
+      library,
+      staff,
+    }).map((plan) => ({
       ...plan,
       assignments: plan.assignments.map((assignment) => ({
         ...assignment,
@@ -230,10 +263,12 @@ export function PlanHub({
       })),
     }));
     return sortHubPlans(built, role);
-  }, [data, names, overrides, role, ctx]);
+  }, [data, names, overrides, role, ctx, library, staff]);
+  // Erledigte/archivierte Pläne sind nur lesbar: keine Meldungen, kein „nächster Schritt“.
+  const livePlans = useMemo(() => plans.filter((plan) => plan.lifecycle !== "archived"), [plans]);
 
   const evidenceMap = useMemo(() => pendingEvidenceMap(evidence), [evidence]);
-  const reports = useMemo(() => (staff ? waitingReports(plans, evidenceMap) : []), [staff, plans, evidenceMap]);
+  const reports = useMemo(() => (staff ? waitingReports(livePlans, evidenceMap) : []), [staff, livePlans, evidenceMap]);
   // „mit Video“ (▶) nur bei echten Videos, reine Notizen zählen als „!“.
   const hasEvidence = useCallback(
     (key: string) => {
@@ -260,9 +295,39 @@ export function PlanHub({
   const [sheet, setSheet] = useState<SheetState>(null);
   const [busyKey, setBusyKey] = useState("");
 
-  const selected = findPlan(selectedKey) ?? plans[0] ?? null;
+  // Bereiche der Planliste; archivierte Pläne verschwinden aus „Aktiv“.
+  const [segment, setSegment] = useState<PlanSegment>("aktiv");
+  const [trashOpen, setTrashOpen] = useState(false);
+  const segmentPlans: Record<PlanSegment, HubPlan[]> = {
+    aktiv: plans.filter((plan) => plan.lifecycle === "active"),
+    entwuerfe: plans.filter((plan) => plan.lifecycle === "draft"),
+    archiv: plans.filter((plan) => plan.lifecycle === "archived"),
+    verein: [],
+  };
+  // Vorstand: Pläne anderer Trainer verwalteter Vereine; Papierkorb: eigene und diese.
+  const clubEntries = (library ?? []).filter((entry) => !entry.own && !entry.deletedAt);
+  const trashEntries = (library ?? []).filter((entry) => entry.deletedAt);
+  const segmentOptions = (
+    [
+      { id: "aktiv", label: "Aktiv", count: segmentPlans.aktiv.length },
+      { id: "entwuerfe", label: "Entwürfe", count: segmentPlans.entwuerfe.length },
+      { id: "archiv", label: staff ? "Archiv" : "Erledigt", count: segmentPlans.archiv.length },
+      { id: "verein", label: "Verein", count: clubEntries.length },
+    ] satisfies { id: PlanSegment; label: string; count: number }[]
+  ).filter(
+    (option) =>
+      option.id === "aktiv" ||
+      option.count > 0 ||
+      (option.id === "entwuerfe" && staff) ||
+      (option.id === "archiv" && staff),
+  );
+  const showSegments = segmentOptions.length > 1;
+  const visiblePlans = segmentPlans[segment];
+
+  const selected = findPlan(selectedKey) ?? visiblePlans[0] ?? null;
+  // Trainer: nur laufende Pläne (Meldungen). Athleten: eigener Fortschritt inkl. erledigter Pläne (nur lesen).
   const progressPlans = staff
-    ? plans.filter((plan) => plan.assignments.length)
+    ? livePlans.filter((plan) => plan.assignments.length)
     : plans.filter((plan) => myAssignment(plan));
   const progressPlan =
     findPlan(progressKey) && progressPlans.includes(findPlan(progressKey)!)
@@ -321,12 +386,12 @@ export function PlanHub({
   /** „↑ Trick melden“: nächster geübter Trick, sonst Hinweis und Pfad öffnen. */
   // `scroll = false`, wenn der Aufruf während des Renderns erfolgt (Tab-Bar-Anfrage).
   function reportShortcut(scroll = true) {
-    const next = nextReportable(plans);
+    const next = nextReportable(livePlans);
     if (next) {
       setSheet({ type: "report", ...next });
       return;
     }
-    const step = nextStepFor(plans);
+    const step = nextStepFor(livePlans);
     setToast(step ? `Markiere ${step.trick.name} zuerst als geübt – dann kannst du ihn melden.` : "Noch kein Trick zum Melden.");
     if (step) {
       setTab("plaene");
@@ -441,6 +506,69 @@ export function PlanHub({
     }
   }
 
+  /* ------------------------- Archiv & Papierkorb ------------------------ */
+
+  /** Führt eine Lebenszyklus-Aktion aus; `true`, wenn gespeichert. */
+  async function lifecycle(entry: LibraryEntry, run: () => Promise<PlanHubActionResult>, success: string) {
+    setBusyKey(entry.key);
+    try {
+      const result = await run();
+      if (result.status === "error") {
+        setToast(result.message);
+        return false;
+      }
+      setToast(success);
+      router.refresh();
+      return true;
+    } catch {
+      setToast("Nicht gespeichert. Bitte erneut versuchen.");
+      return false;
+    } finally {
+      setBusyKey("");
+    }
+  }
+
+  const target = (entry: LibraryEntry) => ({ planKey: entry.key, ownerId: entry.ownerId });
+
+  function archiveEntry(entry: LibraryEntry) {
+    void lifecycle(entry, () => archiveTrainingPlan(target(entry)), `„${entry.title}“ ist erledigt und im Archiv`).then(
+      (ok) => ok && entry.own && setMobileDetail(false),
+    );
+  }
+
+  function reactivateEntry(entry: LibraryEntry, input: ReactivateInput) {
+    const draft = !input.athleteIds.length && !input.groupIds.length && !input.club;
+    void lifecycle(
+      entry,
+      () => reactivateTrainingPlan({ ...target(entry), ...input }),
+      draft ? `„${entry.title}“ liegt jetzt bei den Entwürfen` : `„${entry.title}“ ist wieder aktiv`,
+    ).then((ok) => {
+      if (!ok) return;
+      setSheet(null);
+      if (entry.own) {
+        setSegment(draft ? "entwuerfe" : "aktiv");
+        setSelectedKey(entry.key);
+      }
+    });
+  }
+
+  function deleteEntry(entry: LibraryEntry) {
+    void lifecycle(entry, () => deleteTrainingPlan(target(entry)), `„${entry.title}“ liegt 30 Tage im Papierkorb`).then((ok) => {
+      if (!ok) return;
+      setSheet(null);
+      setMobileDetail(false);
+    });
+  }
+
+  function restoreEntry(entry: LibraryEntry) {
+    void lifecycle(entry, () => restoreTrainingPlan(target(entry)), `„${entry.title}“ wiederhergestellt`);
+  }
+
+  function switchSegment(next: PlanSegment) {
+    setSegment(next);
+    setSelectedKey(segmentPlans[next][0]?.key ?? null);
+  }
+
   const actions: HubActions = {
     busyKey,
     markPracticed: (_plan, assignment, trick) =>
@@ -518,6 +646,9 @@ export function PlanHub({
     resumeTraining: (id, exercise) => openSession(id, exercise),
     showRecap: () => switchTab("rueckblick"),
     createLine: (plan) => setWizard({ edit: plan, step: 1, line: true }),
+    archive: (plan) => plan.library && archiveEntry(plan.library),
+    reactivate: (plan) => plan.library && setSheet({ type: "reactivate", entry: plan.library }),
+    remove: (plan) => plan.library && setSheet({ type: "delete", entry: plan.library }),
   };
 
   async function submitWizard(result: WizardResult) {
@@ -721,6 +852,8 @@ export function PlanHub({
 
       {!data ? (
         <p className={styles.emptyCard}>Deine Trainingspläne werden erst nach erfolgreichem Abruf angezeigt.</p>
+      ) : tab === "plaene" && trashOpen ? (
+        <TrashView entries={trashEntries} busyKey={busyKey} onRestore={restoreEntry} onBack={() => setTrashOpen(false)} />
       ) : tab === "plaene" ? (
         <div className={styles.plansLayout}>
           <div className={styles.planList}>
@@ -728,9 +861,9 @@ export function PlanHub({
               <RunningCard key={entry.id} session={entry} compact onResume={(index) => openSession(entry.id, index)} />
             ))}
 
-            {role === "athlete" ? <NextStepCard plans={plans} actions={actions} onOpen={selectPlan} /> : null}
+            {role === "athlete" ? <NextStepCard plans={livePlans} actions={actions} onOpen={selectPlan} /> : null}
 
-            <ProgressEntry role={role} plans={plans} reports={reports.length} onOpen={() => switchTab("fortschritt")} />
+            <ProgressEntry role={role} plans={staff ? livePlans : plans} reports={reports.length} onOpen={() => switchTab("fortschritt")} />
 
             <button type="button" className={`${styles.entryCard} ${styles.mobileOnlyFlex}`} onClick={() => switchTab("rueckblick")}>
               <span className={`${styles.entryIcon} ${styles.entryBlue}`}>
@@ -743,31 +876,47 @@ export function PlanHub({
               <ChevronRight size={18} aria-hidden="true" />
             </button>
 
-            {plans.length ? <h2 className={`${styles.listLabel} ${styles.mobileOnly}`}>Meine Pläne</h2> : null}
-            {plans.map((plan) => (
-              <PlanCard
-                key={plan.key}
-                plan={plan}
-                role={role}
-                groups={ctx.groups}
-                selected={selected?.key === plan.key}
-                onSelect={() => selectPlan(plan.key)}
-              />
-            ))}
-            {!plans.length ? (
-              <p className={styles.emptyCard}>
-                {canCreate ? "Noch keine Pläne. Erstelle deinen ersten Plan – auch ohne Verein." : "Noch keine Pläne zugewiesen."}
-              </p>
+            {showSegments ? (
+              <PlanSegments value={segment} options={segmentOptions} onChange={switchSegment} />
+            ) : plans.length ? (
+              <h2 className={`${styles.listLabel} ${styles.mobileOnly}`}>Meine Pläne</h2>
             ) : null}
-            {canCreate ? (
+            {segment === "verein" ? (
+              <ClubPlansView
+                entries={clubEntries}
+                onArchive={archiveEntry}
+                onReactivate={(entry) => setSheet({ type: "reactivate", entry })}
+                onDelete={(entry) => setSheet({ type: "delete", entry })}
+              />
+            ) : (
+              visiblePlans.map((plan) => (
+                <PlanCard
+                  key={plan.key}
+                  plan={plan}
+                  role={role}
+                  groups={ctx.groups}
+                  selected={selected?.key === plan.key}
+                  onSelect={() => selectPlan(plan.key)}
+                />
+              ))
+            )}
+            {segment !== "verein" && !visiblePlans.length ? (
+              <p className={styles.emptyCard}>{emptyText(segment, canCreate, staff)}</p>
+            ) : null}
+            {segment === "verein" || segment === "archiv" ? null : canCreate ? (
               <button type="button" className={styles.newPlan} onClick={() => setWizard({ edit: null })}>
                 <Plus size={18} aria-hidden="true" /> Neuer Plan
               </button>
-            ) : (
+            ) : segment === "aktiv" ? (
               <p className={styles.listHint}>Neue Pläne erstellt {w.nom} oder der Verein.</p>
-            )}
+            ) : null}
+            {trashEntries.length ? (
+              <button type="button" className={styles.archiveLink} onClick={() => setTrashOpen(true)}>
+                Papierkorb · {trashEntries.length}
+              </button>
+            ) : null}
           </div>
-          {selected ? (
+          {selected && segment !== "verein" ? (
             <PlanDetail
               key={selected.key}
               plan={selected}
@@ -858,6 +1007,25 @@ export function PlanHub({
           onSubmit={(input) => submitReport(sheet.assignment, sheet.trick, input)}
         />
       ) : null}
+      {sheet?.type === "reactivate" ? (
+        <ReactivateSheet
+          entry={sheet.entry}
+          candidates={wizardAthletes(data?.people ?? [], ctx)}
+          groups={ctx.groups}
+          clubs={persona === "board" ? ctx.clubs : []}
+          busy={busyKey === sheet.entry.key}
+          onSubmit={(input) => reactivateEntry(sheet.entry, input)}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {sheet?.type === "delete" ? (
+        <DeleteSheet
+          entry={sheet.entry}
+          busy={busyKey === sheet.entry.key}
+          onConfirm={() => deleteEntry(sheet.entry)}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
       {sheet?.type === "review" ? (
         <ReviewSheet
           report={sheet.report}
@@ -879,6 +1047,17 @@ function wizardAthletes(people: { id: string; name: string }[], context: HubCont
   const map = new Map(people.map((person) => [person.id, person.name]));
   for (const athlete of context.athletes) if (!map.has(athlete.id)) map.set(athlete.id, athlete.name);
   return [...map].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, "de"));
+}
+
+/** Leerer Bereich: kurze Einladung statt leerer Liste. */
+function emptyText(segment: PlanSegment, canCreate: boolean, staff: boolean) {
+  if (segment === "entwuerfe") return "Keine Entwürfe. Pläne ohne zugewiesene Athleten erscheinen hier.";
+  if (segment === "archiv") {
+    return staff
+      ? "Noch nichts im Archiv. Erledigte Pläne landen hier und lassen sich reaktivieren."
+      : "Noch keine erledigten Pläne.";
+  }
+  return canCreate ? "Noch keine Pläne. Erstelle deinen ersten Plan – auch ohne Verein." : "Noch keine Pläne zugewiesen.";
 }
 
 /* ----------------------------- Listenkarten ----------------------------- */
@@ -903,7 +1082,7 @@ function PlanCard({
   return (
     <button
       type="button"
-      className={`${styles.planCard} ${selected ? styles.planCardOn : ""}`}
+      className={`${styles.planCard} ${selected ? styles.planCardOn : ""} ${plan.lifecycle === "archived" ? styles.planCardArchived : ""}`}
       aria-pressed={selected}
       onClick={onSelect}
     >
@@ -937,6 +1116,7 @@ function planCardSub(plan: HubPlan, role: HubRole, groups: HubGroup[], w: HubWor
   const count = plan.assignments.length;
   const athletes = `${count} ${count === 1 ? "Athlet" : "Athleten"}`;
   if (plan.kind === "template") return `Vereinsvorlage · ${plan.sourceLabel || "vom Vorstand"}`;
+  if (plan.lifecycle === "archived") return archiveLabel(plan, role);
   if (role === "staff") {
     if (plan.kind === "athlete") return `Von ${shortName(plan.createdByAthlete)} erstellt · mit dir geteilt`;
     if (plan.clubAssigned) return `Alle Gruppen im Verein · ${athletes}`;

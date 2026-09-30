@@ -242,6 +242,12 @@ export interface TrainingPlan {
   recipientUserId?: string;
   sharedById?: string;
   sharedAt?: string;
+  /**
+   * Nur bei geladenen Freigaben: Die Kopie ist erledigt (alle Tricks bestätigt
+   * oder vom Trainer als erledigt markiert) und nur noch lesbar.
+   */
+  shareArchivedAt?: string;
+  shareArchivedReason?: "completed" | "manual";
 }
 
 export type GoalCadence = "daily" | "weekly" | "monthly" | "yearly";

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { TrainingSession } from "@/domain/training";
 import { NoStartCard, RunningCard, StartCard } from "@/features/training/live-entry";
 import {
+  archiveLabel,
   cellKey,
   confirmedCount,
   currentTrickIndex,
@@ -26,6 +27,7 @@ import {
 } from "./plan-hub-model";
 import type { HubActions } from "./plan-hub";
 import { useWords } from "./hub-words";
+import { PlanMenu, type MenuItem } from "./plan-archive";
 import styles from "./plan-hub.module.css";
 
 const toneClass = ["toneOpen", "tonePracticed", "toneReported", "toneConfirmed"] as const;
@@ -58,7 +60,8 @@ export function PlanDetail({
   const staff = role === "staff";
   const assigned = plan.assignments.length > 0;
   const mine = role !== "staff" ? myAssignment(plan) : null;
-  const current = currentTrickIndex(plan, role);
+  // Erledigte Pläne haben keinen „Jetzt dran“-Schritt mehr.
+  const current = plan.lifecycle === "archived" ? -1 : currentTrickIndex(plan, role);
   const days = daysUntil(plan.deadline);
   const w = useWords();
 
@@ -71,10 +74,30 @@ export function PlanDetail({
           ? [assigned ? `${plan.assignments.length} ${plan.assignments.length === 1 ? "Athlet" : "Athleten"}` : "Noch nicht zugewiesen", `${plan.tricks.length} Tricks`].join(" · ")
           : `${mine ? "Dein Pfad" : "Eigener Plan"} · ${plan.tricks.length} Tricks`;
 
+  // Erledigte/archivierte Pläne sind nur lesbar (erst reaktivieren).
+  const archived = plan.lifecycle === "archived";
+  const editable = Boolean(plan.editable) && !archived;
   // Trainer, Vorstand und Skater mit Erstellrecht; nur eigene (versionierte) Pläne.
-  const canCreateLine = canCreate && Boolean(plan.editable);
+  const canCreateLine = canCreate && editable;
 
-  const nowCard = (
+  // Menü „…“: nur für verwaltbare Pläne (Ersteller bzw. Vorstand, siehe DB).
+  // „Bearbeiten“ steht bei Trainern schon als eigener Button daneben.
+  const menu: MenuItem[] = plan.library
+    ? archived
+      ? [{ label: "Löschen", hint: "30 Tage im Papierkorb", danger: true, onSelect: () => actions.remove(plan) }]
+      : [
+          ...(editable && !staff ? [{ label: "Bearbeiten", onSelect: () => actions.edit(plan) }] : []),
+          {
+            label: "Als erledigt markieren",
+            hint: staff ? "Kommt ins Archiv, Athleten sehen „Erledigt“" : "Kommt zu „Erledigt“",
+            onSelect: () => actions.archive(plan),
+          },
+          { label: "Löschen", hint: "30 Tage im Papierkorb", danger: true, onSelect: () => actions.remove(plan) },
+        ]
+    : [];
+
+  // Archivierte Pläne zeigen statt „Jetzt dran“ die Archiv-Karte direkt unter dem Kopf.
+  const nowCard = archived ? null : (
     <NowCard plan={plan} role={role} current={current} mine={mine} actions={actions} hasEvidence={hasEvidence} />
   );
 
@@ -84,24 +107,29 @@ export function PlanDetail({
         <button type="button" className={styles.back} onClick={onBack}>
           <ChevronLeft size={18} aria-hidden="true" /> Pläne
         </button>
-        {staff && plan.editable ? (
-          <Button variant="secondary" onClick={() => actions.edit(plan)}>
-            Bearbeiten
-          </Button>
-        ) : null}
+        <span className={styles.mobileBarActions}>
+          {staff && editable ? (
+            <Button variant="secondary" onClick={() => actions.edit(plan)}>
+              Bearbeiten
+            </Button>
+          ) : null}
+          <PlanMenu items={menu} />
+        </span>
       </div>
 
       <header className={styles.detailHead}>
         <div>
           <div className={styles.pills}>
-            {plan.isDraft ? (
+            {archived ? (
+              <span className={`${styles.pill} ${styles.pillMuted}`}>{staff ? "Archiviert" : "Erledigt"}</span>
+            ) : plan.isDraft || plan.lifecycle === "draft" ? (
               <span className={`${styles.pill} ${styles.pillMuted}`}>Entwurf</span>
             ) : plan.kind !== "template" ? (
               <span className={`${styles.pill} ${styles.pillGood}`}>Aktiv</span>
             ) : null}
             {plan.isTemplate ? <span className={`${styles.pill} ${styles.pillTemplate}`}>Vorlage</span> : null}
             {plan.kind === "athlete" ? <span className={`${styles.pill} ${styles.pillBlue}`}>Athlet</span> : null}
-            {days !== null ? (
+            {days !== null && !archived ? (
               <span className={`${styles.pill} ${days <= 7 ? styles.pillWarn : styles.pillMuted}`}>
                 {days < 0 ? "Frist abgelaufen" : days === 0 ? "Endet heute" : `Endet in ${days} ${days === 1 ? "Tag" : "Tagen"}`}
               </span>
@@ -116,31 +144,36 @@ export function PlanDetail({
               + Line erstellen
             </button>
           ) : null}
-          {staff && plan.editable ? (
+          {staff && editable ? (
             <Button variant="secondary" className={styles.desktopOnly} onClick={() => actions.edit(plan)}>
               Bearbeiten
             </Button>
           ) : null}
-          {staff && assigned ? (
+          {staff && assigned && !archived ? (
             <Button variant="secondary" className={styles.desktopOnly} onClick={() => actions.showProgress(plan.key)}>
               Freigaben öffnen
             </Button>
           ) : null}
-          {mine ? (
+          {mine && !archived ? (
             <Button variant="secondary" className={styles.desktopOnly} onClick={() => actions.showProgress(plan.key)}>
               Mein Fortschritt
             </Button>
           ) : null}
+          {menu.length ? (
+            <span className={styles.desktopOnly}>
+              <PlanMenu items={menu} />
+            </span>
+          ) : null}
         </div>
       </header>
 
-      <LiveEntry
+      {archived ? <ArchivedCard plan={plan} role={role} actions={actions} /> : <LiveEntry
         plan={plan}
         accountType={accountType}
         session={openSession}
         busy={busy}
         actions={actions}
-      />
+      />}
 
       <LevelBar plan={plan} staff={staff} mine={mine} />
 
@@ -170,7 +203,7 @@ export function PlanDetail({
                   ) : null}
                   <small className={node.warn ? styles.textWarn : undefined}>{node.sub}</small>
                 </div>
-                {index === current ? <div className={styles.inlineNow}>{nowCard}</div> : null}
+                {index === current && nowCard ? <div className={styles.inlineNow}>{nowCard}</div> : null}
               </li>
             );
           })}
@@ -186,7 +219,7 @@ export function PlanDetail({
       ) : null}
 
       <div className={styles.detailGrid}>
-        <div className={styles.desktopNow}>{nowCard}</div>
+        {nowCard ? <div className={styles.desktopNow}>{nowCard}</div> : null}
         <InfoCard plan={plan} staff={staff} mine={mine} />
       </div>
     </article>
@@ -230,7 +263,7 @@ function nodeOf(
       return { label: number, tone: 1, sub: `Jetzt dran${trick.goal ? ` · ${trick.goal}` : ""}`, warn: false, lineDone: false };
     }
     if (step === 1) return { label: number, tone: 1, sub: "Geübt", warn: false, lineDone: false };
-    return { label: number, tone: 0, sub: "Kommt danach", warn: false, lineDone: false };
+    return { label: number, tone: 0, sub: current < 0 ? "Offen" : "Kommt danach", warn: false, lineDone: false };
   }
   return { label: number, tone: 0, sub: trick.goal || "Offen", warn: false, lineDone: false };
 }
@@ -404,6 +437,27 @@ function NowCard({
           ? "Weise den Plan über „Bearbeiten“ einzelnen Athleten zu, um ihren Fortschritt zu sehen."
           : "Dieser Plan ist nur für dich. Starte ein Training, um Versuche und Landungen zu zählen."}
       </p>
+    </section>
+  );
+}
+
+/**
+ * Erledigter/archivierter Plan: nur lesbar. Verwaltbare Pläne bieten als
+ * einzige Hauptaktion „Reaktivieren“ (Auswahl der Athleten im Sheet).
+ */
+function ArchivedCard({ plan, role, actions }: { plan: HubPlan; role: HubRole; actions: HubActions }) {
+  const w = useWords();
+  return (
+    <section className={`${styles.nowCard} ${styles.readOnlyNote}`}>
+      <span className={styles.nowKicker}>
+        {role === "staff" ? "Archiviert" : "Erledigt"} · {archiveLabel(plan, role)}
+      </span>
+      <p className={styles.muted}>
+        {plan.library
+          ? "Dieser Plan ist nur noch lesbar. Reaktiviere ihn, um ihn erneut zuzuweisen oder zu trainieren."
+          : `Nur noch lesbar. Dein Fortschritt bleibt erhalten; neue Pläne bekommst du von ${w.dat}.`}
+      </p>
+      {plan.library ? <Button onClick={() => actions.reactivate(plan)}>Reaktivieren</Button> : null}
     </section>
   );
 }
