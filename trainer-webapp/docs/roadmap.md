@@ -69,7 +69,8 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
   Ersteller sieht keine Empfänger. Vom Nutzer am 30.09.2026 entschieden und beauftragt.
   - Technisch geprüft: ja (282 Tests, Typprüfung, Lint, Produktionsbuild, lokaler
     Prüfstand als teilende und als empfangende Trainerin).
-  - Veröffentlicht: nein – Migration `20260930120000` und Deploy warten auf Freigabe.
+  - Veröffentlicht: ja (30.09.2026) – Migration vom Nutzer eingespielt, Deploy
+    `22276ce` live, Rollback-Tag `production/stable-before-plaene-teilen-20260930`.
   - Praxisabnahme: offen.
   [Umfang, Entscheidungen und Nachweis](plan-trainer-shares.md).
 - **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).

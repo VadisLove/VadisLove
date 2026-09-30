@@ -124,9 +124,13 @@ bleibt unverändert. Der Einstieg liegt im neuen Planbereich (`/trainingsplaene`
 
 ## Veröffentlichung
 
-Offen – wartet auf die Freigabe des Nutzers. Die Migration muss **vor** dem Deploy
-eingespielt werden (die App lädt `training_shared_plans`; ohne Migration fehlt nur die
-Funktion, die Seite bleibt benutzbar).
+Stand 30.09.2026: Migration vom Nutzer vor dem Deploy im SQL-Editor angewendet und in
+`supabase_migrations.schema_migrations` eingetragen; per Abfrage bestätigt (Tabelle mit
+RLS, 10 Funktionen, kein Tabellenrecht für `authenticated`, kein Aufruf für `anon`).
+Rollback-Tag `production/stable-before-plaene-teilen-20260930` → `a086a5e`. `main` per
+Fast-Forward auf `22276ce`; Vercel-Deployment `dpl_CiX2m6PccSbhvcQ5RAAq5qGDZSqe` Ready,
+Alias trainer-webapp-ruby.vercel.app zeigt darauf (per Vercel-CLI bestätigt).
+Praxisprüfung offen.
 
 Rollback: App über den Rollback-Tag zurücksetzen. Die Migration ist additiv; eine ältere
 App ignoriert Tabelle und RPCs. Vollständig entfernen ließe sie sich mit
