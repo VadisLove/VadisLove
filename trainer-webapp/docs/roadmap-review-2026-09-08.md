@@ -328,19 +328,27 @@ unsere obige Auswahl ist eine projektbezogene Auswahl, keine vollständige Liste
 
 7. **Trainingspläne archivieren und löschen.** Ausgeführte Pläne werden archiviert, damit die Planübersicht nicht endlos weiterwächst. Archivierte Pläne bleiben erhalten und können später anderen Trainern zur Verfügung gestellt werden (siehe Punkt 8). Nicht mehr benötigte Pläne können gelöscht werden.
 
-   **Noch zu klären:** Wann gilt ein Plan als ausgeführt (letzte zugehörige Session abgeschlossen, Enddatum erreicht oder manuell)? Wird automatisch oder per Vorschlag archiviert? Was passiert beim Löschen mit bereits erfassten Versuchen, Nachweisvideos und Rückblicken – bleiben sie in der Athletenhistorie erhalten? Endgültiges Löschen oder Papierkorb mit Frist wie bei den Parks (Schritt 7c)?
+   **Entschieden (30.09.2026):** Ein Plan gilt als ausgeführt und wird archiviert, sobald alle zugeordneten Athleten ihn ausgeführt haben **oder** der Trainer ihn als erledigt markiert. Die manuelle Markierung deckt Fälle ab, in denen Athleten den Plan nicht abschließen (zu schwer, Verletzung, Ausfall). Beim Löschen bleibt die Athletenhistorie (Versuche, Nachweisvideos, Rückblicke) erhalten; gelöscht wird über einen Papierkorb mit Frist wie bei den Parks (Schritt 7c).
 
 8. **Teilen von Trainingsplänen und Vorlagen wiederherstellen.** Früher konnten Trainer Pläne mit anderen Trainern teilen bzw. als Vorlage bereitstellen. Andere Trainer bearbeiten dann ihre eigene Kopie; die Vorlage des Erstellers bleibt unverändert. Diese Möglichkeit ist in der aktuellen Oberfläche nicht mehr auffindbar.
 
    **Technischer Stand (geprüft am 30.09.2026, nur Code):** Die Teilen-Logik mit Trainer-Empfängern und die Tabelle `training_plan_snapshot_shares` (Snapshot = unabhängige Kopie) sind im Code weiterhin vorhanden (`src/features/plans/plans-view.tsx`, `src/app/trainingsplaene/actions.ts`); die Migration `20260929100000_plan_hub_rights_groups` führt zusätzlich Vereinsvorlagen ein. Vermutlich ist beim Trainingsplan-Redesign nur der Einstieg in der Oberfläche entfallen. Vor der Umsetzung in der laufenden App prüfen.
 
-   **Noch zu klären:** Teilen nur innerhalb des Vereins, im Verband oder vereinsübergreifend? Sieht der Ersteller, wer seine Vorlage verwendet? Kann er eine überarbeitete Fassung als neue Version nachreichen?
+   **Entschieden (30.09.2026):** Pläne können mit allen Trainern geteilt werden, vereins- und verbandsübergreifend. Bundestrainer dürfen Pläne uneingeschränkt teilen.
+
+   **Noch zu klären:** Sieht der Ersteller, wer seine Vorlage verwendet? Kann er eine überarbeitete Fassung als neue Version nachreichen? Dürfen normale Trainer ebenfalls an alle teilen oder nur gezielt an einzelne Trainer?
 
 9. **Auswertungen: eingeschränkter Zugang für Athleten.** Athleten erhalten einen eigenen, begrenzten Bereich für Selbsteinschätzung und eigene Ziele. **Festgelegt:** Athleten schreiben nie in dieselbe Auswertung wie die Trainer; Selbsteinschätzung und Trainerbewertung werden getrennt gespeichert, damit keine Trainereinträge überschrieben werden. Die Trainerbewertung bleibt für Athleten nur lesbar (sofern sie überhaupt freigegeben wird).
 
    **Offen, Abstimmung mit anderen Trainern:** Sehen Athleten sich im Vergleich zu anderen (Rangliste)? Argument dagegen: Druck und Vergleich unter Kindern; dafür: möglicher Ansporn. Denkbare Zwischenlösungen: Vergleich standardmäßig aus und vom Trainer pro Gruppe einschaltbar, nur die eigene Platzierung ohne Namen anderer, oder nur Vergleich mit der eigenen früheren Leistung.
 
-   **Noch zu klären:** Sehen Athleten die Trainerbewertung neben ihrer Selbsteinschätzung? Sehen Eltern die Auswertung ihrer Kinder? Können Trainer eigene Ziele der Athleten kommentieren oder bestätigen?
+   **Entschieden (30.09.2026):** Die bisherige Auswertungsansicht bleibt für Athleten vorerst erhalten, wird aber zu ihrer Selbsteinschätzung. So lassen sich Trainerbewertung und Selbsteinschätzung im Nachhinein vergleichen. Beim PDF-Export wählt der Trainer zwischen zwei Varianten: nur die eigenen Einträge oder die eigenen Einträge zusammen mit der Selbsteinschätzung des Athleten.
+
+   **Noch zu klären:** Sehen Eltern die Auswertung ihrer Kinder? Können Trainer eigene Ziele der Athleten kommentieren oder bestätigen?
+
+### Nachtrag vom 30.09.2026: Registrierung
+
+10. **Hinweiszeile unter „Anrede“ entfernt.** Der Hinweis „Nur für Texte in der App, z. B. „Skaterin“. Jederzeit im Profil änderbar.“ entfällt im Registrierungsformular; das Auswahlfeld selbst bleibt.
 
 ## 8. Wichtigste Quellstellen
 
