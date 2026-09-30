@@ -334,9 +334,7 @@ unsere obige Auswahl ist eine projektbezogene Auswahl, keine vollständige Liste
 
    **Technischer Stand (geprüft am 30.09.2026, nur Code):** Die Teilen-Logik mit Trainer-Empfängern und die Tabelle `training_plan_snapshot_shares` (Snapshot = unabhängige Kopie) sind im Code weiterhin vorhanden (`src/features/plans/plans-view.tsx`, `src/app/trainingsplaene/actions.ts`); die Migration `20260929100000_plan_hub_rights_groups` führt zusätzlich Vereinsvorlagen ein. Vermutlich ist beim Trainingsplan-Redesign nur der Einstieg in der Oberfläche entfallen. Vor der Umsetzung in der laufenden App prüfen.
 
-   **Entschieden (30.09.2026):** Pläne können mit allen Trainern geteilt werden, vereins- und verbandsübergreifend. Bundestrainer dürfen Pläne uneingeschränkt teilen.
-
-   **Noch zu klären:** Sieht der Ersteller, wer seine Vorlage verwendet? Kann er eine überarbeitete Fassung als neue Version nachreichen? Dürfen normale Trainer ebenfalls an alle teilen oder nur gezielt an einzelne Trainer?
+   **Entschieden (30.09.2026):** Alle Trainer (einschließlich Bundestrainer) können Pläne mit allen Trainern teilen, vereins- und verbandsübergreifend. Gegen Spam gilt: Ein geteilter Plan ist nur ein Angebot, das der Empfänger annehmen oder ablehnen kann; erst nach Annahme erscheint die Kopie in seinen Plänen. Der Ersteller sieht nicht, wer seine Vorlage verwendet. Eine überarbeitete Fassung wird einfach erneut geteilt; eine eigene Versionsverwaltung ist nicht vorgesehen.
 
 9. **Auswertungen: eingeschränkter Zugang für Athleten.** Athleten erhalten einen eigenen, begrenzten Bereich für Selbsteinschätzung und eigene Ziele. **Festgelegt:** Athleten schreiben nie in dieselbe Auswertung wie die Trainer; Selbsteinschätzung und Trainerbewertung werden getrennt gespeichert, damit keine Trainereinträge überschrieben werden. Die Trainerbewertung bleibt für Athleten nur lesbar (sofern sie überhaupt freigegeben wird).
 
@@ -344,7 +342,9 @@ unsere obige Auswahl ist eine projektbezogene Auswahl, keine vollständige Liste
 
    **Entschieden (30.09.2026):** Die bisherige Auswertungsansicht bleibt für Athleten vorerst erhalten, wird aber zu ihrer Selbsteinschätzung. So lassen sich Trainerbewertung und Selbsteinschätzung im Nachhinein vergleichen. Beim PDF-Export wählt der Trainer zwischen zwei Varianten: nur die eigenen Einträge oder die eigenen Einträge zusammen mit der Selbsteinschätzung des Athleten.
 
-   **Noch zu klären:** Sehen Eltern die Auswertung ihrer Kinder? Können Trainer eigene Ziele der Athleten kommentieren oder bestätigen?
+   **Vorschlag (30.09.2026, noch nicht bestätigt):** Eltern sehen die Trainerbewertung nicht automatisch; der Trainer teilt eine Auswertung bei Bedarf gezielt mit den verknüpften Eltern (gleiche Auswahl wie beim PDF: nur Trainereinträge oder mit Selbsteinschätzung). Die Selbsteinschätzung und eigene Ziele ihres Kindes sehen verknüpfte Eltern ohne Weiteres.
+
+   **Noch zu klären:** Können Trainer eigene Ziele der Athleten kommentieren oder bestätigen?
 
 ### Nachtrag vom 30.09.2026: Registrierung
 
