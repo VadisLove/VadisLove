@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e6ebf0;font-family:Figtree,system-ui,sans-serif;color:#102238;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}input,textarea,button{font-family:inherit}button{cursor:pointer}input:focus,textarea:focus{outline:2px solid #148cf2;outline-offset:-1px}a{color:#0874d1}a:hover{color:#07182d}</style>
+</helmet>
+<section style="padding:56px 64px 80px;display:flex;flex-direction:column;gap:48px">
+<div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+<div style="width:340px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;font-weight:700;color:#fff;background:#07182d;border-radius:6px;padding:3px 8px">3a</span><span style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#68778a">Runde 3 · Basis <a href="Trainingspläne B v2.dc.html">2a</a></span></div>
+<h1 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Rollen & Rechte</h1>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:13px;font-weight:600;color:#68778a">Ansicht (gilt für Handy und Desktop)</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);background:#dfe5eb;border-radius:10px;padding:3px;gap:3px">
+<sc-for list="{{ views }}" as="v" hint-placeholder-count="3"><button onClick="{{ v.go }}" style="height:40px;border:0;border-radius:8px;background:{{ v.bg }};color:{{ v.fg }};box-shadow:{{ v.sh }};font-size:14px;font-weight:700">{{ v.l }}</button></sc-for>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:13px;font-weight:600;color:#68778a">Direkt ansehen (Handy)</div>
+<sc-for list="{{ jumps }}" as="j" hint-placeholder-count="7">
+<button onClick="{{ j.go }}" style="text-align:left;display:flex;align-items:center;gap:10px;min-height:46px;padding:8px 14px;background:#fff;border:1px solid #dfe5eb;border-radius:10px">
+<span style="font-size:11px;font-weight:700;color:{{ j.tagFg }};background:{{ j.tagBg }};border-radius:5px;padding:2px 6px;flex:none">{{ j.tag }}</span>
+<span style="flex:1;font-size:14px;font-weight:600;color:#102238">{{ j.l }}</span><span style="color:#68778a">›</span>
+</button>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;font-size:14px;color:#46576b;line-height:1.5">
+<div style="font-size:13px;font-weight:600;color:#68778a">Neu in dieser Runde</div>
+<div><b style="color:#07182d">Pläne erstellen</b> dürfen nur Trainer und Vorstand/Verband. Skater sehen stattdessen in der Mitte der Tab-Bar „Melden“ (↑).</div>
+<div><b style="color:#07182d">Rechte übertragen:</b> Unter Profil → Berechtigungen können Trainer einzelnen Athleten „Pläne erstellen“ erlauben. Probier es mit Mia und wechsle dann zur Skater-Ansicht.</div>
+<div><b style="color:#07182d">Vorstand</b> erstellt Pläne für alle Gruppen und kann sie als Vereinsvorlage für alle Trainer freigeben.</div>
+<div><b style="color:#07182d">Desktop</b> nutzt dieselben Daten. Was du auf dem Handy bestätigst, ist auch am Desktop erledigt.</div>
+</div>
+</div>
+
+<div id="phone" onPointerDownCapture="{{ onM }}" style="width:390px;height:820px;flex:none;border-radius:48px;background:#0a1a2f;padding:10px;box-shadow:0 30px 60px rgba(7,24,45,.25)">
+<div style="width:100%;height:100%;border-radius:38px;overflow:hidden;background:#f5f7f9;position:relative;display:flex;flex-direction:column">
+<div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:14px;font-weight:600;background:#fff;color:#07182d"><span>9:41</span><span style="width:96px;height:26px;background:#0a1a2f;border-radius:14px"></span><span style="font-size:12px">5G ▮</span></div>
+
+<sc-if value="{{ mNoCr }}" hint-placeholder-val="{{ true }}">
+<div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;border-bottom:1px solid #dfe5eb">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#07182d" style="stroke-width:1.8;stroke-linecap:round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+<span style="flex:1;font-size:15px;font-weight:700;color:#07182d">Trainer Hub</span>
+<span style="font-size:12px;font-weight:600;color:#68778a;background:#eef1f4;border-radius:6px;padding:4px 8px">{{ roleChip }}</span>
+<span style="position:relative;display:flex"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#07182d" style="stroke-width:1.8;stroke-linecap:round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4"></path></svg><sc-if value="{{ bellHas }}"><span style="position:absolute;top:-4px;right:-5px;min-width:16px;height:16px;border-radius:8px;background:#e5484d;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ bellN }}</span></sc-if></span>
+</div>
+
+<div style="flex:1;overflow:auto;padding-bottom:24px">
+
+<sc-if value="{{ onPlans }}" hint-placeholder-val="{{ true }}">
+<div style="padding:18px 16px 0;display:flex;flex-direction:column;gap:14px">
+<div><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#68778a">Training</div><h2 style="margin:2px 0 0;font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Trainingspläne</h2></div>
+<sc-if value="{{ isS }}">
+<button onClick="{{ nextCard.go }}" style="text-align:left;border:0;background:#0a1a2f;color:#fff;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 12px 28px rgba(10,26,47,.25)">
+<span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7fb8f2">Dein nächster Schritt</span>
+<span style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;line-height:1;text-transform:uppercase">{{ nextCard.title }}</span>
+<span style="font-size:14px;color:#c4d0dd">{{ nextCard.sub }}</span>
+<span style="align-self:flex-start;margin-top:4px;height:44px;padding:0 16px;border-radius:10px;background:#148cf2;font-size:15px;font-weight:600;display:flex;align-items:center">{{ nextCard.cta }} →</span>
+</button>
+</sc-if>
+<button onClick="{{ progEntry.go }}" style="text-align:left;display:flex;align-items:center;gap:12px;padding:14px;background:{{ progEntry.bg }};border:1px solid {{ progEntry.bd }};border-radius:14px">
+<span style="width:40px;height:40px;border-radius:10px;background:{{ progEntry.nBg }};color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex:none">{{ progEntry.n }}</span>
+<span style="flex:1"><span style="display:block;font-size:15px;font-weight:700;color:#07182d">{{ progEntry.title }}</span><span style="display:block;font-size:13px;color:#68778a">{{ progEntry.sub }}</span></span><span style="color:#68778a;font-size:18px">›</span>
+</button>
+<button onClick="{{ goReview }}" style="text-align:left;display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:1px solid #dfe5eb;border-radius:14px"><span style="width:40px;height:40px;border-radius:10px;background:#e8f3fe;color:#0b5aa0;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex:none">↺</span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700;color:#07182d">Session-Rückblick</span><span style="display:block;font-size:13px;color:#68778a">Landungen, Quoten & Hinweise</span></span><span style="color:#68778a;font-size:18px">›</span></button>
+<div style="font-size:13px;font-weight:600;color:#68778a">Meine Pläne</div>
+<sc-for list="{{ plans }}" as="p" hint-placeholder-count="3">
+<button onClick="{{ p.onClick }}" style="text-align:left;display:flex;align-items:center;gap:14px;padding:14px;background:#fff;border:1px solid #dfe5eb;border-radius:14px">
+<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+<span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:16px;font-weight:600;color:#07182d">{{ p.name }}</span><sc-if value="{{ p.hasBadge }}"><span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:{{ p.badgeBg }};color:{{ p.badgeFg }}">{{ p.badge }}</span></sc-if></span>
+<span style="font-size:13px;color:#68778a">{{ p.group }}</span>
+<span style="display:flex;gap:5px;flex-wrap:wrap"><sc-for list="{{ p.dots }}" as="o" hint-placeholder-count="6"><span style="width:18px;height:18px;border-radius:9px;background:{{ o.bg }}"></span></sc-for></span>
+</span>
+<span style="flex:none;white-space:nowrap;font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;color:#07182d;line-height:1">{{ p.pct }}<span style="font-size:18px;color:#68778a"> %</span></span>
+</button>
+</sc-for>
+<sc-if value="{{ canCreate }}" hint-placeholder-val="{{ true }}"><button onClick="{{ openCreate }}" style="height:52px;border:1.5px dashed #b9c4d0;background:none;border-radius:14px;color:#0874d1;font-size:15px;font-weight:700">+ Neuer Plan</button></sc-if>
+<sc-if value="{{ noCreate }}"><div style="font-size:13px;color:#68778a;text-align:center;padding:4px 12px">{{ noCreateL }}</div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ onPlan }}">
+<div style="padding:12px 16px 0;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center"><button onClick="{{ goPlans }}" style="flex:1;text-align:left;height:40px;padding:0;border:0;background:none;color:#0874d1;font-size:15px;font-weight:600">‹ Pläne</button><sc-if value="{{ staff }}"><button onClick="{{ openEdit }}" style="height:38px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;border-radius:9px;font-size:14px;font-weight:600;color:#102238">Bearbeiten</button></sc-if></div>
+<div><h2 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">{{ planName }}</h2><div style="font-size:14px;color:#68778a;margin-top:4px">{{ planSub }}</div></div>
+<div style="background:#0a1a2f;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;color:#fff">
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7fb8f2">{{ lvlTitle }}</span><span style="font-size:13px;color:#c4d0dd">{{ xpL }}</span></div>
+<div style="height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden"><div style="height:100%;width:{{ xpW }};background:#1f9d6b;border-radius:4px"></div></div>
+</div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ nodes }}" as="n" hint-placeholder-count="6">
+<div style="display:flex;gap:14px">
+<div style="width:52px;flex:none;display:flex;flex-direction:column;align-items:center">
+<span style="width:{{ n.size }};height:{{ n.size }};border-radius:50%;background:{{ n.nodeBg }};color:{{ n.nodeFg }};box-shadow:{{ n.ring }};font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ n.mark }}</span>
+<span style="width:3px;flex:1;min-height:18px;background:{{ n.lineBg }}"></span>
+</div>
+<div style="flex:1;min-width:0;padding:6px 0 18px">
+<div style="font-size:16px;font-weight:700;color:{{ n.nameFg }}">{{ n.n }}</div>
+<div style="font-size:13px;color:{{ n.subFg }}">{{ n.sub }}</div>
+<sc-if value="{{ n.isCur }}">
+<div style="margin-top:10px;background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 6px 18px rgba(16,34,56,.06)">
+<sc-if value="{{ isS }}"><sc-for list="{{ curSteps }}" as="st" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:10px"><span style="width:22px;height:22px;border-radius:11px;background:{{ st.bg }};border:2px solid {{ st.bd }};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ st.mark }}</span><span style="flex:1;font-size:14px;font-weight:600;color:#102238">{{ st.l }}</span><span style="font-size:12px;color:#68778a">{{ st.sub }}</span></div></sc-for></sc-if>
+<sc-if value="{{ staff }}"><sc-for list="{{ curWait }}" as="w" hint-placeholder-count="1"><button onClick="{{ w.go }}" style="display:flex;align-items:center;gap:10px;height:48px;padding:0 10px;border:1px solid #f5d3a3;background:#fdf1e1;border-radius:10px;text-align:left"><span style="width:30px;height:30px;border-radius:15px;background:#0a1a2f;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ w.ini }}</span><span style="flex:1;font-size:14px;font-weight:600;color:#07182d">{{ w.who }}</span><span style="font-size:12px;font-weight:600;color:#9a5600">{{ w.vid }}</span></button></sc-for></sc-if>
+<button onClick="{{ curCta.go }}" style="height:46px;border:0;border-radius:10px;background:#148cf2;color:#fff;font-size:15px;font-weight:600">{{ curCta.l }}</button>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ onProg }}">
+<div style="padding:12px 16px 0;display:flex;flex-direction:column;gap:14px">
+<button onClick="{{ goPlans }}" style="align-self:flex-start;height:40px;padding:0;border:0;background:none;color:#0874d1;font-size:15px;font-weight:600">‹ Pläne</button>
+<sc-if value="{{ staff }}" hint-placeholder-val="{{ true }}">
+<div><h2 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Fortschritte</h2><div style="font-size:14px;color:#68778a;margin-top:4px">{{ planName }} · tippe auf <b style="color:#9a5600">!</b> / <b style="color:#9a5600">▶</b></div></div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:12px 10px">
+<div style="display:grid;grid-template-columns:74px repeat(6,1fr) 30px;gap:5px;align-items:center"><span></span><sc-for list="{{ cols }}" as="c" hint-placeholder-count="6"><span style="font-size:10px;font-weight:700;color:#68778a;text-align:center;text-transform:uppercase">{{ c.l }}</span></sc-for><span></span></div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:74px repeat(6,1fr) 30px;gap:5px;align-items:center;margin-top:8px">
+<span style="font-size:13px;font-weight:600;color:#102238;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.n }}</span>
+<sc-for list="{{ r.cells }}" as="x" hint-placeholder-count="6"><button onClick="{{ x.onClick }}" style="aspect-ratio:1;border:0;border-radius:8px;background:{{ x.bg }};color:{{ x.fg }};box-shadow:{{ x.ring }};font-size:12px;font-weight:700;padding:0">{{ x.mark }}</button></sc-for>
+<span style="font-size:12px;font-weight:600;color:#68778a;text-align:right">{{ r.doneL }}</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ noWait }}"><div style="font-size:14px;color:#157a52;background:#e3f4ec;border-radius:10px;padding:10px 12px;font-weight:600">Keine offenen Meldungen – alles bestätigt.</div></sc-if>
+</sc-if>
+<sc-if value="{{ isS }}">
+<div><h2 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Mein Fortschritt</h2><div style="font-size:14px;color:#68778a;margin-top:4px">{{ privacyL }}</div></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><sc-for list="{{ sumTiles }}" as="t" hint-placeholder-count="3"><div style="background:{{ t.bg }};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;line-height:1;color:{{ t.fg }}">{{ t.n }}</span><span style="font-size:12px;font-weight:600;color:{{ t.fg }}">{{ t.l }}</span></div></sc-for></div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden">
+<sc-for list="{{ myTricks }}" as="t" hint-placeholder-count="6"><button onClick="{{ t.go }}" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border:0;border-bottom:1px solid #eef1f4;background:#fff"><span style="flex:1;min-width:0"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ t.n }}</span><span style="display:block;font-size:12px;font-weight:600;color:{{ t.fg }}">{{ t.label }}</span></span><span style="display:flex;gap:3px;width:84px"><sc-for list="{{ t.segs }}" as="g" hint-placeholder-count="3"><span style="flex:1;height:8px;border-radius:3px;background:{{ g.bg }}"></span></sc-for></span></button></sc-for>
+</div>
+<div style="font-size:13px;font-weight:600;color:#68778a">Meine Meldungen</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden">
+<sc-for list="{{ myReps }}" as="m" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #eef1f4"><span style="width:44px;height:44px;border-radius:9px;background:{{ m.thBg }};color:{{ m.thFg }};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ m.th }}</span><span style="flex:1;min-width:0"><span style="display:block;font-size:15px;font-weight:600;color:#102238">{{ m.trick }}</span><span style="display:block;font-size:12px;color:#68778a">{{ m.when }}</span></span><span style="font-size:12px;font-weight:600;padding:4px 8px;border-radius:6px;background:{{ m.bg }};color:{{ m.c }}">{{ m.st }}</span></div></sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ onReview }}">
+<div style="padding:12px 16px 0;display:flex;flex-direction:column;gap:14px">
+<button onClick="{{ goPlans }}" style="align-self:flex-start;height:40px;padding:0;border:0;background:none;color:#0874d1;font-size:15px;font-weight:600">‹ Pläne</button>
+<div><h2 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Session-Rückblick</h2><div style="font-size:13px;color:#68778a;margin-top:4px">{{ rvIntro }}</div></div>
+<sc-if value="{{ staff }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px"><sc-for list="{{ rvAthChips }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.go }}" style="flex:none;height:38px;padding:0 14px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:19px;font-size:13px;font-weight:600">{{ c.l }}</button></sc-for></div></sc-if>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);background:#e6ebf0;border-radius:10px;padding:3px;gap:3px"><sc-for list="{{ rvPers }}" as="p" hint-placeholder-count="3"><button onClick="{{ p.go }}" style="height:36px;border:0;border-radius:8px;background:{{ p.bg }};color:{{ p.fg }};box-shadow:{{ p.sh }};font-size:13px;font-weight:700">{{ p.l }}</button></sc-for></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><sc-for list="{{ rvSum }}" as="t" hint-placeholder-count="4"><div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px"><div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:#07182d;line-height:1">{{ t.n }}</div><div style="font-size:12px;font-weight:600;color:#68778a">{{ t.l }}</div></div></sc-for></div>
+<sc-for list="{{ rvReady }}" as="k" hint-placeholder-count="1"><div style="background:#0a1a2f;color:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;gap:10px"><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700">{{ k.t }} · {{ k.qL }}</span><span style="display:block;font-size:12px;color:#c4d0dd">{{ k.hint }}</span></span><button onClick="{{ k.cta }}" style="height:42px;padding:0 14px;border:0;border-radius:10px;background:#1f9d6b;color:#fff;font-size:14px;font-weight:700;white-space:nowrap">{{ k.ctaL }}</button></div></sc-for>
+<div style="font-size:13px;font-weight:600;color:#68778a">Skills</div>
+<div style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px"><sc-for list="{{ rvSkills }}" as="k" hint-placeholder-count="4"><div style="flex:none;width:140px;background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:700;color:#07182d">{{ k.t }}</span><span style="height:26px;display:flex;align-items:flex-end;gap:3px"><sc-for list="{{ k.hist }}" as="h" hint-placeholder-count="2"><span style="flex:1;height:{{ h.h }};background:{{ h.bg }};border-radius:2px"></span></sc-for></span><span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:15px;font-weight:700;color:{{ k.qFg }}">{{ k.qL }}</span><span style="font-size:12px;color:#68778a">{{ k.la }}</span></span><span style="font-size:11px;font-weight:600;color:{{ k.stFg }}">{{ k.stL }}</span></div></sc-for></div>
+<div style="font-size:13px;font-weight:600;color:#68778a">{{ rvWho }} · neueste zuerst</div>
+<sc-for list="{{ rvSes }}" as="x" hint-placeholder-count="4">
+<div style="background:#fff;border:1px solid {{ x.bd }};border-radius:12px;overflow:hidden">
+<button onClick="{{ x.toggle }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;border:0;background:none;text-align:left"><span style="flex:1;min-width:0"><span style="display:block;font-size:15px;font-weight:700;color:#07182d">{{ x.title }}</span><span style="display:block;font-size:12px;color:#68778a">{{ x.d }} · {{ x.t }} · {{ x.dur }}</span></span><span style="font-size:13px;font-weight:700;padding:4px 8px;border-radius:7px;background:{{ x.qBg }};color:{{ x.qFg }}">{{ x.qL }}</span><span style="font-size:12px;color:#68778a">{{ x.chev }}</span></button>
+<sc-if value="{{ x.isOpen }}"><div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ x.rows }}" as="r" hint-placeholder-count="2"><div style="display:grid;grid-template-columns:96px 1fr 44px;gap:8px;align-items:center"><span style="font-size:13px;font-weight:600;color:#07182d">{{ r.t }}</span><span style="height:8px;border-radius:4px;background:#eef1f4;overflow:hidden"><span style="display:block;height:100%;width:{{ r.w }};background:{{ r.bar }}"></span></span><span style="font-size:12px;color:#46576b;text-align:right">{{ r.la }}</span></div></sc-for>
+<sc-for list="{{ x.notes }}" as="n" hint-placeholder-count="1"><div style="background:{{ n.bg }};border-radius:9px;padding:9px 11px"><div style="font-size:14px;color:#102238">{{ n.txt }}</div><div style="font-size:11px;font-weight:700;color:#68778a;margin-top:2px">{{ n.by }} · {{ n.tag }}</div></div></sc-for>
+<div style="display:flex;gap:6px"><input value="{{ x.draft }}" onChange="{{ rvDraftOn }}" placeholder="{{ rvNotePh }}" style="flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid #dfe5eb;border-radius:9px;font-size:14px"><button onClick="{{ x.addNote }}" style="height:44px;padding:0 12px;border:0;background:#148cf2;color:#fff;border-radius:9px;font-size:14px;font-weight:700">+</button></div>
+<sc-if value="{{ staff }}"><div style="display:flex;background:#eef1f4;border-radius:8px;padding:2px;gap:2px;align-self:flex-start"><sc-for list="{{ rvVisOpts }}" as="v" hint-placeholder-count="2"><button onClick="{{ v.go }}" style="height:30px;padding:0 10px;border:0;border-radius:6px;background:{{ v.bg }};color:{{ v.fg }};box-shadow:{{ v.sh }};font-size:12px;font-weight:600">{{ v.l }}</button></sc-for></div></sc-if>
+</div></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ onProfile }}">
+<div style="padding:18px 16px 0;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:14px"><span style="width:60px;height:60px;border-radius:30px;background:#0a1a2f;color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ pIni }}</span><div><div style="font-size:19px;font-weight:700;color:#07182d">{{ pName }}</div><div style="font-size:14px;color:#68778a">{{ pRole }}</div></div></div>
+<sc-if value="{{ staff }}"><button onClick="{{ goRights }}" style="text-align:left;display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:1px solid #dfe5eb;border-radius:14px"><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700;color:#07182d">Berechtigungen</span><span style="display:block;font-size:13px;color:#68778a">{{ rightsSub }}</span></span><span style="color:#68778a;font-size:18px">›</span></button></sc-if>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px">
+<div><div style="font-size:15px;font-weight:700;color:#07182d">Anrede</div><div style="font-size:13px;color:#68778a">Bestimmt die Endungen in der App.</div></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);background:#eef1f4;border-radius:10px;padding:3px;gap:3px"><sc-for list="{{ gSeg }}" as="g" hint-placeholder-count="3"><button onClick="{{ g.go }}" style="height:40px;border:0;border-radius:8px;background:{{ g.bg }};color:{{ g.fg }};box-shadow:{{ g.sh }};font-size:13px;font-weight:700">{{ g.l }}</button></sc-for></div>
+</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">
+<div style="flex:1"><div style="font-size:15px;font-weight:700;color:#07182d">Ton bei neuen Meldungen</div></div>
+<button onClick="{{ toggleSound }}" style="width:52px;height:32px;border:0;border-radius:16px;background:{{ soundBg }};padding:3px;display:flex;justify-content:{{ soundJ }}"><span style="width:26px;height:26px;border-radius:13px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ onRights }}">
+<div style="padding:12px 16px 0;display:flex;flex-direction:column;gap:14px">
+<button onClick="{{ goProfile }}" style="align-self:flex-start;height:40px;padding:0;border:0;background:none;color:#0874d1;font-size:15px;font-weight:600">‹ Profil</button>
+<div><h2 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Wer darf Pläne erstellen?</h2><div style="font-size:14px;color:#68778a;margin-top:6px;text-wrap:pretty">{{ rightsIntro }}</div></div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden">
+<sc-for list="{{ rightsAuto }}" as="r" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #eef1f4"><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ r.n }}</span><span style="display:block;font-size:12px;color:#68778a">{{ r.sub }}</span></span><span style="font-size:12px;font-weight:700;color:#157a52;background:#e3f4ec;border-radius:6px;padding:4px 8px">Immer</span></div></sc-for>
+</div>
+<div style="font-size:13px;font-weight:600;color:#68778a">Athleten · U14 Augsburg</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden">
+<sc-for list="{{ rightsPeople }}" as="r" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 14px;border-bottom:1px solid #eef1f4"><span style="width:36px;height:36px;border-radius:18px;background:#0a1a2f;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ r.ini }}</span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ r.n }}</span><span style="display:block;font-size:12px;color:#68778a">{{ r.sub }}</span></span><button onClick="{{ r.go }}" style="width:52px;height:32px;border:0;border-radius:16px;background:{{ r.bg }};padding:3px;display:flex;justify-content:{{ r.j }};flex:none"><span style="width:26px;height:26px;border-radius:13px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></button></div></sc-for>
+</div>
+<div style="font-size:13px;color:#68778a;line-height:1.5">Von Athleten erstellte Pläne tragen das Label „Von … erstellt“ und bleiben für dich bearbeitbar.</div>
+</div>
+</sc-if>
+</div>
+
+<div style="flex:none;height:74px;background:#fff;border-top:1px solid #dfe5eb;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding-bottom:10px">
+<button onClick="{{ navSoon }}" style="border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:#68778a"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linejoin:round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"></path></svg>Start</button>
+<button onClick="{{ navSoon }}" style="border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:#68778a"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>Kalender</button>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button onClick="{{ navPlus }}" style="width:50px;height:50px;border:0;border-radius:25px;background:#148cf2;color:#fff;font-size:26px;font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(20,140,242,.4)">{{ navPlusIcon }}</button></div>
+<button onClick="{{ goPlans }}" style="border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:700;color:{{ nPl }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg>Pläne</button>
+<button onClick="{{ goProfile }}" style="border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:700;color:{{ nPr }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>Profil</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ mCr }}">
+<div style="flex:none;background:#fff;border-bottom:1px solid #dfe5eb;padding:8px 14px 12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px"><button onClick="{{ crClose }}" style="width:40px;height:40px;border:0;background:#f5f7f9;border-radius:20px;font-size:16px;color:#07182d">✕</button><span style="flex:1;font-size:16px;font-weight:700;color:#07182d">{{ crTitle }}</span><span style="font-size:13px;font-weight:600;color:#68778a">{{ crStepL }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"><sc-for list="{{ crSteps }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.go }}" style="border:0;background:none;padding:0;display:flex;flex-direction:column;gap:5px;text-align:left"><span style="height:4px;border-radius:2px;background:{{ t.bar }}"></span><span style="font-size:11px;font-weight:700;color:{{ t.fg }}">{{ t.l }}</span></button></sc-for></div>
+</div>
+<div style="flex:1;overflow:auto;padding:16px 16px 24px;display:flex;flex-direction:column;gap:18px">
+<sc-if value="{{ s0 }}">
+<sc-if value="{{ showStarts }}"><div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:14px;font-weight:700;color:#07182d">Womit starten?</div><div style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px"><sc-for list="{{ starts }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.go }}" style="flex:none;width:132px;text-align:left;padding:12px;border:1.5px solid {{ t.bd }};background:{{ t.bg }};border-radius:12px;display:flex;flex-direction:column;gap:4px"><span style="font-size:14px;font-weight:700;color:#07182d">{{ t.n }}</span><span style="font-size:12px;color:#68778a">{{ t.d }}</span></button></sc-for></div></div></sc-if>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:700;color:#07182d">Name des Plans <span style="color:#e5484d">*</span></span><input value="{{ crName }}" onChange="{{ onName }}" placeholder="z. B. Street Basics U14" style="height:48px;padding:0 14px;border:1px solid #dfe5eb;border-radius:10px;background:#fff;font-size:16px;color:#07182d"></label>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Kategorie</span><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ cats }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.go }}" style="height:40px;padding:0 14px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:20px;font-size:14px;font-weight:600">{{ c.l }}</button></sc-for></div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Niveau</span><div style="display:grid;grid-template-columns:repeat(3,1fr);background:#e6ebf0;border-radius:10px;padding:3px;gap:3px"><sc-for list="{{ lvls }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.go }}" style="height:40px;border:0;border-radius:8px;background:{{ c.bg }};color:{{ c.fg }};box-shadow:{{ c.sh }};font-size:13px;font-weight:700">{{ c.l }}</button></sc-for></div></div>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:700;color:#07182d">Ziel <span style="font-weight:500;color:#68778a">· optional</span></span><textarea value="{{ crGoal }}" onChange="{{ onGoal }}" placeholder="Was soll mit diesem Plan erreicht werden?" style="height:84px;padding:12px 14px;border:1px solid #dfe5eb;border-radius:10px;background:#fff;font-size:15px;color:#07182d;resize:none"></textarea></label>
+</sc-if>
+<sc-if value="{{ s1 }}">
+<div style="display:flex;align-items:baseline"><span style="flex:1;font-size:14px;font-weight:700;color:#07182d">Tricks im Plan</span><span style="font-size:13px;color:#68778a">{{ trickCountL }}</span></div>
+<sc-if value="{{ noTricks }}"><div style="padding:18px;border:1.5px dashed #c9d2dc;border-radius:12px;text-align:center;font-size:14px;color:#68778a">Noch keine Tricks. Tippe unten auf einen Vorschlag oder suche.</div></sc-if>
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ crTricks }}" as="t" hint-placeholder-count="3">
+<div style="background:#fff;border:1px solid {{ t.bd }};border-radius:12px;overflow:hidden">
+<button onClick="{{ t.toggle }}" style="width:100%;min-height:54px;display:flex;align-items:center;gap:12px;padding:8px 14px;border:0;background:none;text-align:left"><span style="width:26px;height:26px;border-radius:13px;background:#0a1a2f;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ t.num }}</span><span style="flex:1;min-width:0"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ t.n }}</span><span style="display:block;font-size:12px;color:#68778a">{{ t.goalL }}</span></span><span style="color:#68778a;font-size:14px">{{ t.chev }}</span></button>
+<sc-if value="{{ t.isOpen }}"><div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:10px">
+<label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:13px;font-weight:600;color:#46576b">Ziel</span><input value="{{ t.goal }}" onChange="{{ t.onGoal }}" placeholder="z. B. 3 von 5 sauber" style="height:44px;padding:0 12px;border:1px solid #dfe5eb;border-radius:9px;font-size:15px"></label>
+<label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:13px;font-weight:600;color:#46576b">Hinweis</span><input value="{{ t.hint }}" onChange="{{ t.onHint }}" placeholder="z. B. Schultern parallel zum Board" style="height:44px;padding:0 12px;border:1px solid #dfe5eb;border-radius:9px;font-size:15px"></label>
+<div style="display:flex;gap:8px"><button onClick="{{ t.up }}" style="height:40px;padding:0 12px;border:1px solid #dfe5eb;background:#fff;border-radius:9px;font-size:14px;font-weight:600;color:{{ t.upFg }}">↑ Nach oben</button><span style="flex:1"></span><button onClick="{{ t.remove }}" style="height:40px;padding:0 12px;border:1px solid #f3c7c8;background:#fff;border-radius:9px;font-size:14px;font-weight:600;color:#c2383d">Entfernen</button></div>
+</div></sc-if>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:14px">
+<span style="font-size:14px;font-weight:700;color:#07182d">Trick hinzufügen</span>
+<input value="{{ crQ }}" onChange="{{ onQ }}" placeholder="Trick suchen oder eigenen eingeben" style="height:46px;padding:0 14px;border:1px solid #dfe5eb;border-radius:10px;background:#f5f7f9;font-size:15px">
+<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-if value="{{ hasCustom }}"><button onClick="{{ addCustom }}" style="height:40px;padding:0 14px;border:0;background:#148cf2;color:#fff;border-radius:20px;font-size:14px;font-weight:600">{{ customL }}</button></sc-if><sc-for list="{{ sugg }}" as="g" hint-placeholder-count="8"><button onClick="{{ g.go }}" style="height:40px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;color:#102238;border-radius:20px;font-size:14px;font-weight:600">+ {{ g.l }}</button></sc-for></div>
+</div>
+</sc-if>
+<sc-if value="{{ s2 }}">
+<sc-if value="{{ staff }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Gruppen</span><sc-for list="{{ groups }}" as="g" hint-placeholder-count="4"><button onClick="{{ g.go }}" style="min-height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border:1px solid {{ g.bd }};background:{{ g.bg }};border-radius:12px;text-align:left"><span style="width:22px;height:22px;border-radius:6px;border:2px solid {{ g.box }};background:{{ g.boxBg }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ g.mark }}</span><span style="flex:1;font-size:15px;font-weight:600;color:#07182d">{{ g.n }}</span><span style="font-size:13px;color:#68778a">{{ g.c }}</span></button></sc-for></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Einzelne Athleten</span><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ people }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.go }}" style="height:40px;padding:0 14px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:20px;font-size:14px;font-weight:600">{{ c.l }}</button></sc-for></div></div>
+<sc-if value="{{ isV }}"><button onClick="{{ tplShare.go }}" style="min-height:64px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid {{ tplShare.bd }};background:{{ tplShare.bg }};border-radius:12px;text-align:left"><span style="flex:1"><span style="display:block;font-size:15px;font-weight:700;color:#07182d">Als Vereinsvorlage freigeben</span><span style="display:block;font-size:13px;color:#68778a">Alle Trainer im Verein können den Plan übernehmen</span></span><span style="width:52px;height:32px;border-radius:16px;background:{{ tplShare.sw }};padding:3px;display:flex;justify-content:{{ tplShare.j }};flex:none"><span style="width:26px;height:26px;border-radius:13px;background:#fff"></span></span></button></sc-if>
+</sc-if>
+<sc-if value="{{ isS }}"><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Für wen ist der Plan?</span><sc-for list="{{ whoOpts }}" as="g" hint-placeholder-count="2"><button onClick="{{ g.go }}" style="min-height:60px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid {{ g.bd }};background:{{ g.bg }};border-radius:12px;text-align:left"><span style="width:22px;height:22px;border-radius:11px;border:2px solid {{ g.bd }};display:flex;align-items:center;justify-content:center;flex:none"><span style="width:10px;height:10px;border-radius:5px;background:{{ g.dot }}"></span></span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ g.l }}</span><span style="display:block;font-size:13px;color:#68778a">{{ g.sub }}</span></span></button></sc-for></div></sc-if>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Frist</span><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ dues }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.go }}" style="height:40px;padding:0 14px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:20px;font-size:14px;font-weight:600">{{ c.l }}</button></sc-for></div></div>
+<div style="font-size:13px;color:#68778a">{{ assignHint }}</div>
+</sc-if>
+<sc-if value="{{ s3 }}">
+<sc-if value="{{ isEdit }}"><div style="font-size:14px;color:#0b5aa0;background:#e8f3fe;border-radius:10px;padding:10px 12px;line-height:1.45">Speichern erzeugt <b>Version 2</b>. Laufende Trainings behalten ihren Planstand.</div></sc-if>
+<sc-for list="{{ review }}" as="r" hint-placeholder-count="4"><div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#68778a">{{ r.k }}</div><div style="font-size:15px;font-weight:600;color:#07182d;margin-top:3px;text-wrap:pretty">{{ r.v }}</div><sc-if value="{{ r.hasSub }}"><div style="font-size:13px;color:#68778a;margin-top:2px">{{ r.sub }}</div></sc-if></div><button onClick="{{ r.go }}" style="height:36px;padding:0 10px;border:0;background:none;color:#0874d1;font-size:14px;font-weight:600">Ändern</button></div></sc-for>
+</sc-if>
+</div>
+<div style="flex:none;background:#fff;border-top:1px solid #dfe5eb;padding:10px 16px 18px;display:flex;gap:8px">
+<sc-if value="{{ showBack }}"><button onClick="{{ crBack }}" style="height:50px;padding:0 16px;border:1px solid #dfe5eb;background:#fff;border-radius:12px;font-size:15px;font-weight:600;color:#102238">Zurück</button></sc-if>
+<sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}"><button onClick="{{ crNext }}" style="flex:1;height:50px;border:0;border-radius:12px;background:{{ nextBg }};color:{{ nextFg }};font-size:16px;font-weight:700">{{ nextL }}</button></sc-if>
+<sc-if value="{{ isLast }}"><button onClick="{{ saveDraft }}" style="height:50px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;border-radius:12px;font-size:14px;font-weight:600;color:#102238">Entwurf</button><button onClick="{{ save }}" style="flex:1;height:50px;border:0;border-radius:12px;background:#148cf2;color:#fff;font-size:16px;font-weight:700">{{ saveL }}</button></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ mSheet }}">
+<div onClick="{{ sh.close }}" style="position:absolute;inset:0;background:rgba(7,24,45,.45)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:10px 18px 28px;display:flex;flex-direction:column;gap:14px;box-shadow:0 -10px 30px rgba(7,24,45,.2)">
+<span style="align-self:center;width:40px;height:5px;border-radius:3px;background:#dfe5eb"></span>
+<div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:22px;background:#0a1a2f;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ sh.ini }}</span><span><span style="display:block;font-size:17px;font-weight:700;color:#07182d">{{ sh.who }} · {{ sh.trick }}</span><span style="display:block;font-size:13px;color:#68778a">Gemeldet {{ sh.when }}</span></span></div>
+<sc-if value="{{ sh.hasVid }}"><button onClick="{{ sh.play }}" style="height:170px;border:0;border-radius:12px;background:#0a1a2f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:52px;height:52px;border-radius:26px;background:rgba(255,255,255,.15);font-size:20px;display:flex;align-items:center;justify-content:center">▶</span><span style="font-size:13px;font-weight:600;color:#c4d0dd">Video · {{ sh.dur }}</span></button></sc-if>
+<div style="font-size:14px;color:#46576b;background:#f5f7f9;border-radius:9px;padding:10px 12px">{{ sh.note }}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onClick="{{ sh.again }}" style="height:50px;border:1px solid #dfe5eb;background:#fff;border-radius:12px;font-size:15px;font-weight:600;color:#102238">Nochmal üben</button><button onClick="{{ sh.confirm }}" style="height:50px;border:0;background:#1f9d6b;border-radius:12px;font-size:15px;font-weight:600;color:#fff">✓ Bestätigen</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ mRep }}">
+<div onClick="{{ rp.close }}" style="position:absolute;inset:0;background:rgba(7,24,45,.45)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:10px 18px 26px;display:flex;flex-direction:column;gap:14px;box-shadow:0 -10px 30px rgba(7,24,45,.2)">
+<span style="align-self:center;width:40px;height:5px;border-radius:3px;background:#dfe5eb"></span>
+<div><div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">{{ rp.title }}</div><div style="font-size:14px;color:#68778a;margin-top:4px">{{ rp.sub }}</div></div>
+<sc-if value="{{ rp.isPick }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onClick="{{ rp.rec }}" style="height:96px;border:1.5px solid #dfe5eb;background:#fff;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:34px;height:34px;border-radius:17px;border:3px solid #e5484d;display:flex;align-items:center;justify-content:center"><span style="width:16px;height:16px;border-radius:8px;background:#e5484d"></span></span><span style="font-size:14px;font-weight:700;color:#07182d">Video aufnehmen</span></button><button onClick="{{ rp.gal }}" style="height:96px;border:1.5px solid #dfe5eb;background:#fff;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#148cf2" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path></svg><span style="font-size:14px;font-weight:700;color:#07182d">Aus Galerie</span></button></div><div style="font-size:12px;color:#68778a">MP4 oder MOV · max. 60 Sek. · optional</div></sc-if>
+<sc-if value="{{ rp.isUp }}"><div style="border:1px solid #dfe5eb;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font-size:14px;font-weight:600;color:#07182d">IMG_4821.MOV · 38 MB</span><span style="font-size:13px;font-weight:700;color:#0874d1">{{ rp.pctL }}</span></div><div style="height:8px;border-radius:4px;background:#eef1f4;overflow:hidden"><div style="height:100%;width:{{ rp.pctW }};background:#148cf2;border-radius:4px"></div></div></div></sc-if>
+<sc-if value="{{ rp.isReady }}"><div style="display:flex;gap:12px;align-items:center;border:1px solid #bfe6d4;background:#f1faf5;border-radius:14px;padding:10px"><span style="width:88px;height:64px;border-radius:9px;background:#0a1a2f;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">▶ 0:12</span><span style="flex:1"><span style="display:block;font-size:14px;font-weight:700;color:#157a52">✓ Video hochgeladen</span><span style="display:block;font-size:12px;color:#68778a">IMG_4821.MOV</span></span><button onClick="{{ rp.remove }}" style="height:40px;padding:0 10px;border:0;background:none;font-size:13px;font-weight:600;color:#c2383d">Entfernen</button></div></sc-if>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:700;color:#07182d">Notiz <span style="font-weight:500;color:#68778a">· optional</span></span><input value="{{ rp.note }}" onChange="{{ rp.onNote }}" placeholder="z. B. 4 von 5 sauber gelandet" style="height:46px;padding:0 14px;border:1px solid #dfe5eb;border-radius:10px;font-size:15px"></label>
+<button onClick="{{ rp.send }}" style="height:52px;border:0;border-radius:12px;background:{{ rp.sendBg }};color:{{ rp.sendFg }};font-size:16px;font-weight:700">{{ rp.sendL }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasG }}">
+<div style="position:absolute;inset:0;background:rgba(7,24,45,.55)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:10px 18px 28px;display:flex;flex-direction:column;gap:12px">
+<span style="align-self:center;width:40px;height:5px;border-radius:3px;background:#dfe5eb"></span>
+<div><div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0874d1">Einmalig</div><div style="font-size:20px;font-weight:700;color:#07182d;margin-top:2px">Wie sollen wir dich ansprechen?</div><div style="font-size:14px;color:#68778a;margin-top:4px">Nur für Texte in der App. Jederzeit im Profil änderbar.</div></div>
+<sc-for list="{{ gOpts }}" as="g" hint-placeholder-count="3"><button onClick="{{ g.go }}" style="min-height:60px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid #dfe5eb;background:#fff;border-radius:12px;text-align:left" style-hover="border-color:#148cf2"><span style="flex:1"><span style="display:block;font-size:17px;font-weight:700;color:#07182d">{{ g.l }}</span><span style="display:block;font-size:13px;color:#68778a">{{ g.sub }}</span></span><span style="color:#68778a">›</span></button></sc-for>
+<button onClick="{{ gLater }}" style="height:40px;border:0;background:none;font-size:14px;font-weight:600;color:#68778a">Später</button>
+</div>
+</sc-if>
+<sc-if value="{{ mToast }}"><div style="position:absolute;left:16px;right:16px;bottom:96px;background:#0a1a2f;color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 10px 24px rgba(7,24,45,.3);pointer-events:none">{{ toast }}</div></sc-if>
+</div>
+</div>
+</div>
+
+<div id="3b" style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;font-weight:700;color:#fff;background:#07182d;border-radius:6px;padding:3px 8px">3b</span><span style="font-size:17px;font-weight:700;color:#07182d">Desktop · 1440 px</span><span style="font-size:14px;color:#68778a">– dieselben Daten wie das Handy oben</span></div>
+<div id="desk" onPointerDownCapture="{{ onD }}" style="width:1440px;height:900px;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 30px 60px rgba(7,24,45,.2);display:flex;flex-direction:column;position:relative">
+<div style="height:40px;flex:none;background:#eef1f4;border-bottom:1px solid #dfe5eb;display:flex;align-items:center;gap:8px;padding:0 16px"><span style="width:12px;height:12px;border-radius:6px;background:#ff5f57"></span><span style="width:12px;height:12px;border-radius:6px;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:6px;background:#28c840"></span><span style="margin-left:16px;height:26px;width:420px;background:#fff;border-radius:7px;font-size:12px;color:#68778a;display:flex;align-items:center;padding:0 12px">trainerhub.app/trainingsplaene</span></div>
+<div style="flex:1;display:flex;min-height:0">
+
+<div style="width:232px;flex:none;background:#0a1a2f;color:#fff;display:flex;flex-direction:column;padding:20px 12px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 20px;border-bottom:1px solid rgba(255,255,255,.1)"><span style="width:42px;height:42px;border-radius:21px;background:#fff;color:#0a1a2f;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">SKSB</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;line-height:.95">TRAINER<br>HUB</span></div>
+<div style="display:flex;flex-direction:column;gap:2px;margin-top:16px">
+<sc-for list="{{ dNav }}" as="n" hint-placeholder-count="9"><button onClick="{{ n.go }}" style="height:40px;border:0;border-radius:9px;background:{{ n.bg }};color:{{ n.fg }};font-size:14px;font-weight:600;display:flex;align-items:center;gap:12px;padding:0 12px;text-align:left"><span style="width:16px;height:16px;border:1.8px solid currentColor;border-radius:4px;flex:none"></span>{{ n.l }}</button></sc-for>
+</div>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+<button onClick="{{ navSoon }}" style="height:40px;border:0;border-radius:9px;background:#148cf2;color:#fff;font-size:14px;font-weight:700">+ Event erstellen</button>
+<div style="display:flex;align-items:center;gap:10px;padding:8px;border-top:1px solid rgba(255,255,255,.1)"><span style="width:34px;height:34px;border-radius:17px;background:#1c3350;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ pIni }}</span><span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-weight:700">{{ pName }}</span><span style="display:block;font-size:12px;color:#9fb0c3">{{ roleChip }}</span></span></div>
+</div>
+</div>
+
+<div style="flex:1;min-width:0;background:#f5f7f9;overflow:auto">
+<div style="padding:28px 36px 0;display:flex;align-items:flex-end;gap:16px">
+<div style="flex:1"><div style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#68778a">Training</div><h2 style="margin:2px 0 0;font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">Trainingspläne</h2></div>
+<sc-if value="{{ staff }}" hint-placeholder-val="{{ true }}"><button onClick="{{ dOpenRights }}" style="height:42px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;border-radius:10px;font-size:14px;font-weight:600;color:#102238">Wer darf erstellen?</button></sc-if>
+<sc-if value="{{ canCreate }}" hint-placeholder-val="{{ true }}"><button onClick="{{ openCreate }}" style="height:42px;padding:0 18px;border:0;background:#148cf2;border-radius:10px;font-size:15px;font-weight:700;color:#fff">+ Plan erstellen</button></sc-if>
+<sc-if value="{{ isSNoCreate }}"><button onClick="{{ dReportNext }}" style="height:42px;padding:0 18px;border:0;background:#148cf2;border-radius:10px;font-size:15px;font-weight:700;color:#fff">↑ Trick melden</button></sc-if>
+</div>
+<div style="padding:18px 36px 0;display:flex;gap:4px;border-bottom:1px solid #dfe5eb;margin:0 36px;padding-left:0;padding-right:0">
+<sc-for list="{{ dTabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="height:44px;padding:0 14px;border:0;border-bottom:3px solid {{ t.bd }};background:none;color:{{ t.fg }};font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">{{ t.l }}<sc-if value="{{ t.hasN }}"><span style="font-size:12px;font-weight:700;background:#f0a33a;color:#fff;border-radius:10px;padding:1px 7px">{{ t.n }}</span></sc-if></button></sc-for>
+</div>
+
+<sc-if value="{{ dPlansTab }}" hint-placeholder-val="{{ true }}">
+<div style="padding:24px 36px 36px;display:grid;grid-template-columns:330px minmax(0,1fr);gap:24px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ isS }}"><button onClick="{{ nextCard.go }}" style="text-align:left;border:0;background:#0a1a2f;color:#fff;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7fb8f2">Dein nächster Schritt</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;line-height:1;text-transform:uppercase">{{ nextCard.title }}</span><span style="font-size:13px;color:#c4d0dd">{{ nextCard.sub }}</span></button></sc-if>
+<button onClick="{{ dGoProg }}" style="text-align:left;display:flex;align-items:center;gap:12px;padding:12px 14px;background:{{ progEntry.bg }};border:1px solid {{ progEntry.bd }};border-radius:12px"><span style="width:36px;height:36px;border-radius:9px;background:{{ progEntry.nBg }};color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none">{{ progEntry.n }}</span><span style="flex:1"><span style="display:block;font-size:14px;font-weight:700;color:#07182d">{{ progEntry.title }}</span><span style="display:block;font-size:12px;color:#68778a">{{ progEntry.sub }}</span></span><span style="color:#68778a">›</span></button>
+<sc-for list="{{ dPlans }}" as="p" hint-placeholder-count="4">
+<button onClick="{{ p.onClick }}" style="text-align:left;display:flex;align-items:center;gap:12px;padding:14px;background:{{ p.bg }};border:1.5px solid {{ p.bd }};border-radius:12px">
+<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:15px;font-weight:700;color:#07182d">{{ p.name }}</span><sc-if value="{{ p.hasBadge }}"><span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:{{ p.badgeBg }};color:{{ p.badgeFg }}">{{ p.badge }}</span></sc-if></span><span style="font-size:12px;color:#68778a">{{ p.group }}</span><span style="display:flex;gap:4px"><sc-for list="{{ p.dots }}" as="o" hint-placeholder-count="6"><span style="width:14px;height:14px;border-radius:7px;background:{{ o.bg }}"></span></sc-for></span></span>
+<span style="flex:none;white-space:nowrap;font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:#07182d">{{ p.pct }}<span style="font-size:15px;color:#68778a"> %</span></span>
+</button>
+</sc-for>
+<sc-if value="{{ noCreate }}"><div style="font-size:13px;color:#68778a;padding:4px 4px">{{ noCreateL }}</div></sc-if>
+</div>
+
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;box-shadow:0 8px 25px rgba(16,34,56,.05);padding:24px;display:flex;flex-direction:column;gap:22px;min-width:0">
+<div style="display:flex;align-items:flex-start;gap:12px">
+<div style="flex:1"><div style="display:flex;gap:6px;margin-bottom:8px"><span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:#e3f4ec;color:#157a52">Aktiv</span><span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:#fdf1e1;color:#9a5600">Endet in 3 Tagen</span></div><h3 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">{{ planName }}</h3><div style="font-size:14px;color:#68778a;margin-top:4px">{{ planSub }}</div></div>
+<sc-if value="{{ staff }}"><button onClick="{{ openEdit }}" style="height:40px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;border-radius:9px;font-size:14px;font-weight:600;color:#102238">Bearbeiten</button></sc-if>
+<button onClick="{{ dGoProg }}" style="height:40px;padding:0 14px;border:1px solid #dfe5eb;background:#fff;border-radius:9px;font-size:14px;font-weight:600;color:#102238">{{ dProgBtn }}</button>
+</div>
+<div style="background:#0a1a2f;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:16px;color:#fff"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7fb8f2;white-space:nowrap">{{ lvlTitle }}</span><div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden"><div style="height:100%;width:{{ xpW }};background:#1f9d6b;border-radius:4px"></div></div><span style="font-size:13px;color:#c4d0dd;white-space:nowrap">{{ xpL }}</span></div>
+<div style="position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+<span style="position:absolute;left:8%;right:8%;top:25px;height:3px;background:#dfe5eb"></span>
+<sc-for list="{{ nodes }}" as="n" hint-placeholder-count="6"><div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center"><span style="height:52px;display:flex;align-items:center"><span style="width:{{ n.size }};height:{{ n.size }};border-radius:50%;background:{{ n.nodeBg }};color:{{ n.nodeFg }};box-shadow:{{ n.ring }};font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;border:3px solid #fff">{{ n.mark }}</span></span><span style="font-size:15px;font-weight:700;color:{{ n.nameFg }}">{{ n.n }}</span><span style="font-size:12px;color:{{ n.subFg }};text-wrap:pretty">{{ n.sub }}</span></div></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px">
+<div style="border:1px solid #dfe5eb;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0874d1">{{ curTitle }}</div>
+<sc-if value="{{ isS }}"><sc-for list="{{ curSteps }}" as="st" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:10px"><span style="width:22px;height:22px;border-radius:11px;background:{{ st.bg }};border:2px solid {{ st.bd }};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ st.mark }}</span><span style="flex:1;font-size:14px;font-weight:600;color:#102238">{{ st.l }}</span><span style="font-size:12px;color:#68778a">{{ st.sub }}</span></div></sc-for></sc-if>
+<sc-if value="{{ staff }}"><sc-for list="{{ curWait }}" as="w" hint-placeholder-count="1"><button onClick="{{ w.go }}" style="display:flex;align-items:center;gap:10px;height:46px;padding:0 10px;border:1px solid #f5d3a3;background:#fdf1e1;border-radius:10px;text-align:left"><span style="width:30px;height:30px;border-radius:15px;background:#0a1a2f;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ w.ini }}</span><span style="flex:1;font-size:14px;font-weight:600;color:#07182d">{{ w.who }}</span><span style="font-size:12px;font-weight:600;color:#9a5600">{{ w.vid }}</span></button></sc-for><sc-if value="{{ noCurWait }}"><div style="font-size:14px;color:#68778a">Gerade keine offenen Meldungen.</div></sc-if></sc-if>
+<button onClick="{{ curCta.go }}" style="align-self:flex-start;height:42px;padding:0 16px;border:0;border-radius:10px;background:#148cf2;color:#fff;font-size:14px;font-weight:600">{{ curCta.l }}</button>
+</div>
+<div style="border:1px solid #dfe5eb;border-radius:12px;padding:6px 16px">
+<sc-for list="{{ dInfo }}" as="i" hint-placeholder-count="5"><div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="width:92px;flex:none;font-size:13px;color:#68778a">{{ i.k }}</span><span style="flex:1;font-size:14px;font-weight:600;color:#102238;text-wrap:pretty">{{ i.v }}</span></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ dProgTab }}">
+<sc-if value="{{ staff }}" hint-placeholder-val="{{ true }}">
+<div style="padding:24px 36px 36px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline"><span style="flex:1;font-size:18px;font-weight:700;color:#07182d">{{ planName }} · U14 Augsburg</span><span style="font-size:13px;color:#68778a">Klicke auf ! oder ▶ zum Prüfen</span></div>
+<div style="display:grid;grid-template-columns:150px repeat(6,1fr) 60px;gap:8px;align-items:center"><span></span><sc-for list="{{ colsLong }}" as="c" hint-placeholder-count="6"><span style="font-size:12px;font-weight:700;color:#68778a;text-align:center">{{ c.l }}</span></sc-for><span style="font-size:12px;font-weight:700;color:#68778a;text-align:right">Bestätigt</span></div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:150px repeat(6,1fr) 60px;gap:8px;align-items:center"><span style="font-size:14px;font-weight:600;color:#102238">{{ r.n }}</span><sc-for list="{{ r.cells }}" as="x" hint-placeholder-count="6"><button onClick="{{ x.onClick }}" style="height:44px;border:0;border-radius:9px;background:{{ x.bg }};color:{{ x.fg }};box-shadow:{{ x.ring }};font-size:14px;font-weight:700">{{ x.mark }}</button></sc-for><span style="font-size:14px;font-weight:700;color:#07182d;text-align:right">{{ r.doneL }}</span></div></sc-for>
+<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#68778a;padding-top:6px"><span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#e3e8ee"></span>Offen</span><span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#7fb8f2"></span>Geübt</span><span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#f0a33a"></span>Gemeldet</span><span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#1f9d6b"></span>Bestätigt</span><span>▶ mit Video</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:700;color:#07182d">Wartet auf dich · {{ waitN }}</div>
+<sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:10px;align-items:center"><button onClick="{{ q.open }}" style="width:64px;height:48px;border:0;border-radius:8px;background:{{ q.thBg }};color:{{ q.thFg }};font-size:12px;font-weight:700;flex:none">{{ q.th }}</button><span style="flex:1;min-width:0"><span style="display:block;font-size:14px;font-weight:700;color:#07182d">{{ q.who }} · {{ q.trick }}</span><span style="display:block;font-size:12px;color:#68778a">{{ q.when }}</span></span></div>
+<div style="font-size:13px;color:#46576b">{{ q.note }}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onClick="{{ q.again }}" style="height:38px;border:1px solid #dfe5eb;background:#fff;border-radius:9px;font-size:13px;font-weight:600;color:#102238">Nochmal üben</button><button onClick="{{ q.confirm }}" style="height:38px;border:0;background:#1f9d6b;border-radius:9px;font-size:13px;font-weight:600;color:#fff">✓ Bestätigen</button></div>
+</div>
+</sc-for>
+<sc-if value="{{ noWait }}"><div style="background:#e3f4ec;color:#157a52;border-radius:12px;padding:14px;font-size:14px;font-weight:600">Alles bestätigt.</div></sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ isS }}">
+<div style="padding:24px 36px 36px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-size:14px;color:#68778a">{{ privacyL }}</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><sc-for list="{{ sumTiles }}" as="t" hint-placeholder-count="3"><div style="background:{{ t.bg }};border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:700;line-height:1;color:{{ t.fg }}">{{ t.n }}</span><span style="font-size:13px;font-weight:600;color:{{ t.fg }}">{{ t.l }}</span></div></sc-for></div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden"><sc-for list="{{ myTricks }}" as="t" hint-placeholder-count="6"><button onClick="{{ t.go }}" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 16px;border:0;border-bottom:1px solid #eef1f4;background:#fff"><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ t.n }}</span><span style="display:block;font-size:12px;font-weight:600;color:{{ t.fg }}">{{ t.label }}</span></span><span style="display:flex;gap:3px;width:120px"><sc-for list="{{ t.segs }}" as="g" hint-placeholder-count="3"><span style="flex:1;height:8px;border-radius:3px;background:{{ g.bg }}"></span></sc-for></span></button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:700;color:#07182d">Meine Meldungen</div>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden"><sc-for list="{{ myReps }}" as="m" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #eef1f4"><span style="width:64px;height:48px;border-radius:8px;background:{{ m.thBg }};color:{{ m.thFg }};font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ m.th }}</span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600;color:#102238">{{ m.trick }}</span><span style="display:block;font-size:12px;color:#68778a">{{ m.when }}</span></span><span style="font-size:12px;font-weight:600;padding:4px 8px;border-radius:6px;background:{{ m.bg }};color:{{ m.c }}">{{ m.st }}</span></div></sc-for></div>
+</div>
+</div>
+</sc-if>
+</sc-if>
+<sc-if value="{{ dRevTab }}">
+<div style="padding:24px 36px 36px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+<sc-if value="{{ staff }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ rvAthChips }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.go }}" style="height:36px;padding:0 14px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:18px;font-size:13px;font-weight:600">{{ c.l }}</button></sc-for></div></sc-if>
+<span style="flex:1"></span>
+<div style="display:flex;background:#e6ebf0;border-radius:10px;padding:3px;gap:3px"><sc-for list="{{ rvPers }}" as="p" hint-placeholder-count="3"><button onClick="{{ p.go }}" style="height:34px;padding:0 14px;border:0;border-radius:8px;background:{{ p.bg }};color:{{ p.fg }};box-shadow:{{ p.sh }};font-size:13px;font-weight:700">{{ p.l }}</button></sc-for></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+<sc-for list="{{ rvSum }}" as="t" hint-placeholder-count="4"><div style="background:#fff;border:1px solid #dfe5eb;border-radius:12px;padding:14px 16px"><div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;color:#07182d;line-height:1">{{ t.n }}</div><div style="font-size:13px;font-weight:600;color:#68778a;margin-top:2px">{{ t.l }}</div></div></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:16px;font-weight:700;color:#07182d">{{ rvWho }} · neueste zuerst</span><span style="font-size:13px;color:#68778a">{{ rvIntro }}</span></div>
+<sc-for list="{{ rvSes }}" as="x" hint-placeholder-count="4">
+<div style="background:#fff;border:1px solid {{ x.bd }};border-radius:12px;overflow:hidden">
+<button onClick="{{ x.toggle }}" style="width:100%;display:grid;grid-template-columns:96px minmax(0,1fr) auto auto 20px;gap:16px;align-items:center;padding:14px 16px;border:0;background:none;text-align:left">
+<span><span style="display:block;font-size:14px;font-weight:700;color:#07182d">{{ x.d }}</span><span style="display:block;font-size:12px;color:#68778a">{{ x.t }} Uhr</span></span>
+<span style="min-width:0"><span style="display:block;font-size:15px;font-weight:700;color:#07182d">{{ x.title }}</span><span style="display:block;font-size:12px;color:#68778a">{{ x.park }} · {{ x.dur }} · {{ x.actL }} aktiv</span></span>
+<span style="font-size:13px;color:#46576b;white-space:nowrap">{{ x.la }} gelandet</span>
+<span style="font-size:13px;font-weight:700;padding:4px 9px;border-radius:7px;background:{{ x.qBg }};color:{{ x.qFg }}">{{ x.qL }}</span>
+<span style="font-size:12px;color:#68778a">{{ x.chev }}</span>
+</button>
+<sc-if value="{{ x.isOpen }}">
+<div style="padding:0 16px 16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;border-top:1px solid #eef1f4;padding-top:14px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#68778a">Übungen</div>
+<sc-for list="{{ x.rows }}" as="r" hint-placeholder-count="2"><div style="display:grid;grid-template-columns:110px 1fr 56px 44px;gap:10px;align-items:center"><span style="font-size:14px;font-weight:600;color:#07182d">{{ r.t }}</span><span style="height:8px;border-radius:4px;background:#eef1f4;overflow:hidden"><span style="display:block;height:100%;width:{{ r.w }};background:{{ r.bar }}"></span></span><span style="font-size:13px;color:#46576b;text-align:right">{{ r.la }}</span><span style="font-size:13px;font-weight:700;color:#07182d;text-align:right">{{ r.qL }}</span></div></sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#68778a">Hinweise & Ziele</div>
+<sc-for list="{{ x.notes }}" as="n" hint-placeholder-count="1"><div style="background:{{ n.bg }};border-radius:9px;padding:9px 11px;display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#102238">{{ n.txt }}</span><span style="font-size:11px;font-weight:700;color:#68778a">{{ n.by }} · {{ n.tag }}</span></div></sc-for>
+<sc-if value="{{ x.noNotes }}"><div style="font-size:13px;color:#68778a">Noch keine Hinweise zu dieser Session.</div></sc-if>
+<div style="display:flex;gap:6px"><input value="{{ x.draft }}" onChange="{{ rvDraftOn }}" placeholder="{{ rvNotePh }}" style="flex:1;min-width:0;height:38px;padding:0 10px;border:1px solid #dfe5eb;border-radius:8px;font-size:13px"><button onClick="{{ x.addNote }}" style="height:38px;padding:0 12px;border:0;background:#148cf2;color:#fff;border-radius:8px;font-size:13px;font-weight:700">Speichern</button></div>
+<sc-if value="{{ staff }}"><div style="display:flex;background:#eef1f4;border-radius:8px;padding:2px;gap:2px;align-self:flex-start"><sc-for list="{{ rvVisOpts }}" as="v" hint-placeholder-count="2"><button onClick="{{ v.go }}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:{{ v.bg }};color:{{ v.fg }};box-shadow:{{ v.sh }};font-size:12px;font-weight:600">{{ v.l }}</button></sc-for></div></sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ hasReady }}">
+<div style="background:#0a1a2f;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;color:#fff">
+<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7fb8f2">Aus den Trainingsdaten</div>
+<sc-for list="{{ rvReady }}" as="k" hint-placeholder-count="1"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1"><span style="display:block;font-size:16px;font-weight:700">{{ k.t }} · {{ k.qL }}</span><span style="display:block;font-size:12px;color:#c4d0dd">{{ k.hint }}</span></span><button onClick="{{ k.cta }}" style="height:38px;padding:0 14px;border:0;border-radius:9px;background:#1f9d6b;color:#fff;font-size:13px;font-weight:700;white-space:nowrap">{{ k.ctaL }}</button></div></sc-for>
+</div>
+</sc-if>
+<div style="background:#fff;border:1px solid #dfe5eb;border-radius:14px;overflow:hidden">
+<div style="padding:12px 16px;font-size:14px;font-weight:700;color:#07182d;border-bottom:1px solid #eef1f4">Skills im Zeitraum</div>
+<sc-for list="{{ rvSkills }}" as="k" hint-placeholder-count="5">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 64px 52px;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid #eef1f4">
+<span style="min-width:0"><span style="display:block;font-size:14px;font-weight:700;color:#07182d">{{ k.t }}</span><span style="display:flex;gap:6px;font-size:12px"><span style="color:#68778a">{{ k.la }}</span><span style="font-weight:600;color:{{ k.stFg }}">{{ k.stL }}</span><sc-if value="{{ k.hasTrend }}"><span style="font-weight:700;color:{{ k.trendFg }}">{{ k.trend }}</span></sc-if></span></span>
+<span style="height:28px;display:flex;align-items:flex-end;gap:3px"><sc-for list="{{ k.hist }}" as="h" hint-placeholder-count="2"><span style="flex:1;height:{{ h.h }};background:{{ h.bg }};border-radius:2px"></span></sc-for></span>
+<span style="font-size:13px;font-weight:700;padding:3px 0;border-radius:6px;background:{{ k.qBg }};color:{{ k.qFg }};text-align:center">{{ k.qL }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+
+<sc-if value="{{ dSheet }}">
+<div onClick="{{ sh.close }}" style="position:absolute;inset:0;background:rgba(7,24,45,.35)"></div>
+<div style="position:absolute;top:0;right:0;bottom:0;width:420px;background:#fff;box-shadow:-10px 0 30px rgba(7,24,45,.15);padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:22px;background:#0a1a2f;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ sh.ini }}</span><span style="flex:1"><span style="display:block;font-size:18px;font-weight:700;color:#07182d">{{ sh.who }} · {{ sh.trick }}</span><span style="display:block;font-size:13px;color:#68778a">Gemeldet {{ sh.when }}</span></span><button onClick="{{ sh.close }}" style="width:36px;height:36px;border:0;background:#f5f7f9;border-radius:18px">✕</button></div>
+<sc-if value="{{ sh.hasVid }}"><button onClick="{{ sh.play }}" style="height:230px;border:0;border-radius:12px;background:#0a1a2f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="width:60px;height:60px;border-radius:30px;background:rgba(255,255,255,.15);font-size:22px;display:flex;align-items:center;justify-content:center">▶</span><span style="font-size:13px;font-weight:600;color:#c4d0dd">Video · {{ sh.dur }}</span></button></sc-if>
+<div style="font-size:14px;color:#46576b;background:#f5f7f9;border-radius:9px;padding:10px 12px">{{ sh.note }}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto"><button onClick="{{ sh.again }}" style="height:46px;border:1px solid #dfe5eb;background:#fff;border-radius:10px;font-size:15px;font-weight:600;color:#102238">Nochmal üben</button><button onClick="{{ sh.confirm }}" style="height:46px;border:0;background:#1f9d6b;border-radius:10px;font-size:15px;font-weight:600;color:#fff">✓ Bestätigen</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ dRights }}">
+<div onClick="{{ dCloseRights }}" style="position:absolute;inset:0;background:rgba(7,24,45,.35)"></div>
+<div style="position:absolute;top:0;right:0;bottom:0;width:440px;background:#fff;box-shadow:-10px 0 30px rgba(7,24,45,.15);padding:24px;display:flex;flex-direction:column;gap:14px;overflow:auto">
+<div style="display:flex;align-items:center"><span style="flex:1;font-size:20px;font-weight:700;color:#07182d">Wer darf Pläne erstellen?</span><button onClick="{{ dCloseRights }}" style="width:36px;height:36px;border:0;background:#f5f7f9;border-radius:18px">✕</button></div>
+<div style="font-size:14px;color:#68778a;text-wrap:pretty">{{ rightsIntro }}</div>
+<sc-for list="{{ rightsAuto }}" as="r" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eef1f4"><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ r.n }}</span><span style="display:block;font-size:12px;color:#68778a">{{ r.sub }}</span></span><span style="font-size:12px;font-weight:700;color:#157a52;background:#e3f4ec;border-radius:6px;padding:4px 8px">Immer</span></div></sc-for>
+<div style="font-size:13px;font-weight:600;color:#68778a;margin-top:6px">Athleten · U14 Augsburg</div>
+<sc-for list="{{ rightsPeople }}" as="r" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #eef1f4"><span style="width:36px;height:36px;border-radius:18px;background:#0a1a2f;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ r.ini }}</span><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600;color:#07182d">{{ r.n }}</span><span style="display:block;font-size:12px;color:#68778a">{{ r.sub }}</span></span><button onClick="{{ r.go }}" style="width:52px;height:32px;border:0;border-radius:16px;background:{{ r.bg }};padding:3px;display:flex;justify-content:{{ r.j }};flex:none"><span style="width:26px;height:26px;border-radius:13px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></button></div></sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ dRep }}">
+<div onClick="{{ rp.close }}" style="position:absolute;inset:0;background:rgba(7,24,45,.45)"></div>
+<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:520px;background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 60px rgba(7,24,45,.3)">
+<div style="display:flex;align-items:flex-start"><div style="flex:1"><div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;text-transform:uppercase;color:#07182d;line-height:1">{{ rp.title }}</div><div style="font-size:14px;color:#68778a;margin-top:4px">{{ rp.sub }}</div></div><button onClick="{{ rp.close }}" style="width:36px;height:36px;border:0;background:#f5f7f9;border-radius:18px">✕</button></div>
+<sc-if value="{{ rp.isPick }}" hint-placeholder-val="{{ true }}"><button onClick="{{ rp.gal }}" style="height:150px;border:2px dashed #b9c4d0;background:#f5f7f9;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#148cf2" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path></svg><span style="font-size:15px;font-weight:700;color:#07182d">Video hierher ziehen oder auswählen</span><span style="font-size:12px;color:#68778a">MP4 oder MOV · max. 60 Sek. · optional</span></button></sc-if>
+<sc-if value="{{ rp.isUp }}"><div style="border:1px solid #dfe5eb;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px"><div style="display:flex"><span style="flex:1;font-size:14px;font-weight:600;color:#07182d">IMG_4821.MOV · 38 MB</span><span style="font-size:13px;font-weight:700;color:#0874d1">{{ rp.pctL }}</span></div><div style="height:8px;border-radius:4px;background:#eef1f4;overflow:hidden"><div style="height:100%;width:{{ rp.pctW }};background:#148cf2"></div></div></div></sc-if>
+<sc-if value="{{ rp.isReady }}"><div style="display:flex;gap:12px;align-items:center;border:1px solid #bfe6d4;background:#f1faf5;border-radius:14px;padding:10px"><span style="width:88px;height:64px;border-radius:9px;background:#0a1a2f;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">▶ 0:12</span><span style="flex:1;font-size:14px;font-weight:700;color:#157a52">✓ Video hochgeladen</span><button onClick="{{ rp.remove }}" style="height:36px;border:0;background:none;font-size:13px;font-weight:600;color:#c2383d">Entfernen</button></div></sc-if>
+<input value="{{ rp.note }}" onChange="{{ rp.onNote }}" placeholder="Notiz (optional), z. B. 4 von 5 sauber gelandet" style="height:46px;padding:0 14px;border:1px solid #dfe5eb;border-radius:10px;font-size:15px">
+<button onClick="{{ rp.send }}" style="height:48px;border:0;border-radius:10px;background:{{ rp.sendBg }};color:{{ rp.sendFg }};font-size:15px;font-weight:700">{{ rp.sendL }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ dCr }}">
+<div onClick="{{ crClose }}" style="position:absolute;inset:0;background:rgba(7,24,45,.45)"></div>
+<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:720px;max-height:800px;background:#fff;border-radius:16px;display:flex;flex-direction:column;box-shadow:0 30px 60px rgba(7,24,45,.3);overflow:hidden">
+<div style="padding:20px 24px 16px;border-bottom:1px solid #dfe5eb;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:center;gap:12px"><span style="flex:1;font-size:20px;font-weight:700;color:#07182d">{{ crTitle }}</span><span style="font-size:13px;font-weight:600;color:#68778a">Schritt {{ crStepL }}</span><button onClick="{{ crClose }}" style="width:36px;height:36px;border:0;background:#f5f7f9;border-radius:18px">✕</button></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><sc-for list="{{ crSteps }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.go }}" style="border:0;background:none;padding:0;display:flex;flex-direction:column;gap:6px;text-align:left"><span style="height:4px;border-radius:2px;background:{{ t.bar }}"></span><span style="font-size:13px;font-weight:700;color:{{ t.fg }}">{{ t.l }}</span></button></sc-for></div>
+</div>
+<div style="flex:1;overflow:auto;padding:20px 24px;display:flex;flex-direction:column;gap:18px">
+<sc-if value="{{ s0 }}">
+<sc-if value="{{ showStarts }}"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><sc-for list="{{ starts }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.go }}" style="text-align:left;padding:12px;border:1.5px solid {{ t.bd }};background:{{ t.bg }};border-radius:12px;display:flex;flex-direction:column;gap:4px"><span style="font-size:14px;font-weight:700;color:#07182d">{{ t.n }}</span><span style="font-size:12px;color:#68778a">{{ t.d }}</span></button></sc-for></div></sc-if>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<label style="display:flex;flex-direction:column;gap:6px;grid-column:1 / -1"><span style="font-size:14px;font-weight:700;color:#07182d">Name des Plans <span style="color:#e5484d">*</span></span><input value="{{ crName }}" onChange="{{ onName }}" placeholder="z. B. Street Basics U14" style="height:46px;padding:0 14px;border:1px solid #dfe5eb;border-radius:10px;font-size:15px"></label>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Kategorie</span><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ cats }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.go }}" style="height:36px;padding:0 12px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:18px;font-size:13px;font-weight:600">{{ c.l }}</button></sc-for></div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Niveau</span><div style="display:grid;grid-template-columns:repeat(3,1fr);background:#e6ebf0;border-radius:10px;padding:3px;gap:3px"><sc-for list="{{ lvls }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.go }}" style="height:34px;border:0;border-radius:8px;background:{{ c.bg }};color:{{ c.fg }};box-shadow:{{ c.sh }};font-size:12px;font-weight:700">{{ c.l }}</button></sc-for></div></div>
+<label style="display:flex;flex-direction:column;gap:6px;grid-column:1 / -1"><span style="font-size:14px;font-weight:700;color:#07182d">Ziel <span style="font-weight:500;color:#68778a">· optional</span></span><textarea value="{{ crGoal }}" onChange="{{ onGoal }}" placeholder="Was soll mit diesem Plan erreicht werden?" style="height:72px;padding:12px 14px;border:1px solid #dfe5eb;border-radius:10px;font-size:15px;resize:none"></textarea></label>
+</div>
+</sc-if>
+<sc-if value="{{ s1 }}">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:14px;font-weight:700;color:#07182d">Tricks im Plan · {{ trickCountL }}</div>
+<sc-if value="{{ noTricks }}"><div style="padding:18px;border:1.5px dashed #c9d2dc;border-radius:12px;text-align:center;font-size:14px;color:#68778a">Rechts einen Trick wählen.</div></sc-if>
+<sc-for list="{{ crTricks }}" as="t" hint-placeholder-count="3"><div style="border:1px solid {{ t.bd }};border-radius:10px;overflow:hidden"><button onClick="{{ t.toggle }}" style="width:100%;min-height:48px;display:flex;align-items:center;gap:12px;padding:6px 12px;border:0;background:none;text-align:left"><span style="width:24px;height:24px;border-radius:12px;background:#0a1a2f;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ t.num }}</span><span style="flex:1"><span style="display:block;font-size:14px;font-weight:600;color:#07182d">{{ t.n }}</span><span style="display:block;font-size:12px;color:#68778a">{{ t.goalL }}</span></span><span style="color:#68778a;font-size:12px">{{ t.chev }}</span></button><sc-if value="{{ t.isOpen }}"><div style="padding:0 12px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><input value="{{ t.goal }}" onChange="{{ t.onGoal }}" placeholder="Ziel" style="height:40px;padding:0 10px;border:1px solid #dfe5eb;border-radius:8px;font-size:14px"><input value="{{ t.hint }}" onChange="{{ t.onHint }}" placeholder="Hinweis" style="height:40px;padding:0 10px;border:1px solid #dfe5eb;border-radius:8px;font-size:14px"><button onClick="{{ t.up }}" style="height:36px;border:1px solid #dfe5eb;background:#fff;border-radius:8px;font-size:13px;font-weight:600;color:{{ t.upFg }}">↑ Nach oben</button><button onClick="{{ t.remove }}" style="height:36px;border:1px solid #f3c7c8;background:#fff;border-radius:8px;font-size:13px;font-weight:600;color:#c2383d">Entfernen</button></div></sc-if></div></sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;background:#f5f7f9;border-radius:12px;padding:12px">
+<input value="{{ crQ }}" onChange="{{ onQ }}" placeholder="Trick suchen" style="height:40px;padding:0 12px;border:1px solid #dfe5eb;border-radius:9px;font-size:14px">
+<div style="display:flex;gap:6px;flex-wrap:wrap"><sc-if value="{{ hasCustom }}"><button onClick="{{ addCustom }}" style="height:34px;padding:0 12px;border:0;background:#148cf2;color:#fff;border-radius:17px;font-size:13px;font-weight:600">{{ customL }}</button></sc-if><sc-for list="{{ sugg }}" as="g" hint-placeholder-count="8"><button onClick="{{ g.go }}" style="height:34px;padding:0 12px;border:1px solid #dfe5eb;background:#fff;color:#102238;border-radius:17px;font-size:13px;font-weight:600">+ {{ g.l }}</button></sc-for></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ s2 }}">
+<sc-if value="{{ staff }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><sc-for list="{{ groups }}" as="g" hint-placeholder-count="4"><button onClick="{{ g.go }}" style="min-height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border:1px solid {{ g.bd }};background:{{ g.bg }};border-radius:10px;text-align:left"><span style="width:20px;height:20px;border-radius:5px;border:2px solid {{ g.box }};background:{{ g.boxBg }};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ g.mark }}</span><span style="flex:1;font-size:14px;font-weight:600;color:#07182d">{{ g.n }}</span><span style="font-size:12px;color:#68778a">{{ g.c }}</span></button></sc-for></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Einzelne Athleten</span><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ people }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.go }}" style="height:36px;padding:0 12px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:18px;font-size:13px;font-weight:600">{{ c.l }}</button></sc-for></div></div>
+<sc-if value="{{ isV }}"><button onClick="{{ tplShare.go }}" style="min-height:58px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid {{ tplShare.bd }};background:{{ tplShare.bg }};border-radius:10px;text-align:left"><span style="flex:1"><span style="display:block;font-size:14px;font-weight:700;color:#07182d">Als Vereinsvorlage freigeben</span><span style="display:block;font-size:12px;color:#68778a">Alle Trainer im Verein können den Plan übernehmen</span></span><span style="width:48px;height:28px;border-radius:14px;background:{{ tplShare.sw }};padding:3px;display:flex;justify-content:{{ tplShare.j }}"><span style="width:22px;height:22px;border-radius:11px;background:#fff"></span></span></button></sc-if>
+</sc-if>
+<sc-if value="{{ isS }}"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><sc-for list="{{ whoOpts }}" as="g" hint-placeholder-count="2"><button onClick="{{ g.go }}" style="min-height:60px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid {{ g.bd }};background:{{ g.bg }};border-radius:10px;text-align:left"><span style="flex:1"><span style="display:block;font-size:14px;font-weight:600;color:#07182d">{{ g.l }}</span><span style="display:block;font-size:12px;color:#68778a">{{ g.sub }}</span></span></button></sc-for></div></sc-if>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:700;color:#07182d">Frist</span><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ dues }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.go }}" style="height:36px;padding:0 12px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:18px;font-size:13px;font-weight:600">{{ c.l }}</button></sc-for></div></div>
+<div style="font-size:13px;color:#68778a">{{ assignHint }}</div>
+</sc-if>
+<sc-if value="{{ s3 }}">
+<sc-if value="{{ isEdit }}"><div style="font-size:14px;color:#0b5aa0;background:#e8f3fe;border-radius:10px;padding:10px 12px">Speichern erzeugt <b>Version 2</b>. Laufende Trainings behalten ihren Planstand.</div></sc-if>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><sc-for list="{{ review }}" as="r" hint-placeholder-count="4"><div style="border:1px solid #dfe5eb;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#68778a">{{ r.k }}</div><div style="font-size:14px;font-weight:600;color:#07182d;margin-top:3px;text-wrap:pretty">{{ r.v }}</div><sc-if value="{{ r.hasSub }}"><div style="font-size:12px;color:#68778a;margin-top:2px">{{ r.sub }}</div></sc-if></div><button onClick="{{ r.go }}" style="height:30px;border:0;background:none;color:#0874d1;font-size:13px;font-weight:600">Ändern</button></div></sc-for></div>
+</sc-if>
+</div>
+<div style="padding:14px 24px;border-top:1px solid #dfe5eb;display:flex;gap:8px;justify-content:flex-end">
+<sc-if value="{{ showBack }}"><button onClick="{{ crBack }}" style="height:44px;padding:0 16px;border:1px solid #dfe5eb;background:#fff;border-radius:10px;font-size:14px;font-weight:600;color:#102238">Zurück</button></sc-if>
+<sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}"><button onClick="{{ crNext }}" style="height:44px;padding:0 20px;border:0;border-radius:10px;background:{{ nextBg }};color:{{ nextFg }};font-size:15px;font-weight:700">{{ nextL }}</button></sc-if>
+<sc-if value="{{ isLast }}"><button onClick="{{ saveDraft }}" style="height:44px;padding:0 16px;border:1px solid #dfe5eb;background:#fff;border-radius:10px;font-size:14px;font-weight:600;color:#102238">Als Entwurf</button><button onClick="{{ save }}" style="height:44px;padding:0 20px;border:0;border-radius:10px;background:#148cf2;color:#fff;font-size:15px;font-weight:700">{{ saveL }}</button></sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ dToast }}"><div style="position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#0a1a2f;color:#fff;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:600;box-shadow:0 10px 24px rgba(7,24,45,.3);pointer-events:none">{{ toast }}</div></sc-if>
+</div>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ST=[{l:'Offen',c:'#e3e8ee'},{l:'Geübt',c:'#7fb8f2'},{l:'Gemeldet',c:'#f0a33a'},{l:'Bestätigt',c:'#1f9d6b'}];
+const TR=['Ollie','Pop Shove-it','Kickflip','Heelflip','Boardslide','360 Flip'];
+const TRS=['Ollie','Shove','Kick','Heel','Board','360'];
+const TGOAL=['5× sauber, fahrend','3 von 5, fahrend','3 von 5 sauber','3 von 5 sauber','2× an der Curb','1× sauber'];
+const SK=[{n:'Mia K.',i:'MK'},{n:'Leon B.',i:'LB'},{n:'Jonas T.',i:'JT'},{n:'Emma S.',i:'ES'}];
+const W={m:{sk:'Skater',tr:'Trainer',acc:'deinen Trainer',nom:'dein Trainer',dat:'deinem Trainer',rank:'Street-Starter'},
+  w:{sk:'Skaterin',tr:'Trainerin',acc:'deine Trainerin',nom:'deine Trainerin',dat:'deiner Trainerin',rank:'Street-Starterin'},
+  d:{sk:'Skater*in',tr:'Trainer*in',acc:'dein*e Trainer*in',nom:'dein*e Trainer*in',dat:'deine*m Trainer*in',rank:'Street-Starter*in'}};
+const LIB=['Ollie','Pop Shove-it','Kickflip','Heelflip','Boardslide','50-50 Grind','Manual','Drop-in','Rock to Fakie','Frontside 180','Nollie','Tailslide','Varial Flip','360 Flip'];
+const TPL=[{id:'blank',n:'Leer starten',d:'Eigene Tricks wählen',tricks:[]},
+  {id:'sb',n:'Street Basics',d:'6 Tricks · Einsteiger',cat:'Street',lvl:'Einsteiger',tricks:TR},
+  {id:'ramp',n:'Ramp Einstieg',d:'Vereinsvorlage · 4 Tricks',cat:'Ramp',lvl:'Einsteiger',tricks:['Drop-in','Rock to Fakie','50-50 Grind','Tailslide']},
+  {id:'flip',n:'Flip-Tricks',d:'4 Tricks · Fortgeschritten',cat:'Street',lvl:'Fortgeschritten',tricks:['Kickflip','Heelflip','Varial Flip','360 Flip']}];
+const GROUPS=[{n:'U14 Augsburg',c:'4 Athleten'},{n:'U10 Anfänger',c:'7 Athleten'},{n:'Girls Session',c:'5 Athletinnen'},{n:'Contest Team',c:'3 Athleten'}];
+const GROUPS_V=[...GROUPS,{n:'Alle Gruppen im Verein',c:'38 Athleten'}];
+const CATS=['Street','Park','Bowl','Ramp','Freestyle'],LVLS=['Einsteiger','Fortgeschritten','Profi'],DUES=['2 Wochen','4 Wochen','8 Wochen','Ohne Frist'];
+const STEPS=['Grundlagen','Tricks','Zuweisen','Prüfen'];
+const SES=[
+ {d:'Do. 24.09.',t:'15:16',title:'360 Kickflip',park:'Skatepark Nord',dur:'1 min 32 s',act:0.9,items:[['360 Flip',9,10]]},
+ {d:'Do. 24.09.',t:'09:29',title:'Contest-Vorbereitung',park:'Bowl Süd',dur:'3 min 29 s',act:0.9,items:[['Pop Shove-it',6,7]]},
+ {d:'Mo. 22.09.',t:'17:05',title:'Street Basics U14',park:'Skatepark Nord',dur:'42 min',act:18,items:[['Ollie',10,10],['Kickflip',3,3],['Heelflip',2,6]]},
+ {d:'Fr. 19.09.',t:'16:30',title:'Street Basics U14',park:'Skatepark Nord',dur:'38 min',act:15,items:[['Kickflip',2,5],['Heelflip',1,5]]}];
+const qCol=q=>q>=80?{bg:'#e3f4ec',fg:'#157a52',bar:'#1f9d6b'}:q>=50?{bg:'#e8f3fe',fg:'#0b5aa0',bar:'#148cf2'}:{bg:'#fdf1e1',fg:'#9a5600',bar:'#f0a33a'};
+const fmtT=m=>m<1?Math.round(m*60)+' s':Math.round(m)+' min';
+const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+const segs=v=>[0,1,2].map(i=>({bg:v>i?ST[i+1].c:'#e6ebf0'}));
+const chip=on=>({bg:on?'#0a1a2f':'#fff',fg:on?'#fff':'#102238',bd:on?'#0a1a2f':'#dfe5eb'});
+const segOn=on=>({bg:on?'#fff':'transparent',fg:on?'#07182d':'#68778a',sh:on?'0 1px 3px rgba(7,24,45,.15)':'none'});
+const sw=on=>({bg:on?'#1f9d6b':'#c9d2dc',j:on?'flex-end':'flex-start'});
+
+class Component extends DCLogic {
+  state={role:'t',gT:'m',gV:'w',gS:null,gSheet:false,scr:{t:'plans',v:'plans',s:'plans'},dTab:'plans',dRights:false,
+    M:[[3,3,2,1,0,0],[3,2,1,1,0,0],[3,3,3,1,2,0],[3,1,0,0,0,0]],
+    reps:{'0-2':{when:'vor 2 Std.',note:'„4 von 5 sauber gelandet."',video:true,dur:'0:14'},'1-1':{when:'gestern, 18:40',note:'„Klappt jetzt auch fahrend."',video:false},'2-4':{when:'gestern, 17:15',note:'„An der kleinen Curb, 3× hintereinander."',video:true,dur:'0:09'}},
+    perm:{'Mia K.':false,'Leon B.':false,'Jonas T.':true,'Emma S.':false},
+    rvAth:0,rvPer:'30 Tage',rvOpen:0,rvDraft:'',rvVis:'ath',
+    rvNotes:{0:[{txt:'Front Foot weiter Richtung Nose – dann dreht er sauberer.',vis:'ath',by:'Vladislav H.'},{txt:'Nach ~10 Versuchen müde, Pausen einplanen.',vis:'tr',by:'Vladislav H.'}],2:[{txt:'Heelflip: Ferse zieht zu früh weg.',vis:'ath',by:'Vladislav H.'}]},
+    sheet:null,rep:null,cr:null,surf:'m',extra:{t:[],v:[],s:[]},planName:'Street Basics U14',sound:true,toast:'',toastSurf:'m'};
+  _surf='m';
+  componentWillUnmount(){clearInterval(this._iv);clearTimeout(this._tt);}
+  flash(m){this.setState({toast:m,toastSurf:this._surf});clearTimeout(this._tt);this._tt=setTimeout(()=>this.setState({toast:''}),2400);}
+  open(o){this.setState({...o,surf:this._surf});}
+  go(v){this.setState(s=>({scr:{...s.scr,[s.role]:v},sheet:null,rep:null,cr:null}));}
+  setRole(r){const s=this.state;clearInterval(this._iv);const g=r==='t'?s.gT:r==='v'?s.gV:s.gS;
+    this.setState({role:r,gSheet:!g,cr:null,rep:null,sheet:null,dRights:false,toast:'',dTab:'plans'});}
+  setG(g){const r=this.state.role,k=r==='t'?'gT':r==='v'?'gV':'gS';this.setState({[k]:g,gSheet:false});}
+  openRep(ci){clearInterval(this._iv);this.open({rep:{ci,step:'pick',pct:0,note:''}});}
+  upload(){clearInterval(this._iv);this.setState(s=>({rep:{...s.rep,step:'up',pct:0}}));
+    this._iv=setInterval(()=>{const r=this.state.rep;if(!r||r.step!=='up'){clearInterval(this._iv);return;}
+      const p=Math.min(100,r.pct+9);this.setState({rep:{...r,pct:p,step:p>=100?'ready':'up'}});if(p>=100)clearInterval(this._iv);},110);}
+  newCr(edit){
+    if(edit)return{step:3,edit:true,tpl:'sb',name:this.state.planName,cat:'Street',lvl:'Einsteiger',goal:'Sicher durch die Basics bis zum Contest im Oktober',
+      tricks:TR.map((n,i)=>({n,goal:TGOAL[i],hint:''})),open:-1,q:'',groups:['U14 Augsburg'],people:[],who:'me',due:'4 Wochen',share:false};
+    return{step:0,edit:false,tpl:'blank',name:'',cat:'Street',lvl:'Einsteiger',goal:'',tricks:[],open:-1,q:'',groups:[],people:[],who:'me',due:'4 Wochen',share:false};
+  }
+  upd(p){this.setState(s=>({cr:{...s.cr,...p}}));}
+
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o),M=s.M,role=s.role;
+    const isS=role==='s',isV=role==='v',staff=!isS;
+    const myG=role==='t'?s.gT:role==='v'?s.gV:s.gS;
+    const me=W[myG||'d'],trW=W[s.gT||'d'];
+    const canCreate=staff||!!s.perm['Mia K.'];
+    const scr=s.scr[role];
+    const waitN=M.flat().filter(v=>v===2).length;
+    const my=M[0],myConf=my.filter(v=>v===3).length,myWait=my.filter(v=>v===2).length;
+    const cur=staff?M[0].map((_,ci)=>M.some(r=>r[ci]===2)).indexOf(true):my.findIndex(v=>v<2);
+    const reportNext=()=>{const ci=my.findIndex(v=>v===1);if(ci>=0)this.openRep(ci);else this.flash('Kein geübter Trick offen – erst im Pfad „Als geübt markieren“');};
+    const openCreate=()=>{if(!canCreate){this.flash('Pläne erstellen nur Trainer und Vorstand');return;}this.open({cr:this.newCr(false),rep:null,sheet:null});};
+    const roleL={t:me.tr,v:'Vorstand',s:me.sk};
+
+    const views=[['t','Trainer'],['v','Vorstand'],['s','Skater']].map(([k,l])=>({l,...segOn(role===k),go:()=>this.setRole(k)}));
+    const J=(fn)=>()=>{this._surf='m';fn();};
+    const jumps=[
+      {tag:'Trainer',l:'Rechte an Athleten übertragen',go:J(()=>{this.setRole('t');this.setState(x=>({scr:{...x.scr,t:'rights'}}));})},
+      {tag:'Skater',l:'Ohne Recht: kein „Neuer Plan“',go:J(()=>{this.setRole('s');this.setState(x=>({perm:{...x.perm,'Mia K.':false},scr:{...x.scr,s:'plans'}}));})},
+      {tag:'Skater',l:'Mit Recht: Mia erstellt Plan',go:J(()=>{this.setRole('s');this.setState(x=>({perm:{...x.perm,'Mia K.':true},gS:x.gS||'w',gSheet:false,cr:this.newCr(false),surf:'m'}));})},
+      {tag:'Vorstand',l:'Vereinsvorlage erstellen',go:J(()=>{this.setRole('v');this.setState({cr:{...this.newCr(false),step:0},surf:'m'});})},
+      {tag:'Trainer',l:'Plan bearbeiten (gleicher Flow)',go:J(()=>{this.setRole('t');this.setState({cr:this.newCr(true),surf:'m'});})},
+      {tag:'Skater',l:'Trick melden mit Video',go:J(()=>{this.setRole('s');this.setState(x=>({gS:x.gS||'w',gSheet:false}));setTimeout(reportNext,0);})},
+      {tag:'Trainer',l:'Session-Rückblick (+ Desktop-Tab)',go:J(()=>{this.setRole('t');this.setState(x=>({scr:{...x.scr,t:'review'},dTab:'review'}));})},
+      {tag:'Skater',l:'Anrede-Abfrage (m/w/d)',go:J(()=>{this.setRole('s');this.setState({gSheet:true});})}
+    ].map(j=>({...j,tagBg:j.tag==='Skater'?'#e8f3fe':j.tag==='Trainer'?'#fdf1e1':'#efe9fb',tagFg:j.tag==='Skater'?'#0b5aa0':j.tag==='Trainer'?'#9a5600':'#5b3fa3'}));
+
+    const aggDot=ci=>{const col=M.map(r=>r[ci]);return col.every(v=>v===3)?3:col.some(v=>v===2)?2:col.some(v=>v>=1)?1:0;};
+    const sbDots=staff?TR.map((_,ci)=>({bg:ST[aggDot(ci)].c})):my.map(v=>({bg:ST[v].c}));
+    const sbPct=staff?Math.round(M.flat().filter(v=>v===3).length/24*100):Math.round(myConf/6*100);
+    const dots=a=>a.map(v=>({bg:ST[v].c}));
+    const base=staff?[
+      {name:s.planName,group:'U14 Augsburg · 4 Athleten',dots:sbDots,pct:sbPct,badge:waitN?waitN+' offen':'',bb:'#fdf1e1',bf:'#9a5600',main:true},
+      {name:'360 Kickflip',group:'Individuell · Mia K.',dots:dots([3,2,1]),pct:33},
+      {name:'Jonas’ Curb-Plan',group:'Von Jonas T. erstellt · nur für sich',dots:dots([3,1,0]),pct:33,badge:'Athlet',bb:'#e8f3fe',bf:'#0b5aa0'},
+      {name:'Ramp Einstieg',group:'Vereinsvorlage · vom Vorstand',dots:dots([0,0,0,0]),pct:0,badge:'Vorlage',bb:'#efe9fb',bf:'#5b3fa3'}]
+      :[{name:s.planName,group:'Von '+trW.dat+' · Frist in 3 Tagen',dots:sbDots,pct:sbPct,main:true}];
+    const plans=[...s.extra[role],...base].map(p=>({...p,hasBadge:!!p.badge,badgeBg:p.bb,badgeFg:p.bf,onClick:p.main?()=>this.go('plan'):()=>this.flash('Demo: Detail siehe „'+s.planName+'“')}));
+    const dPlans=[...s.extra[role],...base].map(p=>({...p,hasBadge:!!p.badge,badgeBg:p.bb,badgeFg:p.bf,bg:p.main?'#eef6fe':'#fff',bd:p.main?'#148cf2':'#dfe5eb',onClick:p.main?()=>{}:()=>this.flash('Demo: Detail siehe „'+s.planName+'“')}));
+
+    let nextCard;
+    if(cur>=0&&isS){const v=my[cur];nextCard={title:TR[cur]+(v===1?' melden':' üben'),sub:v===1?'Geübt ✓ – zeig '+trW.dat+' ein Video':'Ziel: '+TGOAL[cur],cta:v===1?'Jetzt melden':'Zum Pfad',go:v===1?()=>this.openRep(cur):()=>{this.go('plan');set({dTab:'plans'});}};}
+    else nextCard={title:'Alles gemeldet',sub:'Wartet auf '+trW.acc,cta:'Fortschritt ansehen',go:()=>{this.go('progress');set({dTab:'progress'});}};
+    const progEntry=staff?{n:waitN||'✓',nBg:waitN?'#f0a33a':'#1f9d6b',bg:waitN?'#fdf1e1':'#fff',bd:waitN?'#f5d3a3':'#dfe5eb',title:waitN?waitN+(waitN>1?' Meldungen warten':' Meldung wartet'):'Fortschritte der Gruppe',sub:waitN?'In der Matrix bestätigen':'Alles bestätigt',go:()=>this.go('progress')}
+      :{n:myConf+'/6',nBg:'#1f9d6b',bg:'#fff',bd:'#dfe5eb',title:'Mein Fortschritt',sub:myConf+' bestätigt · '+myWait+' wartet',go:()=>this.go('progress')};
+
+    const nodes=TR.map((n,ci)=>{
+      if(staff){const col=M.map(r=>r[ci]),conf=col.filter(v=>v===3).length,w=col.filter(v=>v===2).length,c=ci===cur;
+        return{n,isCur:c,size:c?'52px':'40px',nodeBg:conf===4?'#1f9d6b':w?'#f0a33a':conf?'#dbeafe':'#eef1f4',nodeFg:conf===4||w?'#fff':conf?'#0874d1':'#9aa6b4',ring:c?'0 0 0 6px rgba(240,163,58,.22)':'none',
+          mark:conf===4?'✓':conf+'/4',lineBg:conf===4?'#1f9d6b':'#dfe5eb',nameFg:'#07182d',sub:conf+' von 4 bestätigt'+(w?' · '+w+' wartet':''),subFg:w?'#9a5600':'#68778a'};}
+      const v=my[ci],c=ci===cur,done=v===3,wait=v===2;
+      return{n,isCur:c,size:c?'52px':'40px',nodeBg:done?'#1f9d6b':wait?'#f0a33a':c?'#148cf2':v===1?'#dbeafe':'#eef1f4',nodeFg:done||wait||c?'#fff':v===1?'#0874d1':'#9aa6b4',
+        ring:c?'0 0 0 6px rgba(20,140,242,.18)':'none',mark:done?'✓':wait?'…':String(ci+1),lineBg:done?'#1f9d6b':'#dfe5eb',nameFg:done||wait||c?'#07182d':'#68778a',
+        sub:done?'Bestätigt':wait?'Gemeldet · wartet auf '+trW.acc:c?'Jetzt dran · '+TGOAL[ci]:v===1?'Geübt':'Kommt danach',subFg:wait?'#9a5600':'#68778a'};});
+    const cv=cur>=0?my[cur]:0;
+    const curSteps=[{l:'Geübt',ok:cv>=1,sub:''},{l:'Gemeldet (mit Video)',ok:false,sub:''},{l:'Bestätigt',ok:false,sub:'durch '+trW.acc}].map(x=>({...x,bg:x.ok?'#1f9d6b':'#fff',bd:x.ok?'#1f9d6b':'#c9d2dc',mark:x.ok?'✓':''}));
+    const curWait=staff&&cur>=0?M.map((r,ri)=>r[cur]===2?{who:SK[ri].n,ini:SK[ri].i,vid:(s.reps[ri+'-'+cur]||{}).video?'▶ Video':'ohne Video',go:()=>this.open({sheet:[ri,cur]})}:null).filter(Boolean):[];
+    const curCta=staff?{l:'Alle Fortschritte',go:()=>{this.go('progress');set({dTab:'progress'});}}
+      :cur<0?{l:'Fortschritt ansehen',go:()=>{this.go('progress');set({dTab:'progress'});}}
+      :cv===1?{l:TR[cur]+' melden',go:()=>this.openRep(cur)}:{l:'Als geübt markieren',go:()=>{const m=M.map(r=>r.slice());m[0][cur]=1;set({M:m});this.flash(TR[cur]+' als geübt markiert');}};
+    const xpConf=staff?M.flat().filter(v=>v===3).length:myConf;
+
+    const rows=SK.map((k,ri)=>({n:k.n,doneL:M[ri].filter(v=>v===3).length+'/6',cells:M[ri].map((v,ci)=>{const r=s.reps[ri+'-'+ci];return{bg:ST[v].c,fg:v===0?'#9aa6b4':'#fff',
+      mark:v===3?'✓':v===2?(r&&r.video?'▶':'!'):'',ring:v===2?'0 0 0 3px rgba(240,163,58,.3)':'none',
+      onClick:()=>v===2?this.open({sheet:[ri,ci]}):this.flash(k.n+' · '+TR[ci]+': '+ST[v].l)};})}));
+    const decide=(ri,ci,val,msg)=>()=>{const m=M.map(x=>x.slice());m[ri][ci]=val;const reps={...s.reps};delete reps[ri+'-'+ci];set({M:m,reps,sheet:null});this.flash(msg);};
+    const queue=[];M.forEach((row,ri)=>row.forEach((v,ci)=>{if(v!==2)return;const r=s.reps[ri+'-'+ci]||{when:'gerade eben',note:''};
+      queue.push({who:SK[ri].n,trick:TR[ci],when:'Gemeldet '+r.when,note:r.note||'Keine Notiz',th:r.video?'▶ '+(r.dur||'0:12'):'Notiz',thBg:r.video?'#0a1a2f':'#eef1f4',thFg:r.video?'#fff':'#68778a',
+        open:()=>this.open({sheet:[ri,ci]}),confirm:decide(ri,ci,3,TR[ci]+' für '+SK[ri].n+' bestätigt'),again:decide(ri,ci,1,SK[ri].n+' übt '+TR[ci]+' nochmal')});}));
+
+    let sh={close:()=>set({sheet:null})};
+    if(s.sheet){const [ri,ci]=s.sheet,r=s.reps[ri+'-'+ci]||{when:'gerade eben',note:''};
+      sh={...sh,who:SK[ri].n,ini:SK[ri].i,trick:TR[ci],when:r.when,note:r.note||'Keine Notiz',hasVid:!!r.video,dur:r.dur||'0:12',play:()=>this.flash('Video wird abgespielt'),
+        confirm:decide(ri,ci,3,TR[ci]+' für '+SK[ri].n+' bestätigt'),again:decide(ri,ci,1,SK[ri].n+' übt '+TR[ci]+' nochmal')};}
+
+    const sumTiles=[{n:myConf,l:'Bestätigt',bg:'#e3f4ec',fg:'#157a52'},{n:myWait,l:'Wartet',bg:'#fdf1e1',fg:'#9a5600'},{n:6-myConf-myWait,l:'Offen',bg:'#eef1f4',fg:'#46576b'}];
+    const myTricks=TR.map((n,ci)=>{const v=my[ci];return{n,segs:segs(v),label:v===2?'Wartet auf '+trW.acc:ST[v].l,fg:v===3?'#157a52':v===2?'#9a5600':'#68778a',go:v===1?()=>this.openRep(ci):()=>this.go('plan')};});
+    const myReps=[...my.map((v,ci)=>{const r=s.reps['0-'+ci];return v===2&&r?{trick:TR[ci],when:'Gemeldet '+r.when,st:'Wartet',c:'#9a5600',bg:'#fdf1e1',vid:r.video}:null;}).filter(Boolean),
+      {trick:'Pop Shove-it',when:'Bestätigt Mo., 22.09.',st:'Bestätigt',c:'#157a52',bg:'#e3f4ec',vid:true},{trick:'Ollie',when:'Bestätigt Fr., 12.09.',st:'Bestätigt',c:'#157a52',bg:'#e3f4ec',vid:false}]
+      .map(m=>({...m,th:m.vid?'▶':'Notiz',thBg:m.vid?'#0a1a2f':'#eef1f4',thFg:m.vid?'#fff':'#68778a'}));
+
+    let rp={};
+    if(s.rep){const r=s.rep,ready=r.step==='ready',can=ready||r.note.trim().length>0;
+      rp={title:TR[r.ci]+' melden',sub:'Zeig '+trW.dat+', dass du ihn kannst.',isPick:r.step==='pick',isUp:r.step==='up',isReady:ready,pctW:r.pct+'%',pctL:r.pct+' %',note:r.note,
+        onNote:e=>this.setState({rep:{...this.state.rep,note:e.target.value}}),rec:()=>this.upload(),gal:()=>this.upload(),
+        remove:()=>{clearInterval(this._iv);set({rep:{...r,step:'pick',pct:0}});},close:()=>{clearInterval(this._iv);set({rep:null});},
+        sendBg:can?'#148cf2':'#e6ebf0',sendFg:can?'#fff':'#9aa6b4',sendL:ready?'Mit Video melden':'Melden',
+        send:()=>{if(!can)return;const m=M.map(x=>x.slice());m[0][r.ci]=2;const reps={...s.reps,['0-'+r.ci]:{when:'gerade eben',note:r.note?'„'+r.note+'“':'',video:ready,dur:'0:12'}};
+          set({M:m,reps,rep:null});this.flash('Gemeldet – '+trW.nom+' wurde benachrichtigt');}};}
+
+    const gBase=isS?[['w','Skaterin','weiblich'],['m','Skater','männlich'],['d','Skater*in','divers / keine Angabe']]:[['w','Trainerin','weiblich'],['m','Trainer','männlich'],['d','Trainer*in','divers / keine Angabe']];
+    const gOpts=gBase.map(([g,l,sub])=>({l,sub,go:()=>{this.setG(g);this.flash('Gespeichert – wir sprechen dich als '+l+' an');}}));
+    const gSeg=gBase.map(([g,l])=>({l,...segOn(myG===g),go:()=>this.setG(g)}));
+
+    const permN=Object.values(s.perm).filter(Boolean).length;
+    const rightsPeople=SK.map(k=>{const on=!!s.perm[k.n];return{n:k.n,ini:k.i,sub:on?'Darf eigene Pläne erstellen':'Übt & meldet nur',...sw(on),go:()=>{set({perm:{...s.perm,[k.n]:!on}});this.flash(on?k.n+' darf keine Pläne mehr erstellen':k.n+' darf jetzt Pläne erstellen');}};});
+    const rightsAuto=[{n:'Trainer*innen',sub:'Für ihre Gruppen'},{n:'Vorstand & Verband',sub:'Für alle Gruppen, inkl. Vereinsvorlagen'}];
+
+    const c=s.cr;let crv={};
+    if(c){
+      const canNext=c.step!==0||c.name.trim().length>0;
+      const setStep=i=>()=>{if(i>0&&!c.name.trim()){this.flash('Bitte zuerst einen Namen eingeben');return;}this.upd({step:i});};
+      const have=c.tricks.map(t=>t.n),q=c.q.trim().toLowerCase();
+      const sugg=LIB.filter(n=>!have.includes(n)&&(!q||n.toLowerCase().includes(q))).slice(0,8).map(l=>({l,go:()=>this.upd({tricks:[...c.tricks,{n:l,goal:'',hint:''}],q:''})}));
+      const custom=c.q.trim()&&!LIB.some(n=>n.toLowerCase()===q)&&!have.some(n=>n.toLowerCase()===q);
+      const tog=(arr,v)=>arr.includes(v)?arr.filter(x=>x!==v):[...arr,v];
+      const assigned=staff?[...c.groups,...c.people]:[];
+      const assignV=staff?(assigned.length?assigned.join(', '):'Noch niemand'):(c.who==='me'?'Nur für mich':'Mit '+trW.dat+' geteilt');
+      const doSave=draft=>()=>{
+        if(c.edit){set({cr:null,planName:c.name||s.planName});this.flash('Version 2 von „'+(c.name||s.planName)+'“ gespeichert');return;}
+        const n=c.tricks.length,tpl=isV&&c.share;
+        const p={name:c.name.trim()||'Neuer Plan',group:staff?(draft||!assigned.length?(tpl?'Vereinsvorlage':'Entwurf · nicht zugewiesen'):assigned.join(', ')):(c.who==='me'?'Von dir erstellt · nur für dich':'Von dir erstellt · geteilt mit '+trW.dat),
+          dots:(n?c.tricks:[0,0,0]).map(()=>({bg:ST[0].c})),pct:0,badge:tpl?'Vorlage':draft||(staff&&!assigned.length)?'Entwurf':'Neu',bb:tpl?'#efe9fb':draft?'#eef1f4':'#e8f3fe',bf:tpl?'#5b3fa3':draft?'#46576b':'#0b5aa0'};
+        set({cr:null,extra:{...s.extra,[role]:[p,...s.extra[role]]},scr:{...s.scr,[role]:'plans'}});this.flash(tpl?'Als Vereinsvorlage freigegeben':draft?'Als Entwurf gespeichert':'Plan „'+p.name+'“ erstellt');};
+      crv={crTitle:c.edit?'Plan bearbeiten':isV?'Neuer Plan · Verein':'Neuer Plan',crStepL:(c.step+1)+' / 4',
+        crSteps:STEPS.map((l,i)=>({l,bar:i<=c.step?'#148cf2':'#e6ebf0',fg:i===c.step?'#07182d':i<c.step?'#0874d1':'#9aa6b4',go:setStep(i)})),
+        s0:c.step===0,s1:c.step===1,s2:c.step===2,s3:c.step===3,showStarts:!c.edit,
+        starts:TPL.map(t=>({n:t.n,d:t.d,bd:c.tpl===t.id?'#148cf2':'#dfe5eb',bg:c.tpl===t.id?'#eef6fe':'#fff',
+          go:()=>this.upd({tpl:t.id,cat:t.cat||c.cat,lvl:t.lvl||c.lvl,name:c.name||(t.id==='blank'?'':t.n),tricks:t.tricks.map(n=>({n,goal:TGOAL[TR.indexOf(n)]||'',hint:''}))})})),
+        crName:c.name,onName:e=>this.upd({name:e.target.value}),crGoal:c.goal,onGoal:e=>this.upd({goal:e.target.value}),
+        cats:CATS.map(l=>({l,...chip(c.cat===l),go:()=>this.upd({cat:l})})),lvls:LVLS.map(l=>({l,...segOn(c.lvl===l),go:()=>this.upd({lvl:l})})),
+        trickCountL:c.tricks.length+(c.tricks.length===1?' Trick':' Tricks'),noTricks:!c.tricks.length,
+        crTricks:c.tricks.map((t,i)=>{const open=c.open===i,set1=p=>{const a=c.tricks.slice();a[i]={...a[i],...p};this.upd({tricks:a});};
+          return{n:t.n,num:i+1,goal:t.goal,hint:t.hint,goalL:t.goal?'Ziel: '+t.goal:'Klicken für Ziel & Hinweis',isOpen:open,chev:open?'▲':'▼',bd:open?'#148cf2':'#dfe5eb',
+            toggle:()=>this.upd({open:open?-1:i}),onGoal:e=>set1({goal:e.target.value}),onHint:e=>set1({hint:e.target.value}),upFg:i?'#102238':'#b9c4d0',
+            up:()=>{if(!i)return;const a=c.tricks.slice();[a[i-1],a[i]]=[a[i],a[i-1]];this.upd({tricks:a,open:i-1});},remove:()=>this.upd({tricks:c.tricks.filter((_,j)=>j!==i),open:-1})};}),
+        crQ:c.q,onQ:e=>this.upd({q:e.target.value}),sugg,hasCustom:!!custom,customL:'+ „'+c.q.trim()+'“ als eigenen Trick',addCustom:()=>this.upd({tricks:[...c.tricks,{n:c.q.trim(),goal:'',hint:''}],q:''}),
+        groups:(isV?GROUPS_V:GROUPS).map(g=>{const on=c.groups.includes(g.n);return{n:g.n,c:g.c,mark:on?'✓':'',box:on?'#148cf2':'#c9d2dc',boxBg:on?'#148cf2':'#fff',bd:on?'#148cf2':'#dfe5eb',bg:on?'#eef6fe':'#fff',go:()=>this.upd({groups:tog(c.groups,g.n)})};}),
+        people:SK.map(k=>({l:k.n,...chip(c.people.includes(k.n)),go:()=>this.upd({people:tog(c.people,k.n)})})),
+        tplShare:{bd:c.share?'#7c5cd6':'#dfe5eb',bg:c.share?'#f6f2fe':'#fff',sw:c.share?'#7c5cd6':'#c9d2dc',j:c.share?'flex-end':'flex-start',go:()=>this.upd({share:!c.share})},
+        whoOpts:[['me','Nur für mich','Privat – nur du siehst den Plan'],['tr','Mit '+trW.dat+' teilen',cap(trW.nom)+' sieht deinen Fortschritt und kann bestätigen']].map(([k,l,sub])=>({l,sub,bd:c.who===k?'#148cf2':'#dfe5eb',bg:c.who===k?'#eef6fe':'#fff',dot:c.who===k?'#148cf2':'transparent',go:()=>this.upd({who:k})})),
+        dues:DUES.map(l=>({l,...chip(c.due===l),go:()=>this.upd({due:l})})),
+        assignHint:isS?'Du darfst Pläne erstellen, weil '+trW.nom+' dir das Recht gegeben hat.':'Optional. Ohne Zuweisung wird der Plan als Entwurf gespeichert.',
+        isEdit:c.edit,
+        review:[{k:'Grundlagen',v:c.name||'—',sub:c.cat+' · '+c.lvl+(c.goal?' · '+c.goal:''),go:setStep(0)},
+          {k:'Tricks · '+c.tricks.length,v:c.tricks.length?c.tricks.map(t=>t.n).join(', '):'Noch keine Tricks',sub:'',go:setStep(1)},
+          {k:'Zuweisung',v:assignV,sub:isV&&c.share?'+ Vereinsvorlage für alle Trainer':'',go:setStep(2)},{k:'Frist',v:c.due,sub:'',go:setStep(2)}].map(r=>({...r,hasSub:!!r.sub})),
+        showBack:c.step>0,notLast:c.step<3,isLast:c.step===3,crBack:()=>this.upd({step:c.step-1}),
+        crNext:()=>{if(!canNext){this.flash('Bitte zuerst einen Namen eingeben');return;}this.upd({step:c.step+1});},
+        nextL:'Weiter: '+STEPS[c.step+1],nextBg:canNext?'#148cf2':'#e6ebf0',nextFg:canNext?'#fff':'#9aa6b4',
+        saveDraft:doSave(true),save:doSave(false),saveL:c.edit?'Version 2 speichern':isS?'Plan starten':isV&&c.share?'Erstellen & freigeben':'Plan erstellen',crClose:()=>set({cr:null})};
+    }
+
+    const dNav=['Dashboard','Kalender','Trainingspläne','Skateparks','Auswertung','Personen','Postfach','Organisation','Profil'].map(l=>({l,bg:l==='Trainingspläne'?'#148cf2':'transparent',fg:l==='Trainingspläne'?'#fff':'#c4d0dd',go:()=>l==='Trainingspläne'?set({dTab:'plans'}):this.flash('Nicht Teil dieses Prototyps')}));
+    const dTabs=[{k:'plans',l:'Pläne'},{k:'progress',l:staff?'Freigaben & Fortschritte':'Mein Fortschritt',n:staff?waitN:0},{k:'review',l:'Session-Rückblick'}]
+      .map(t=>({l:t.l,n:t.n,hasN:!!t.n,fg:s.dTab===t.k?'#07182d':'#68778a',bd:s.dTab===t.k?'#148cf2':'transparent',go:()=>set({dTab:t.k})}));
+    const ath=staff?s.rvAth:0,row=M[ath];
+    const ses=(s.rvPer==='7 Tage'?SES.slice(0,3):SES).map((x,i)=>({...x,i,items:x.items.map(([t,l,a])=>[t,Math.max(0,l-((ath*(i+1))%3)),a])}));
+    let L=0,A=0,act=0;const agg={};
+    ses.slice().reverse().forEach(x=>{act+=x.act;x.items.forEach(([t,l,a])=>{L+=l;A+=a;(agg[t]=agg[t]||{t,l:0,a:0,hist:[]});agg[t].l+=l;agg[t].a+=a;agg[t].hist.push(Math.round(l/a*100));});});
+    const rvSkills=Object.values(agg).map(k=>{const q=Math.round(k.l/k.a*100),ci=TR.indexOf(k.t),st=ci>=0?row[ci]:0,col=qCol(q);
+      const ready=q>=80&&ci>=0&&(staff?st<3:st<2),weak=q<50,d=k.hist.length>1?k.hist[k.hist.length-1]-k.hist[0]:0;
+      return{t:k.t,la:k.l+' / '+k.a,qL:q+' %',qFg:col.fg,qBg:col.bg,hist:k.hist.map(h=>({h:Math.max(8,h)+'%',bg:qCol(h).bar})),
+        trend:d?(d>0?'▲ +':'▼ ')+d+' %':'',trendFg:d>0?'#157a52':'#c2383d',hasTrend:!!d,
+        stL:ci<0?'Nicht im Plan':ST[st].l,stFg:st===3?'#157a52':st===2?'#9a5600':'#68778a',
+        ready,weak,hint:ready?(staff?'Stabil über 80 % – ohne Meldung bestätigen?':'Stabil über 80 % – bereit zum Melden'):weak?'Unter 50 % – im nächsten Training Fokus':'',hasHint:ready||weak,
+        ctaL:staff?'✓ Bestätigen':'Melden',
+        cta:()=>{if(staff){const m=M.map(r=>r.slice());m[ath][ci]=3;set({M:m});this.flash(k.t+' für '+SK[ath].n+' bestätigt');}else this.openRep(ci);}};});
+    const rvReady=rvSkills.filter(k=>k.ready);
+    const q=A?Math.round(L/A*100):0;
+    const addNote=i=>()=>{const txt=s.rvDraft.trim();if(!txt)return;const n={...s.rvNotes};n[i]=[...(n[i]||[]),{txt,vis:staff?s.rvVis:'ath',by:staff?'Vladislav H.':'Du'}];set({rvNotes:n,rvDraft:''});this.flash('Notiz gespeichert');};
+    const rvSes=ses.map(x=>{let l=0,a=0;x.items.forEach(([,li,ai])=>{l+=li;a+=ai;});const qq=Math.round(l/a*100),col=qCol(qq),open=s.rvOpen===x.i;
+      const notes=(s.rvNotes[x.i]||[]).filter(n=>staff||n.vis==='ath').map(n=>({...n,lock:n.vis==='tr',pub:n.vis!=='tr',bg:n.vis==='tr'?'#f6f2fe':'#f5f7f9',tag:n.vis==='tr'?'Nur Trainer':'Für '+(staff?SK[ath].n.split(' ')[0]:'dich')}));
+      return{...x,la:l+' / '+a,qL:qq+' %',qFg:col.fg,qBg:col.bg,actL:fmtT(x.act),isOpen:open,chev:open?'▲':'▼',bd:open?'#148cf2':'#dfe5eb',toggle:()=>set({rvOpen:open?-1:x.i,rvDraft:''}),
+        rows:x.items.map(([t,li,ai])=>{const r=Math.round(li/ai*100);return{t,la:li+' / '+ai,qL:r+' %',w:r+'%',bar:qCol(r).bar};}),
+        notes,hasNotes:notes.length>0,noNotes:!notes.length,addNote:addNote(x.i),draft:open?s.rvDraft:''};});
+    const rv={rvIntro:'Landungen zählen als Training. Bestätigt wird ein Trick erst durch '+(staff?'dich':trW.acc)+'.',
+      rvAthChips:SK.map((k,i)=>({l:k.n,...chip(ath===i),go:()=>set({rvAth:i,rvOpen:0})})),
+      rvPers:['7 Tage','30 Tage','Saison'].map(l=>({l,...segOn(s.rvPer===l),go:()=>set({rvPer:l})})),
+      rvSum:[{n:ses.length,l:'Sessions'},{n:L,l:'Landungen'},{n:q+' %',l:'Landequote'},{n:fmtT(act),l:'Übungszeit'}],
+      rvSkills,rvReady,hasReady:rvReady.length>0,rvSes,rvWho:staff?SK[ath].n:'Mein Verlauf',
+      rvDraftOn:e=>set({rvDraft:e.target.value}),rvVisOpts:[['ath','Für '+SK[ath].n.split(' ')[0]+' sichtbar'],['tr','Nur Trainer']].map(([k,l])=>({l,...segOn(s.rvVis===k),go:()=>set({rvVis:k})})),
+      rvNotePh:staff?'Hinweis oder Ziel für die nächste Session':'Eigene Notiz, z. B. was sich gut angefühlt hat',
+      goReview:()=>this.go('review')};
+    const dInfo=[{k:'Kategorie',v:'Street · Einsteiger'},{k:'Frist',v:'28.09. · noch 3 Tage'},{k:'Zugewiesen',v:staff?'U14 Augsburg (4 Athleten)':'Von '+trW.dat},{k:'Ziel',v:'Sicher durch die Basics bis zum Contest im Oktober'},{k:'Version',v:'1 · erstellt 01.09.'}];
+    const surf=s.surf;
+
+    return{views,jumps,staff,isS,isV,canCreate,noCreate:!canCreate,isSNoCreate:isS&&!canCreate,
+      noCreateL:'Neue Pläne erstellt '+trW.nom+' oder der Verein.',
+      onM:()=>{this._surf='m';},onD:()=>{this._surf='d';},
+      mNoCr:!(c&&surf==='m'),mCr:!!c&&surf==='m',dCr:!!c&&surf==='d',
+      mSheet:!!s.sheet&&surf==='m',dSheet:!!s.sheet&&surf==='d',mRep:!!s.rep&&surf==='m',dRep:!!s.rep&&surf==='d',
+      mToast:!!s.toast&&s.toastSurf==='m',dToast:!!s.toast&&s.toastSurf==='d',toast:s.toast,
+      roleChip:roleL[role],bellHas:staff?waitN>0:true,bellN:staff?waitN:1,
+      onPlans:scr==='plans',onPlan:scr==='plan',onProg:scr==='progress',onProfile:scr==='profile',onRights:scr==='rights',
+      goPlans:()=>this.go('plans'),goProfile:()=>this.go('profile'),goRights:()=>this.go('rights'),navSoon:()=>this.flash('Nicht Teil dieses Prototyps'),
+      nPl:scr==='profile'||scr==='rights'?'#68778a':'#148cf2',nPr:scr==='profile'||scr==='rights'?'#148cf2':'#68778a',
+      navPlus:canCreate?openCreate:reportNext,navPlusIcon:canCreate?'+':'↑',
+      openCreate,openEdit:()=>this.open({cr:this.newCr(true)}),dReportNext:reportNext,
+      nextCard,progEntry,plans,dPlans,
+      planName:s.planName,planSub:staff?'U14 Augsburg · 4 Athleten · 6 Tricks':'Dein Pfad · 6 Tricks',lvlTitle:staff?'Gruppe · '+xpConf+' von 24 bestätigt':'Level 2 · '+me.rank,
+      xpL:staff?'Ø '+(Math.round(xpConf/4*10)/10).toLocaleString('de-DE')+' Tricks pro Athlet':myConf+' von 6 Tricks bestätigt',xpW:(staff?xpConf/24:myConf/6)*100+'%',
+      nodes,curSteps,curWait,noCurWait:!curWait.length,curCta,curTitle:staff?(cur>=0?'Wartet · '+TR[cur]:'Status'):(cur>=0?'Jetzt dran · '+TR[cur]:'Alles gemeldet'),
+      cols:TRS.map(l=>({l})),colsLong:TR.map(l=>({l})),rows,noWait:waitN===0,waitN,queue,sh,
+      privacyL:'Nur du und '+trW.nom+' sehen das.',sumTiles,myTricks,myReps,
+      rp,hasG:s.gSheet,gOpts,gLater:()=>set({gSheet:false}),gSeg,
+      rightsSub:permN?permN+(permN>1?' Athleten dürfen':' Athlet darf')+' Pläne erstellen':'Nur Trainer & Vorstand erstellen Pläne',
+      rightsIntro:isV?'Trainer und Vorstand dürfen immer. Du kannst das Recht zusätzlich an Athleten geben.':'Trainer und Vorstand dürfen immer. Gib einzelnen Athleten das Recht, eigene Pläne zu erstellen.',
+      rightsAuto,rightsPeople,dRights:s.dRights,dOpenRights:()=>set({dRights:true}),dCloseRights:()=>set({dRights:false}),
+      pIni:isS?'MK':isV?'SR':'VH',pName:isS?'Mia K.':isV?'Sabine R.':'Vladislav H.',pRole:roleL[role]+(isV?' · SKSB Augsburg':' · U14 Augsburg'),
+      soundBg:s.sound?'#1f9d6b':'#c9d2dc',soundJ:s.sound?'flex-end':'flex-start',toggleSound:()=>set({sound:!s.sound}),
+      ...rv,onReview:scr==='review',dRevTab:s.dTab==='review',dNav,dTabs,dPlansTab:s.dTab==='plans',dProgTab:s.dTab==='progress',dGoProg:()=>set({dTab:'progress'}),dProgBtn:staff?'Freigaben öffnen':'Mein Fortschritt',dInfo,
+      ...crv};
+  }
+}
+</script>
+</body>
+</html>
