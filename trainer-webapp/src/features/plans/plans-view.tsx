@@ -21,7 +21,6 @@ import {
   Plus,
   Search,
   Send,
-  Share2,
   Sparkles,
   Trophy,
   UserRound,
@@ -166,7 +165,6 @@ export function PlansView({
   people,
   initialLeaderboard,
   initialSelectedPlanId,
-  initialDialog,
   initialVideoEvidence = [],
   initialDemoVideos = [],
 }: {
@@ -174,6 +172,7 @@ export function PlansView({
   people: Person[];
   initialLeaderboard: TrainingLeaderboardEntry[] | null;
   initialSelectedPlanId?: string;
+  /** Stillgelegt (Teilen jetzt im Planbereich); bleibt für bestehende Aufrufer erhalten. */
   initialDialog?: "share" | null;
   initialVideoEvidence?: TrainingVideoEvidence[];
   initialDemoVideos?: TrainingExerciseDemoVideo[];
@@ -264,12 +263,9 @@ export function PlansView({
   );
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PlanFilter>("all");
-  // Ein Dashboard-Teilen-Link darf den vorhandenen, persistenten Dialog direkt öffnen.
-  const [dialog, setDialog] = useState<"create" | "share" | null>(() =>
-    initialDialog === "share" && requestedPlanId === initialSelectedPlanId
-      ? "share"
-      : null,
-  );
+  // Der alte Teilen-Dialog ist stillgelegt (Teilen jetzt im Planbereich);
+  // `initialDialog` öffnet ihn deshalb nicht mehr.
+  const [dialog, setDialog] = useState<"create" | "share" | null>(null);
   const [notice, setNotice] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [celebration, setCelebration] = useState("");
@@ -1108,9 +1104,8 @@ export function PlansView({
                 <button type="button" onClick={duplicateSelectedPlan}>
                   <Copy size={17} /> Als Vorlage nutzen
                 </button>
-                <button type="button" onClick={() => setDialog("share")}>
-                  <Share2 size={17} /> Teilen
-                </button>
+                {/* Teilen mit Trainer*innen läuft seit 30.09.2026 über den Planbereich
+                    (/trainingsplaene → Plan → Teilen, mit Annehmen/Ablehnen). */}
               </div> : null}
             </header>
 

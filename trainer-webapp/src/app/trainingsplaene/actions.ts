@@ -503,6 +503,10 @@ export async function submitTrainingExerciseDemoVideo({
  * Speichert beim Teilen eine dauerhafte Momentaufnahme des aktuellen Plans.
  * Das ist absichtlich serverseitig und RLS-geschuetzt: Nur bestaetigte Kontakte
  * koennen als Empfaenger eingetragen werden.
+ *
+ * Seit 30.09.2026 nur noch für Athlet*innen (alte Ansicht /trainingsplaene/freigaben).
+ * Trainer*innen erhalten Pläne ausschließlich über `sharePlanWithTrainers`
+ * als Vorschlag mit Annehmen/Ablehnen.
  */
 export async function shareTrainingPlanSnapshot({
   plan,
@@ -522,6 +526,21 @@ export async function shareTrainingPlanSnapshot({
   const supabase = await createClient();
   const currentUserId = await getAuthenticatedUserId(supabase);
   if (!currentUserId) return { status: "error", message: "Bitte erneut anmelden." };
+
+  // Stillgelegt für Trainer-Empfänger: Nur sichtbare Athletenkonten sind erlaubt.
+  const { data: recipientProfiles } = await supabase
+    .from("profiles")
+    .select("id, account_type")
+    .in("id", uniqueRecipients);
+  const athleteIds = new Set(
+    (recipientProfiles ?? []).filter((row) => row.account_type === "athlete").map((row) => row.id),
+  );
+  if (uniqueRecipients.some((id) => !athleteIds.has(id))) {
+    return {
+      status: "error",
+      message: "Pläne für Trainer*innen teilst du jetzt unter Trainingspläne → Plan → Teilen.",
+    };
+  }
 
   const { data, error } = await supabase
     .from("training_plan_snapshot_shares")
@@ -835,4 +854,105 @@ export async function restoreTrainingPlan({ planKey, ownerId }: PlanLifecycleTar
     "Der Plan konnte nicht wiederhergestellt werden.",
   );
   return result;
+}
+
+/* ------------------------------------------------------------------ */
+/* Pläne mit anderen Trainer*innen teilen (Review Punkt 8)              */
+/* Migration 20260930120000_plan_trainer_shares                         */
+/* ------------------------------------------------------------------ */
+
+/** Mögliche Empfänger*innen: eigene Vereine (mit Anzahl) und Suchtreffer. */
+export interface ShareTargets {
+  clubs: { id: string; name: string; count: number }[];
+  people: { id: string; name: string; organization: string }[];
+}
+
+/**
+ * Sucht Trainer*innen über alle Vereine und Verbände (Name oder Organisation,
+ * ab zwei Zeichen, höchstens 20 Treffer). Die DB gibt nur Name und
+ * Organisation heraus und prüft, dass nur Trainer*innen/Vorstand suchen.
+ */
+export async function searchShareTargets(query: string): Promise<ShareTargets | null> {
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return null;
+  const { data, error } = await supabase.rpc("training_share_targets", { p_query: query.trim().slice(0, 80) });
+  if (error || !data) {
+    if (error) console.error("Empfänger konnten nicht geladen werden.", { code: error.code, message: error.message });
+    return null;
+  }
+  const raw = data as Partial<ShareTargets>;
+  return { clubs: Array.isArray(raw.clubs) ? raw.clubs : [], people: Array.isArray(raw.people) ? raw.people : [] };
+}
+
+/**
+ * Teilt den aktuellen Stand eines eigenen Plans. Empfänger*innen erhalten ihn
+ * als Vorschlag (Annehmen/Ablehnen); die DB übernimmt nur den Planinhalt.
+ */
+export async function sharePlanWithTrainers({
+  planId,
+  recipientIds,
+  clubIds,
+}: {
+  planId: string;
+  recipientIds: string[];
+  clubIds: string[];
+}): Promise<PlanHubActionResult> {
+  const recipients = Array.from(new Set(recipientIds));
+  const clubs = Array.from(new Set(clubIds));
+  if (!recipients.length && !clubs.length) return { status: "error", message: "Wähle mindestens eine Person oder deinen Verein." };
+  if (recipients.length > 50 || clubs.length > 10) return { status: "error", message: "Höchstens 50 Personen auf einmal." };
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { data, error } = await supabase.rpc("training_share_plan_with_trainers", {
+    p_plan: planId,
+    p_recipients: recipients,
+    p_clubs: clubs,
+  });
+  if (error) {
+    console.error("Plan konnte nicht geteilt werden.", { code: error.code, message: error.message });
+    return {
+      status: "error",
+      message:
+        error.code === "42501"
+          ? forbiddenMessage
+          : error.message.includes("TRAINING_TOO_MANY")
+            ? "Zu viele Empfänger auf einmal (höchstens 200)."
+            : error.message.includes("TRAINING_RATE_LIMIT")
+              ? "Heute wurden schon sehr viele Pläne geteilt. Versuche es morgen erneut."
+              : error.message.includes("TRAINING_INVALID")
+                ? "Im Verein gibt es keine weiteren Trainer*innen."
+                : "Der Plan konnte nicht geteilt werden. Bitte erneut versuchen.",
+    };
+  }
+  const count = Number((data as { shared?: number } | null)?.shared ?? 0);
+  return { status: "success", message: `An ${count} Trainer gesendet`, count };
+}
+
+/** Geteilten Plan übernehmen: legt einen eigenen Entwurf an (Rückgabe: neue Plan-ID). */
+export async function acceptSharedPlan(shareId: string): Promise<PlanHubActionResult & { planId?: string }> {
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { data, error } = await supabase.rpc("training_accept_shared_plan", { p_share: shareId });
+  if (error) {
+    console.error("Geteilter Plan konnte nicht übernommen werden.", { code: error.code, message: error.message });
+    return {
+      status: "error",
+      message: error.code === "P0002" ? "Dieser geteilte Plan ist nicht mehr verfügbar." : "Nicht übernommen. Bitte erneut versuchen.",
+    };
+  }
+  revalidatePath("/trainingsplaene");
+  return { status: "success", message: "In deine Pläne übernommen", planId: String(data) };
+}
+
+/** Geteilten Plan ablehnen: Der Vorschlag verschwindet, der Absender erfährt nichts. */
+export async function declineSharedPlan(shareId: string): Promise<PlanHubActionResult> {
+  const supabase = await createClient();
+  if (!(await getAuthenticatedUserId(supabase))) return { status: "error", message: "Bitte erneut anmelden." };
+  const { error } = await supabase.rpc("training_decline_shared_plan", { p_share: shareId });
+  if (error && error.code !== "P0002") {
+    console.error("Geteilter Plan konnte nicht abgelehnt werden.", { code: error.code, message: error.message });
+    return { status: "error", message: "Nicht abgelehnt. Bitte erneut versuchen." };
+  }
+  revalidatePath("/trainingsplaene");
+  return { status: "success", message: "Abgelehnt" };
 }

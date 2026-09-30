@@ -255,6 +255,47 @@ export function parseLibrary(raw: unknown): LibraryEntry[] | null {
     }));
 }
 
+/* ------------------------------------------------------------------ */
+/* Geteilte Pläne anderer Trainer*innen (Migration 20260930120000)      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Offener Vorschlag einer anderen Trainerin/eines anderen Trainers. Er enthält
+ * nur Planinhalt; erst „Annehmen“ legt einen eigenen Plan (Entwurf) an.
+ */
+export interface SharedPlanOffer {
+  id: string;
+  title: string;
+  sharedAt: string;
+  senderName: string;
+  senderOrganization: string;
+  category: string;
+  level: string;
+  description: string;
+  tricks: HubTrick[];
+}
+
+/** Liest `training_shared_plans` defensiv ein; null = Migration fehlt oder Abruf fehlgeschlagen. */
+export function parseSharedPlans(raw: unknown): SharedPlanOffer[] | null {
+  if (!Array.isArray(raw)) return null;
+  return raw
+    .filter((entry) => entry && typeof entry.id === "string" && entry.content && Array.isArray(entry.content.tricks))
+    .map((entry) => {
+      const content = entry.content as TrainingPlan;
+      return {
+        id: text(entry.id),
+        title: text(entry.title) || text(content.title),
+        sharedAt: text(entry.shared_at),
+        senderName: text(entry.sender_name),
+        senderOrganization: text(entry.sender_organization),
+        category: text(content.category),
+        level: text(content.level),
+        description: text(content.description),
+        tricks: tricksOf({ ...content, tricks: content.tricks.filter((trick) => trick && typeof trick.id === "string") }),
+      };
+    });
+}
+
 /** Resttage bis zur endgültigen Bereinigung (mindestens 0). */
 export function daysLeft(purgeAt: string | null, now = Date.now()) {
   if (!purgeAt) return 0;

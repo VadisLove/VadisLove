@@ -3643,3 +3643,106 @@ button.cell {
   align-items: center;
   gap: 8px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Pläne teilen (Review Punkt 8): Teilen-Sheet und geteilte Pläne       */
+/* ------------------------------------------------------------------ */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Vereinszeile und Personen im Teilen-Sheet (Checkbox-Zeilen wie beim Zuweisen). */
+.shareRows {
+  display: grid;
+  gap: 8px;
+}
+
+.shareRows .checkRow {
+  width: 100%;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.shareRows .checkText {
+  flex: 1;
+  min-width: 0;
+}
+
+.shareRows .checkRow:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Einstieg „N geteilte Pläne für dich“ in der Planübersicht (Vorlagen-Lila). */
+.entryShared {
+  border-color: #d9cff5;
+  background: var(--template-soft);
+}
+
+.entryShared strong {
+  color: var(--template-text);
+}
+
+.entryPurple {
+  background: var(--template);
+  color: #fff;
+}
+
+/* Liste und Vorschau geteilter Pläne. */
+.shareRow {
+  width: 100%;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.shareRow .rightsText {
+  flex: 1;
+  min-width: 0;
+}
+
+.shareTricks {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+
+.shareTricks .rightsText {
+  flex: 1;
+  min-width: 0;
+}
+
+.shareIndex {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--divider);
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dangerLink {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dangerLink:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

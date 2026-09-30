@@ -63,6 +63,15 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
     `063bd0e` live, Rollback-Tag `production/stable-before-plaene-archiv-20260930`.
   - Praxisabnahme: offen.
   [Umfang, Entscheidungen und Nachweis](plan-archive-trash.md).
+- **Trainingspläne mit anderen Trainern teilen (30.09.2026, Review-Punkt 8):** Teilen im
+  Plandetail mit Suche über alle Trainer (Name/Verein) und „Alle Trainer meines Vereins“;
+  Empfänger nehmen den geteilten Plan an (eigener Entwurf) oder lehnen ab; nur Planinhalt,
+  Ersteller sieht keine Empfänger. Vom Nutzer am 30.09.2026 entschieden und beauftragt.
+  - Technisch geprüft: ja (282 Tests, Typprüfung, Lint, Produktionsbuild, lokaler
+    Prüfstand als teilende und als empfangende Trainerin).
+  - Veröffentlicht: nein – Migration `20260930120000` und Deploy warten auf Freigabe.
+  - Praxisabnahme: offen.
+  [Umfang, Entscheidungen und Nachweis](plan-trainer-shares.md).
 - **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).
 - Offene Praxisabnahmen früherer Pakete sowie Betreiberangaben, Rechtstexte,
   allgemeiner Mailabsender und die öffentliche Google-/Apple-Freischaltung
@@ -79,6 +88,7 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
   [technischer Nachweis](park-run-planner-step-7-release.md).
 - [Schritt 7c: Parks löschen, Speicherbereinigung, Caching](park-cleanup-step-7c.md).
 - [Trainingspläne archivieren und löschen](plan-archive-trash.md).
+- [Trainingspläne mit anderen Trainern teilen](plan-trainer-shares.md).
 - [Qualitätsrahmen](ISO_IEC_25002_Zusammenfassung.md).
 
 Vor Umsetzung eines Pakets Ziel, Rollen, Umfang, Ausschlüsse und Abnahmekriterien

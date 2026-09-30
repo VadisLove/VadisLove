@@ -3,7 +3,7 @@
  * Directory-Antworten, kein Produktionszugang und keine externen Nachrichten.
  * Start: node tests/support/plan-hub-fixture-server.mjs
  * App:   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54340 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=local npx next dev -p 3107
- * Login: http://localhost:54340/login?role=trainer|athlete|board */
+ * Login: http://localhost:54340/login?role=trainer|athlete|board|kai|frank */
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -20,6 +20,8 @@ await db.exec(`
     id uuid primary key default gen_random_uuid(),
     snapshot_share_id uuid not null references public.training_plan_snapshot_shares(id) on delete cascade,
     trick_id text not null, athlete_id uuid not null references public.profiles(id));
+  -- Kontostatus-Helfer aus Produktion (hier: alle Konten aktiv).
+  create function private.account_is_active(target uuid) returns boolean language sql stable as $$ select target is not null $$;
 `);
 for (const file of [
   "20260923202413_step_5_training_sessions.sql",
@@ -28,6 +30,7 @@ for (const file of [
   "20260929130000_live_training_redesign.sql",
   "20260929130100_live_training_recap_lines.sql",
   "20260930100000_plan_archive_trash.sql",
+  "20260930120000_plan_trainer_shares.sql",
 ]) {
   await db.exec(await read(`../../supabase/migrations/${file}`));
 }
@@ -38,6 +41,9 @@ const users = [
   ["bea", "00000000-0000-4000-8000-00000000000b", "Bea Berger", "athlete"],
   ["cem", "00000000-0000-4000-8000-00000000000c", "Cem Kaya", "athlete"],
   ["board", "00000000-0000-4000-8000-000000000003", "Vera Vorstand", "organization_staff"],
+  // Weitere Trainer*innen für „Pläne teilen“: Kai (gleicher Verein), Frank (anderer Verein).
+  ["kai", "00000000-0000-4000-8000-000000000004", "Kai Kollege", "trainer"],
+  ["frank", "00000000-0000-4000-8000-000000000002", "Frank Fremd", "trainer"],
 ].map(([key, id, display_name, account_type]) => ({
   key,
   id,
@@ -62,12 +68,17 @@ for (const u of users) {
     enc({ sub: u.id, exp: 4102444800, role: "authenticated", aud: "authenticated" }) +
     ".local-fixture";
 }
-const [trainer, alex, bea, cem, board] = users;
+const [trainer, alex, bea, cem, board, kai, frank] = users;
 const CLUB = "00000000-0000-4000-8000-0000000000c1";
-await db.query("insert into public.organizations values($1,null,'SKSB Augsburg','club')", [CLUB]);
+const OTHER_CLUB = "00000000-0000-4000-8000-0000000000c2";
+await db.query("insert into public.organizations values($1,null,'SKSB Augsburg','club'),($2,null,'Rollbrett Kiel','club')", [
+  CLUB,
+  OTHER_CLUB,
+]);
 await db.query(
-  "insert into public.organization_memberships(organization_id,user_id,role) values($1,$2,'club_trainer'),($1,$3,'club_board')",
-  [CLUB, trainer.id, board.id],
+  `insert into public.organization_memberships(organization_id,user_id,role) values
+   ($1,$2,'club_trainer'),($1,$3,'club_board'),($1,$4,'club_trainer'),($5,$6,'club_trainer')`,
+  [CLUB, trainer.id, board.id, kai.id, OTHER_CLUB, frank.id],
 );
 for (const athlete of [alex, bea, cem]) {
   await db.query(
@@ -127,6 +138,22 @@ await asUser(trainer.id, (tx) => tx.query("select public.training_plan_archive($
 const junk = await seedPlan("Alter Testplan", ["Ollie"], [cem]);
 await asUser(trainer.id, (tx) => tx.query("select public.training_plan_delete($1)", [junk.id]));
 
+/* ------------- Geteilter Plan: Frank (anderer Verein) → Tina ------------- */
+
+{
+  const id = randomUUID();
+  const content = {
+    id, title: "Frontside Basics", category: "Park", level: "Fortgeschritten", version: "1", author: "Frank Fremd",
+    ownerLevel: "club", sharedWith: [], updatedAt: "", description: "Frontside-Grundlagen für den Park", status: "active",
+    visibility: "private", isTemplate: false, assignedGroups: [], assignedAthletes: [], sharedTrainers: [], goals: [],
+    tricks: tricks(["Frontside 50-50", "Frontside Rock", "Frontside Air"]).map((t, i) => ({ ...t, targetValue: i ? "" : "3× sauber" })),
+  };
+  await asUser(frank.id, (tx) =>
+    tx.query("select public.training_command($1,'plan_save',$2)", [randomUUID(), JSON.stringify({ id, revision: 0, content })]),
+  );
+  await asUser(frank.id, (tx) => tx.query("select public.training_share_plan_with_trainers($1,$2,'{}')", [id, [trainer.id]]));
+}
+
 /* ------------------------------- HTTP-Server ------------------------------ */
 
 // Nur diese RPCs werden an PGlite weitergereicht (benannte Argumente wie PostgREST).
@@ -134,6 +161,8 @@ const RPCS = new Set([
   "training_command", "training_workspace_data", "training_recaps", "training_plan_hub_context",
   "training_plan_library", "training_plan_archive", "training_plan_reactivate", "training_plan_delete",
   "training_plan_restore", "training_assign_plan", "training_set_club_template", "own_salutation",
+  "training_share_targets", "training_share_plan_with_trainers", "training_shared_plans",
+  "training_accept_shared_plan", "training_decline_shared_plan",
 ]);
 const argValue = (value) => (value !== null && typeof value === "object" && !Array.isArray(value) ? JSON.stringify(value) : value);
 

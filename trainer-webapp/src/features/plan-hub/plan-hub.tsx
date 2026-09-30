@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUp, ChevronLeft, ChevronRight, History, Plus } from "lucide-react";
 import {
+  acceptSharedPlan,
   archiveTrainingPlan,
   assignTrainingPlan,
   confirmTrickFromRecap,
+  declineSharedPlan,
   deleteTrainingPlan,
   reactivateTrainingPlan,
   restoreTrainingPlan,
@@ -15,6 +17,7 @@ import {
   setAthletePlanPermission,
   setClubTemplate,
   shareOwnPlanWithTrainer,
+  sharePlanWithTrainers,
   submitTrainingReport,
   updateSharedTrickProgress,
   type PlanHubActionResult,
@@ -58,6 +61,7 @@ import {
   type HubWords,
   type LibraryEntry,
   type Salutation,
+  type SharedPlanOffer,
   type Step,
   type WaitingReport,
 } from "./plan-hub-model";
@@ -74,6 +78,7 @@ import {
 } from "./plan-archive";
 import { AthleteProgress, StaffProgress } from "./plan-progress";
 import { RecapView } from "./plan-recap";
+import { SharedPlansEntry, SharedPlansView, ShareSheet } from "./plan-share";
 import { PermissionsSheet, ReportSheet, ReviewSheet, SalutationSheet, type ReportInput } from "./plan-sheets";
 import { PlanWizard, type WizardResult } from "./plan-wizard";
 import styles from "./plan-hub.module.css";
@@ -105,6 +110,8 @@ export interface HubActions {
   archive: (plan: HubPlan) => void;
   reactivate: (plan: HubPlan) => void;
   remove: (plan: HubPlan) => void;
+  /** Eigenen Plan mit anderen Trainer*innen teilen (Vorschlag zum Annehmen). */
+  share: (plan: HubPlan) => void;
 }
 
 type SheetState =
@@ -153,6 +160,8 @@ export function PlanHub({
   context,
   library = null,
   initialRights = false,
+  sharedPlans = [],
+  initialShared = false,
 }: {
   workspace: TrainingWorkspace | null;
   evidence: TrainingVideoEvidence[];
@@ -172,6 +181,10 @@ export function PlanHub({
   library?: LibraryEntry[] | null;
   /** `?rechte=1` (Profil → Berechtigungen) öffnet „Wer darf erstellen?“. */
   initialRights?: boolean;
+  /** Offene, von anderen Trainer*innen geteilte Pläne (Annehmen/Ablehnen). */
+  sharedPlans?: SharedPlanOffer[];
+  /** `?geteilt=1` (Link aus dem Postfach) öffnet die geteilten Pläne. */
+  initialShared?: boolean;
 }) {
   const router = useRouter();
   const [toast, setToast] = useState("");
@@ -298,6 +311,13 @@ export function PlanHub({
   // Bereiche der Planliste; archivierte Pläne verschwinden aus „Aktiv“.
   const [segment, setSegment] = useState<PlanSegment>("aktiv");
   const [trashOpen, setTrashOpen] = useState(false);
+
+  // Pläne teilen: Sheet für den eigenen Plan; geteilte Pläne anderer als eigene Ansicht.
+  const [sharePlan, setSharePlan] = useState<HubPlan | null>(null);
+  const [sharedOpen, setSharedOpen] = useState(initialShared);
+  // Angenommene/abgelehnte Vorschläge sofort ausblenden (bis zum nächsten Serverabruf).
+  const [handledOffers, setHandledOffers] = useState<Set<string>>(() => new Set());
+  const offers = staff ? sharedPlans.filter((offer) => !handledOffers.has(offer.id)) : [];
   const segmentPlans: Record<PlanSegment, HubPlan[]> = {
     aktiv: plans.filter((plan) => plan.lifecycle === "active"),
     entwuerfe: plans.filter((plan) => plan.lifecycle === "draft"),
@@ -349,6 +369,9 @@ export function PlanHub({
   useEffect(() => {
     if (initialRights) setUrlParam("rechte", null);
   }, [initialRights]);
+  useEffect(() => {
+    if (initialShared) setUrlParam("geteilt", null);
+  }, [initialShared]);
 
   // Mittlerer Tab-Bar-Button: „+“ mit Recht, sonst „↑ Melden“.
   const createMode = canCreate || role !== "athlete" ? "create" : "report";
@@ -564,6 +587,58 @@ export function PlanHub({
     void lifecycle(entry, () => restoreTrainingPlan(target(entry)), `„${entry.title}“ wiederhergestellt`);
   }
 
+  async function submitShare(plan: HubPlan, input: { recipientIds: string[]; clubIds: string[] }) {
+    if (!plan.savedPlanId) return;
+    setBusyKey(`share:${plan.key}`);
+    try {
+      const result = await sharePlanWithTrainers({ planId: plan.savedPlanId, ...input });
+      setToast(result.message);
+      if (result.status === "success") setSharePlan(null);
+    } catch {
+      setToast("Der Plan konnte nicht geteilt werden. Bitte erneut versuchen.");
+    } finally {
+      setBusyKey("");
+    }
+  }
+
+  /** Annehmen: eigener Entwurf entsteht; danach direkt bei den Entwürfen öffnen. */
+  async function acceptOffer(offer: SharedPlanOffer) {
+    setBusyKey(offer.id);
+    try {
+      const result = await acceptSharedPlan(offer.id);
+      setToast(result.status === "success" ? `„${offer.title}“ liegt jetzt bei deinen Entwürfen` : result.message);
+      if (result.status !== "success") return;
+      setHandledOffers((current) => new Set(current).add(offer.id));
+      setSharedOpen(false);
+      setSegment("entwuerfe");
+      if (result.planId) {
+        setSelectedKey(result.planId);
+        setMobileDetail(true);
+      }
+      router.refresh();
+    } catch {
+      setToast("Nicht übernommen. Bitte erneut versuchen.");
+    } finally {
+      setBusyKey("");
+    }
+  }
+
+  async function declineOffer(offer: SharedPlanOffer) {
+    setBusyKey(offer.id);
+    try {
+      const result = await declineSharedPlan(offer.id);
+      setToast(result.status === "success" ? `„${offer.title}“ abgelehnt` : result.message);
+      if (result.status !== "success") return;
+      setHandledOffers((current) => new Set(current).add(offer.id));
+      if (offers.length <= 1) setSharedOpen(false);
+      router.refresh();
+    } catch {
+      setToast("Nicht abgelehnt. Bitte erneut versuchen.");
+    } finally {
+      setBusyKey("");
+    }
+  }
+
   function switchSegment(next: PlanSegment) {
     setSegment(next);
     setSelectedKey(segmentPlans[next][0]?.key ?? null);
@@ -649,6 +724,7 @@ export function PlanHub({
     archive: (plan) => plan.library && archiveEntry(plan.library),
     reactivate: (plan) => plan.library && setSheet({ type: "reactivate", entry: plan.library }),
     remove: (plan) => plan.library && setSheet({ type: "delete", entry: plan.library }),
+    share: (plan) => setSharePlan(plan),
   };
 
   async function submitWizard(result: WizardResult) {
@@ -852,6 +928,14 @@ export function PlanHub({
 
       {!data ? (
         <p className={styles.emptyCard}>Deine Trainingspläne werden erst nach erfolgreichem Abruf angezeigt.</p>
+      ) : tab === "plaene" && sharedOpen && offers.length ? (
+        <SharedPlansView
+          offers={offers}
+          busyKey={busyKey}
+          onAccept={(offer) => void acceptOffer(offer)}
+          onDecline={(offer) => void declineOffer(offer)}
+          onBack={() => setSharedOpen(false)}
+        />
       ) : tab === "plaene" && trashOpen ? (
         <TrashView entries={trashEntries} busyKey={busyKey} onRestore={restoreEntry} onBack={() => setTrashOpen(false)} />
       ) : tab === "plaene" ? (
@@ -862,6 +946,8 @@ export function PlanHub({
             ))}
 
             {role === "athlete" ? <NextStepCard plans={livePlans} actions={actions} onOpen={selectPlan} /> : null}
+
+            <SharedPlansEntry count={offers.length} onOpen={() => setSharedOpen(true)} />
 
             <ProgressEntry role={role} plans={staff ? livePlans : plans} reports={reports.length} onOpen={() => switchTab("fortschritt")} />
 
@@ -979,6 +1065,15 @@ export function PlanHub({
           busy={training.busy}
           onClose={() => setWizard(null)}
           onSubmit={(result) => void submitWizard(result)}
+        />
+      ) : null}
+
+      {sharePlan ? (
+        <ShareSheet
+          plan={sharePlan}
+          busy={busyKey === `share:${sharePlan.key}`}
+          onSubmit={(input) => void submitShare(sharePlan, input)}
+          onClose={() => setSharePlan(null)}
         />
       ) : null}
 

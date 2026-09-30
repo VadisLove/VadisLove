@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { TrainingSession } from "@/domain/training";
 import { NoStartCard, RunningCard, StartCard } from "@/features/training/live-entry";
@@ -79,6 +79,8 @@ export function PlanDetail({
   const editable = Boolean(plan.editable) && !archived;
   // Trainer, Vorstand und Skater mit Erstellrecht; nur eigene (versionierte) Pläne.
   const canCreateLine = canCreate && editable;
+  // Teilen mit anderen Trainer*innen: nur eigene gespeicherte Pläne, auch archivierte.
+  const canShare = staff && plan.kind === "own" && Boolean(plan.savedPlanId);
 
   // Menü „…“: nur für verwaltbare Pläne (Ersteller bzw. Vorstand, siehe DB).
   // „Bearbeiten“ steht bei Trainern schon als eigener Button daneben.
@@ -111,6 +113,11 @@ export function PlanDetail({
           {staff && editable ? (
             <Button variant="secondary" onClick={() => actions.edit(plan)}>
               Bearbeiten
+            </Button>
+          ) : null}
+          {canShare ? (
+            <Button variant="secondary" onClick={() => actions.share(plan)}>
+              <Share2 size={16} aria-hidden="true" /> Teilen
             </Button>
           ) : null}
           <PlanMenu items={menu} />
@@ -147,6 +154,11 @@ export function PlanDetail({
           {staff && editable ? (
             <Button variant="secondary" className={styles.desktopOnly} onClick={() => actions.edit(plan)}>
               Bearbeiten
+            </Button>
+          ) : null}
+          {canShare ? (
+            <Button variant="secondary" className={styles.desktopOnly} onClick={() => actions.share(plan)}>
+              <Share2 size={16} aria-hidden="true" /> Teilen
             </Button>
           ) : null}
           {staff && assigned && !archived ? (
