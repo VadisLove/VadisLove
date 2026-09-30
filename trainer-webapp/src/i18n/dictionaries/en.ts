@@ -130,7 +130,6 @@ export const en: DictionaryShape<typeof de> = {
     missingConfig: "Supabase credentials are still missing from .env.local.",
     fullName: "Full name", fullNamePlaceholder: "First name Last name",
     salutation: "Form of address", salutationNone: "Not specified", salutationFemale: "female", salutationMale: "male", salutationDiverse: "diverse",
-    salutationHint: "Only used for texts in the app. You can change it in your profile at any time.",
     email: "Email address", iAm: "I am ...", password: "Password",
     repeatPassword: "Repeat password",
     club: "Club", stateAssociation: "Affiliated state association",

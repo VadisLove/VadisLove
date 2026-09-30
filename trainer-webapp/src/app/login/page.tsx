@@ -107,13 +107,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             {/* Optional: Anrede (m/w/d) für Texte in der App; ohne Angabe fragt der Planbereich einmalig nach. */}
             <label>
               {t("auth.salutation")}
-              <select name="salutation" defaultValue="" aria-describedby="registration-salutation-help">
+              <select name="salutation" defaultValue="">
                 <option value="">{t("auth.salutationNone")}</option>
                 <option value="w">{t("auth.salutationFemale")}</option>
                 <option value="m">{t("auth.salutationMale")}</option>
                 <option value="d">{t("auth.salutationDiverse")}</option>
               </select>
-              <small id="registration-salutation-help">{t("auth.salutationHint")}</small>
             </label>
 
             <label>

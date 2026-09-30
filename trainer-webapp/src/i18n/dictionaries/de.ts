@@ -121,7 +121,6 @@ export const de = {
     missingConfig: "Supabase-Zugangsdaten fehlen noch in .env.local.",
     fullName: "Vollständiger Name", fullNamePlaceholder: "Vorname Nachname",
     salutation: "Anrede", salutationNone: "Keine Angabe", salutationFemale: "weiblich", salutationMale: "männlich", salutationDiverse: "divers",
-    salutationHint: "Nur für Texte in der App, z. B. „Skaterin“. Jederzeit im Profil änderbar.",
     email: "E-Mail-Adresse", iAm: "Ich bin ...", password: "Passwort",
     repeatPassword: "Passwort wiederholen",
     club: "Verein", stateAssociation: "Zugehöriger Landesverband",
