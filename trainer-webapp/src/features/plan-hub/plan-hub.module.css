@@ -1415,6 +1415,8 @@ button.cell {
 
 .recap {
   display: grid;
+  /* minmax(0, 1fr) statt implizitem „auto“: breite Kinder dürfen die Seite nicht aufweiten. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -1683,7 +1685,9 @@ button.cell {
 
 .recapSide {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
+  min-width: 0;
 }
 
 .insight {
@@ -1759,6 +1763,24 @@ button.cell {
 .skillList small {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* „Alle X Skills anzeigen“ unter der Skill-Liste. */
+.skillMore {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-top: 1px solid var(--divider);
+  border-radius: 0 0 12px 12px;
+  background: none;
+  color: var(--link);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .spark {
@@ -2911,31 +2933,11 @@ button.cell {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Skills im Zeitraum: horizontal scrollbare Karten. */
-  .skillList {
-    display: grid;
-    grid-auto-columns: 200px;
-    grid-auto-flow: column;
-    gap: 10px;
-    padding: 12px;
-    overflow-x: auto;
-  }
-
+  /* Skills im Zeitraum: gleiche Zeilenliste wie am Desktop, nur etwas schmaler. */
   .skillList li {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-  }
-
-  .skillList li:last-child {
-    border-bottom: 1px solid var(--border);
-  }
-
-  .skillList .spark {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    grid-template-columns: minmax(0, 1fr) 52px auto;
+    gap: 10px;
+    padding: 10px 14px;
   }
 
   /* Bottom-Sheet statt Seitenleiste. */

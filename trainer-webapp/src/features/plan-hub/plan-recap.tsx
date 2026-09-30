@@ -182,18 +182,13 @@ export function RecapView({
 
         <aside className={styles.recapSide}>
           <Insight skills={skills} plans={plans} athleteId={planAthleteId} staff={staff} actions={actions} since={since} />
-          {skills.some((skill) => skill.kind !== "line") ? (
-            <section className={styles.skillCard}>
-              <h3>Skills im Zeitraum</h3>
-              <ul className={styles.skillList}>
-                {skills
-                  .filter((skill) => skill.kind !== "line")
-                  .map((skill) => (
-                    <SkillRow key={skill.skillId} skill={skill} plans={plans} athleteId={planAthleteId} />
-                  ))}
-              </ul>
-            </section>
-          ) : null}
+          <SkillListCard
+            // Neuer Athlet oder Zeitraum → Liste startet wieder zugeklappt.
+            key={`${athleteId}-${period}`}
+            skills={skills.filter((skill) => skill.kind !== "line")}
+            plans={plans}
+            athleteId={planAthleteId}
+          />
           {skills
             .filter((skill) => skill.kind === "line")
             .map((skill) => (
@@ -291,6 +286,50 @@ function Insight({
         </div>
         {action}
       </div>
+    </section>
+  );
+}
+
+/** So viele Skills zeigt die Karte, bevor „Alle anzeigen“ erscheint. */
+const skillPreviewCount = 4;
+
+/**
+ * „Skills im Zeitraum“ als vertikale Liste (meist trainierte zuerst). Ab mehr als
+ * `skillPreviewCount` Einträgen wird der Rest per Button auf- und zugeklappt –
+ * bewusst kein horizontaler Slider, damit alle Werte untereinander vergleichbar bleiben.
+ */
+function SkillListCard({ skills, plans, athleteId }: { skills: SkillSummary[]; plans: HubPlan[]; athleteId: string }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!skills.length) return null;
+  const hidden = skills.length - skillPreviewCount;
+  const shown = showAll || hidden <= 0 ? skills : skills.slice(0, skillPreviewCount);
+  return (
+    <section className={styles.skillCard}>
+      <h3>Skills im Zeitraum</h3>
+      <ul className={styles.skillList} id="recap-skill-list">
+        {shown.map((skill) => (
+          <SkillRow key={skill.skillId} skill={skill} plans={plans} athleteId={athleteId} />
+        ))}
+      </ul>
+      {hidden > 0 ? (
+        <button
+          type="button"
+          className={styles.skillMore}
+          aria-expanded={showAll}
+          aria-controls="recap-skill-list"
+          onClick={() => setShowAll((value) => !value)}
+        >
+          {showAll ? (
+            <>
+              Weniger anzeigen <ChevronUp size={16} aria-hidden="true" />
+            </>
+          ) : (
+            <>
+              Alle {skills.length} Skills anzeigen <ChevronDown size={16} aria-hidden="true" />
+            </>
+          )}
+        </button>
+      ) : null}
     </section>
   );
 }
