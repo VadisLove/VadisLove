@@ -342,7 +342,7 @@ unsere obige Auswahl ist eine projektbezogene Auswahl, keine vollständige Liste
 
    **Entschieden (30.09.2026):** Die bisherige Auswertungsansicht bleibt für Athleten vorerst erhalten, wird aber zu ihrer Selbsteinschätzung. So lassen sich Trainerbewertung und Selbsteinschätzung im Nachhinein vergleichen. Beim PDF-Export wählt der Trainer zwischen zwei Varianten: nur die eigenen Einträge oder die eigenen Einträge zusammen mit der Selbsteinschätzung des Athleten.
 
-   **Vorschlag (30.09.2026, noch nicht bestätigt):** Eltern sehen die Trainerbewertung nicht automatisch; der Trainer teilt eine Auswertung bei Bedarf gezielt mit den verknüpften Eltern (gleiche Auswahl wie beim PDF: nur Trainereinträge oder mit Selbsteinschätzung). Die Selbsteinschätzung und eigene Ziele ihres Kindes sehen verknüpfte Eltern ohne Weiteres.
+   **Entschieden (30.09.2026):** Eltern sehen die Trainerbewertung nicht automatisch; der Trainer teilt eine Auswertung bei Bedarf gezielt mit den verknüpften Eltern (gleiche Auswahl wie beim PDF: nur Trainereinträge oder mit Selbsteinschätzung). Die Selbsteinschätzung und eigene Ziele ihres Kindes sehen verknüpfte Eltern ohne Weiteres.
 
    **Noch zu klären:** Können Trainer eigene Ziele der Athleten kommentieren oder bestätigen?
 
