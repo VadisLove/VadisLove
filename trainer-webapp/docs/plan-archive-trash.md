@@ -142,13 +142,12 @@ pg_cron-Job `training-plan-trash-daily` um 03:50 Uhr ruft
 
 ## Veröffentlichung
 
-Offen. Reihenfolge:
-
-1. **Vor dem Deploy** beide Migrationen im Supabase-SQL-Editor ausführen (erst
-   `20260930100000_plan_archive_trash.sql`, dann `20260930100100_plan_trash_schedule.sql`)
-   und in `supabase_migrations.schema_migrations` eintragen.
-2. Rollback-Tag `production/stable-before-plaene-archiv-20260930` auf `origin/main` setzen.
-3. Branch nach `main` bringen (= Deploy über Vercel), Produktions-URL prüfen.
+Stand 30.09.2026: Beide Migrationen vom Nutzer im SQL-Editor angewendet und in
+`supabase_migrations.schema_migrations` eingetragen; per Abfrage bestätigt (Spalten,
+6 RPCs, 4 Trigger, Cron-Job `training-plan-trash-daily` um `50 3 * * *`). Rollback-Tag
+`production/stable-before-plaene-archiv-20260930` → `1aca2c1`. `main` per Fast-Forward
+auf `063bd0e`; Vercel-Deployment `dpl_9shY6H5fmD6X6xqrDGkjAU2cqbHS` READY, Alias
+trainer-webapp-ruby.vercel.app zeigt darauf (per Vercel-API bestätigt). Praxisprüfung offen.
 
 Rollback: App über den Tag zurücksetzen. Die Migration ist additiv; eine ältere App
 ignoriert die neuen Spalten. Der Cron-Job lässt sich mit

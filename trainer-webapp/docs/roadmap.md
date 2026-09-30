@@ -59,8 +59,8 @@ vorgezogen; Offline und Videos bleiben nachgelagert. Die Nummerierung bleibt bes
   entschieden und beauftragt.
   - Technisch geprüft: ja (274 Tests, Typprüfung, Produktionsbuild, lokaler Prüfstand als
     Trainer, Athlet und Vorstand).
-  - Veröffentlicht: nein – Migrationen `20260930100000` und `20260930100100` müssen vor
-    dem Deploy eingespielt werden; Branch `claude/plaene-archivieren-loeschen-9e79bb`.
+  - Veröffentlicht: ja (30.09.2026) – Migrationen vom Nutzer eingespielt, Deploy
+    `063bd0e` live, Rollback-Tag `production/stable-before-plaene-archiv-20260930`.
   - Praxisabnahme: offen.
   [Umfang, Entscheidungen und Nachweis](plan-archive-trash.md).
 - **Vorgemerkt (28.09.2026):** Rollenmodell für Mehrfachfunktionen (Verbandsvorstand, Verband/Verein leiten, Trainer in einer Person). Details in [roadmap-details.md](roadmap-details.md#noch-zu-klären-und-anschließend-technisch-auszuarbeiten).
